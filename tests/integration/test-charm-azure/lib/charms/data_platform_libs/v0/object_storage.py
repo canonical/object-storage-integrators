@@ -3,7 +3,6 @@
 # See LICENSE file for licensing details.
 
 import logging
-from collections import namedtuple
 from typing import Dict, List, Optional
 
 from charms.data_platform_libs.v0.data_interfaces import (

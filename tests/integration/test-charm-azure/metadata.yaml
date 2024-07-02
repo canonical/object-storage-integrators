@@ -1,5 +1,6 @@
-# Copyright 2022 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
+
 name: test-charm-azure
 description: |
   Data platform libs application charm used in integration tests.

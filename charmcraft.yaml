@@ -1,5 +1,6 @@
-# Copyright 2021 Canonical Ltd.
-# SPDX-License-Identifier: Apache-2.0
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 type: charm
 parts:
   charm:

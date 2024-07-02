@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# Copyright 2022 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""Application charm that connects to database charms.
+"""Application charm that connects to object storage provider charm.
 
 This charm is meant to be used only for testing
-the database requires-provides relation.
+the azure storage requires-provides relation.
 """
 
 import logging
@@ -29,7 +29,7 @@ CONTAINER_NAME = "test-bucket"
 
 
 class ApplicationCharm(CharmBase):
-    """Application charm that relates to S3 integrator."""
+    """Application charm that relates to Object Storage integrator."""
 
     def __init__(self, *args):
         super().__init__(*args)

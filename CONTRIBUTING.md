@@ -40,8 +40,8 @@ juju bootstrap localhost overlord
 
 Clone this repository:
 ```shell
-git clone https://github.com/canonical/s3-integrator.git
-cd s3-integrator/
+git clone https://github.com/canonical/object-storage-integrator.git
+cd object-storage-integrator/
 ```
 
 Create and activate a virtualenv, and install the development requirements:
@@ -81,7 +81,7 @@ juju add-model development
 juju model-config logging-config="<root>=INFO;unit=DEBUG"
 
 # Deploy the charm
-juju deploy ./s3-integrator_ubuntu-20.04-amd64.charm
+juju deploy ./object-storage-integrator_ubuntu-22.04-amd64.charm
 ```
 
 
@@ -92,4 +92,4 @@ The core implementation of this charm is represented by the [S3IntegratorCharm](
 
 ## Canonical Contributor Agreement
 
-Canonical welcomes contributions to the Charmed S3 Integrator Operator. Please check out our [contributor agreement](https://ubuntu.com/legal/contributors) if you're interested in contributing to the solution.
+Canonical welcomes contributions to the Charmed Object Storage Integrator Operator. Please check out our [contributor agreement](https://ubuntu.com/legal/contributors) if you're interested in contributing to the solution.
