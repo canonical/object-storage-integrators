@@ -1,0 +1,5 @@
+# Copyright 2022 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+get-s3-credentials:
+  description: Get the credentials for AMS S3

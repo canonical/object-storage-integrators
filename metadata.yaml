@@ -1,0 +1,29 @@
+# Copyright 2023 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+name: object-storage-integrator
+display-name: Object Storage Integrator
+summary: A provider charm for object storage credentials.
+description: |
+  Object Storage Integrator is an integrator charm for providing credentials
+  for various cloud object storage technologies like Amazon S3 and Azure Blob
+  to consumer charms which seek to access shared object storage data. Store the
+  credentials centrally in the integrator charm and relate consumer charms as needed.
+
+  This charm supports both bare-metal/virtual-machines and K8s.
+docs: https://discourse.charmhub.io/t/object-storage-integrator-documentation/10947
+source: https://github.com/canonical/object-storage-integrator
+issues: https://github.com/canonical/object-storage-integrator/issues
+website:
+  - https://ubuntu.com/data
+  - https://charmhub.io/object-storage-integrator
+  - https://github.com/canonical/object-storage-integrator
+  - https://launchpad.net/~data-platform
+  - https://chat.charmhub.io/charmhub/channels/data-platform
+maintainers:
+  - Data Platform Team <data-platform@lists.launchpad.net>
+
+
+provides:
+  azure-credentials:
+    interface: azure

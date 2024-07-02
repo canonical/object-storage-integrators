@@ -1,0 +1,5 @@
+# Copyright 2022 Canonical Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+get-azure-connection-info:
+  description: Returns Azure connection parameters
