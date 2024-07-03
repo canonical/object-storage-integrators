@@ -14,19 +14,6 @@ from pytest_operator.plugin import OpsTest
 logger = logging.getLogger(__name__)
 
 
-async def fetch_action_get_credentials(unit: Unit) -> Dict:
-    """Helper to run an action to fetch credentials.
-
-    Args:
-        unit: The juju unit on which to run the get-s3-credentials action for credentials
-        action: the
-    Returns:
-        A dictionary with the server config username and password
-    """
-    action = await unit.run_action(action_name="get-s3-credentials")
-    result = await action.wait()
-    return result.results
-
 
 def is_relation_joined(ops_test: OpsTest, endpoint_one: str, endpoint_two: str) -> bool:
     """Check if a relation is joined.

@@ -37,7 +37,7 @@ jobs:
       matrix:
         path:
           - .
-          - tests/integration/application-charm
+          - tests/integration/test-charm-azure
     name: Build charm
     uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v16.2.1
     with:
