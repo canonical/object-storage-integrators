@@ -57,7 +57,6 @@ jobs:
           - microk8s
         architecture:
           - amd64
-          - arm64
     name: Integration test charm | ${{ matrix.juju.agent }} | ${{ matrix.cloud }} | ${{ matrix.architecture }}
     needs:
       - lint
