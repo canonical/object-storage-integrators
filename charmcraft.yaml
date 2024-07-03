@@ -20,5 +20,3 @@ bases:
   - name: ubuntu
     channel: "22.04"
     architectures: [arm64]
-assumes:
-  - juju >= 3.4
