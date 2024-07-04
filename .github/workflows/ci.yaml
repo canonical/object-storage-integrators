@@ -1,5 +1,6 @@
-# Copyright 2022 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
+
 name: Tests
 
 concurrency:
@@ -49,8 +50,6 @@ jobs:
       fail-fast: false
       matrix:
         juju:
-          # - agent: 2.9.49
-          #   libjuju: ^2
           - agent: 3.4
         cloud:
           - lxd
@@ -68,5 +67,4 @@ jobs:
       architecture: ${{ matrix.architecture }}
       cloud: ${{ matrix.cloud }}
       juju-agent-version: ${{ matrix.juju.agent }}
-      libjuju-version-constraint: ${{ matrix.juju.libjuju }}
       microk8s-snap-channel: 1.29-strict/stable
