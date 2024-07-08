@@ -110,7 +110,7 @@ async def test_config_options(ops_test: OpsTest):
     # test the correctness of the configuration fields
     assert configured_options["storage-account"] == "stoacc"
     assert configured_options["path"] == "/test/path_1/"
-    assert configured_options["credentials"] == secret_uri
+    assert configured_options["secret-key"] == "**********"
 
 
 @pytest.mark.group(1)

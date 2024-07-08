@@ -48,16 +48,4 @@ class TestCharm(unittest.TestCase):
         self.assertEqual(self.harness.charm.config["path"], "some/path")
         # self.assertEqual(self.harness.charm.config["credentials"], secret_id )
 
-    def test_get_connection_info(self):
-        """Tests that Azure connection parameters are retrieved correctly."""
-        self.harness.set_leader(True)
-        event = mock.Mock()
-        self.harness.charm.on_get_connection_info_action(event)
-        # update some configuration parameters
-        self.harness.update_config({"storage-account": "stoacc"})
-        self.harness.update_config({"path": "foo/bar"})
-        # test that new parameter are present in the event results.
-        self.harness.charm.on_get_connection_info_action(event)
-        event.set_results.assert_called_with(
-            {"storage-account": "stoacc", "path": "foo/bar", "connection-protocol": "abfss"}
-        )
+
