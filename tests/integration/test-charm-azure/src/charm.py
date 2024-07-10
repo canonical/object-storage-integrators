@@ -48,10 +48,10 @@ class ApplicationCharm(CharmBase):
 
         # add relation
         self.framework.observe(
-            self.first_azure_client.on.credentials_changed, self._on_first_credential_changed
+            self.first_azure_client.on.storage_connection_info_changed, self._on_first_storage_connection_info_changed
         )
         self.framework.observe(
-            self.second_azure_client.on.credentials_changed, self._on_second_credential_changed
+            self.second_azure_client.on.storage_connection_info_changed, self._on_second_storage_connection_info_changed
         )
 
         self.framework.observe(
@@ -62,10 +62,10 @@ class ApplicationCharm(CharmBase):
         )
 
         self.framework.observe(
-            self.first_azure_client.on.credentials_gone, self._on_first_credential_gone
+            self.first_azure_client.on.storage_connection_info_gone, self._on_first_storage_connection_info_gone
         )
         self.framework.observe(
-            self.second_azure_client.on.credentials_gone, self._on_second_credential_gone
+            self.second_azure_client.on.storage_connection_info_gone, self._on_second_storage_connection_info_gone
         )
         # self.framework.observe(self.on.update_status, self.update_status)
 
@@ -83,19 +83,19 @@ class ApplicationCharm(CharmBase):
         logger.info("Relation_2 joined...")
         self.unit.status = ActiveStatus()
 
-    def _on_first_credential_changed(self, e: CredentialsChangedEvent):
+    def _on_first_storage_connection_info_changed(self, e: CredentialsChangedEvent):
         credentials = self.first_azure_client.get_azure_connection_info()
         logger.info(f"Relation_1 credentials changed. New credentials: {credentials}")
 
-    def _on_second_credential_changed(self, e: CredentialsChangedEvent):
+    def _on_second_storage_connection_info_changed(self, e: CredentialsChangedEvent):
         credentials = self.second_azure_client.get_azure_connection_info()
         logger.info(f"Relation_2 credentials changed. New credentials: {credentials}")
 
-    def _on_first_credential_gone(self, _: CredentialsGoneEvent):
+    def _on_first_storage_connection_info_gone(self, _: CredentialsGoneEvent):
         logger.info("Relation_1 credentials gone...")
         self.unit.status = WaitingStatus("Waiting for relation")
 
-    def _on_second_credential_gone(self, _: CredentialsGoneEvent):
+    def _on_second_storage_connection_info_gone(self, _: CredentialsGoneEvent):
         logger.info("Relation_2 credentials gone...")
         self.unit.status = WaitingStatus("Waiting for relation")
 
@@ -104,13 +104,6 @@ class ApplicationCharm(CharmBase):
         """Retrieve the peer relation (`ops.model.Relation`)."""
         return self.model.get_relation(PEER)
 
-    # def update_status(self, _):
-    #     first_credentials = self.first_azure_client.get_azure_connection_info()
-    #     logger.info(f"first: {first_credentials}")
-    #     second_credentials = self.second_azure_client.get_azure_connection_info()
-    #     logger.info(f"second: {second_credentials}")
-
-    #     logger.info(f"third: {self.first_azure_client.fetch_relation_data()}")
 
 
 if __name__ == "__main__":

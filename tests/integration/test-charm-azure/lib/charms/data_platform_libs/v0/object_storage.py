@@ -73,14 +73,14 @@ class CredentialsGoneEvent(RelationEvent):
 class AzureStorageProviderEvents(CharmEvents):
     """Events for the AzureStorageProvider side implementation."""
 
-    credentials_requested = EventSource(CredentialRequestedEvent)
+    storage_connection_info_requested = EventSource(CredentialRequestedEvent)
 
 
 class AzureStorageRequirerEvents(CharmEvents):
     """Events for the AzureStorageRequirer side implementation."""
 
-    credentials_changed = EventSource(CredentialsChangedEvent)
-    credentials_gone = EventSource(CredentialsGoneEvent)
+    storage_connection_info_changed = EventSource(CredentialsChangedEvent)
+    storage_connection_info_gone = EventSource(CredentialsGoneEvent)
 
 
 class AzureStorageRequirerData(RequirerData):
@@ -153,7 +153,7 @@ class AzureStorageRequirerEventHandlers(RequirerEventHandlers):
 
         # emit credential change event only if all mandatory fields are present
         if contains_required_options:
-            getattr(self.on, "credentials_changed").emit(
+            getattr(self.on, "storage_connection_info_changed").emit(
                 event.relation, app=event.app, unit=event.unit
             )
         else:
@@ -192,7 +192,7 @@ class AzureStorageRequirerEventHandlers(RequirerEventHandlers):
 
         # emit credential change event only if all mandatory fields are present
         if contains_required_options:
-            getattr(self.on, "credentials_changed").emit(
+            getattr(self.on, "storage_connection_info_changed").emit(
                 relation, app=relation.app, unit=remote_unit
             )
         else:
@@ -203,7 +203,7 @@ class AzureStorageRequirerEventHandlers(RequirerEventHandlers):
     def _on_relation_broken_event(self, event: RelationBrokenEvent) -> None:
         """Event handler for handling relation_broken event."""
         logger.info("Azure Storage relation broken...")
-        getattr(self.on, "credentials_gone").emit(event.relation, app=event.app, unit=event.unit)
+        getattr(self.on, "storage_connection_info_gone").emit(event.relation, app=event.app, unit=event.unit)
 
     @property
     def relations(self) -> List[Relation]:
@@ -247,7 +247,7 @@ class AzureStorageProviderEventHandlers(EventHandlers):
             return
         diff = self._diff(event)
         if "container" in diff.added:
-            self.on.credentials_requested.emit(event.relation, app=event.app, unit=event.unit)
+            self.on.storage_connection_info_requested.emit(event.relation, app=event.app, unit=event.unit)
 
 
 class AzureStorageProvides(AzureStorageProviderData, AzureStorageProviderEventHandlers):

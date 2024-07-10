@@ -35,10 +35,10 @@ class AzureStorageProviderEvents(BaseEventHandler, WithLogging):
         self.object_storage_manager = ObjectStorageManager(self.azure_provider_data)
 
         self.framework.observe(
-            self.azure_provider.on.credentials_requested, self._on_azure_credentials_requested
+            self.azure_provider.on.storage_connection_info_requested, self._on_azure_storage_connection_info_requested
         )
 
-    def _on_azure_credentials_requested(self, event: CredentialRequestedEvent):
+    def _on_azure_storage_connection_info_requested(self, event: CredentialRequestedEvent):
         """Handle the `credential-requested` event."""
         if not self.charm.unit.is_leader():
             return
