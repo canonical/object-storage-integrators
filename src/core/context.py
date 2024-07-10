@@ -9,7 +9,7 @@ from ops import ConfigData, Model
 from utils.logging import WithLogging
 from utils.secrets import decode_secret_key
 from core.domain import AzureConnectionInfo
-
+from constants import AZURE_MANDATORY_OPTIONS
 
 
 class Context(WithLogging):
@@ -22,12 +22,17 @@ class Context(WithLogging):
 
     @property
     def azure_storage(self):
+        for opt in AZURE_MANDATORY_OPTIONS:
+            if self.charm_config.get(opt) is None:
+                return {}
+        
         credentials = self.charm_config.get("credentials")
         try:
             secret_key = decode_secret_key(self.model, credentials)
         except Exception as e:
             self.logger.warning(str(e))
             secret_key = ""
+
         return AzureConnectionInfo(
             connection_protocol=self.charm_config.get("connection-protocol"),
             container=self.charm_config.get("container"),
