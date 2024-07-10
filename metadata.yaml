@@ -24,7 +24,7 @@ maintainers:
   - Data Platform Team <data-platform@lists.launchpad.net>
 
 assumes:
-  - juju >= 3.4
+  - juju >= 3.4.0
 
 provides:
   azure-credentials:
