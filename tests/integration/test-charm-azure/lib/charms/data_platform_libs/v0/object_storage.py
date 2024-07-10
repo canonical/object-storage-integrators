@@ -203,7 +203,9 @@ class AzureStorageRequirerEventHandlers(RequirerEventHandlers):
     def _on_relation_broken_event(self, event: RelationBrokenEvent) -> None:
         """Event handler for handling relation_broken event."""
         logger.info("Azure Storage relation broken...")
-        getattr(self.on, "storage_connection_info_gone").emit(event.relation, app=event.app, unit=event.unit)
+        getattr(self.on, "storage_connection_info_gone").emit(
+            event.relation, app=event.app, unit=event.unit
+        )
 
     @property
     def relations(self) -> List[Relation]:
@@ -247,7 +249,9 @@ class AzureStorageProviderEventHandlers(EventHandlers):
             return
         diff = self._diff(event)
         if "container" in diff.added:
-            self.on.storage_connection_info_requested.emit(event.relation, app=event.app, unit=event.unit)
+            self.on.storage_connection_info_requested.emit(
+                event.relation, app=event.app, unit=event.unit
+            )
 
 
 class AzureStorageProvides(AzureStorageProviderData, AzureStorageProviderEventHandlers):

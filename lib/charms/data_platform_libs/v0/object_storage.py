@@ -132,7 +132,10 @@ class AzureStorageRequirerEventHandlers(RequirerEventHandlers):
         """Return the azure storage connection info as a dictionary."""
         for relation in self.relations:
             if relation and relation.app:
-                return self.relation_data.fetch_relation_data([relation.id])[relation.id]
+                info = self.relation_data.fetch_relation_data([relation.id])[relation.id]
+                if not all([param in info for param in AZURE_STORAGE_REQUIRED_INFO]):
+                    continue
+                return info
         return {}
 
     def _on_relation_changed_event(self, event: RelationChangedEvent) -> None:

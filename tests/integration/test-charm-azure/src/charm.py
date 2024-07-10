@@ -48,10 +48,12 @@ class ApplicationCharm(CharmBase):
 
         # add relation
         self.framework.observe(
-            self.first_azure_client.on.storage_connection_info_changed, self._on_first_storage_connection_info_changed
+            self.first_azure_client.on.storage_connection_info_changed,
+            self._on_first_storage_connection_info_changed,
         )
         self.framework.observe(
-            self.second_azure_client.on.storage_connection_info_changed, self._on_second_storage_connection_info_changed
+            self.second_azure_client.on.storage_connection_info_changed,
+            self._on_second_storage_connection_info_changed,
         )
 
         self.framework.observe(
@@ -62,10 +64,12 @@ class ApplicationCharm(CharmBase):
         )
 
         self.framework.observe(
-            self.first_azure_client.on.storage_connection_info_gone, self._on_first_storage_connection_info_gone
+            self.first_azure_client.on.storage_connection_info_gone,
+            self._on_first_storage_connection_info_gone,
         )
         self.framework.observe(
-            self.second_azure_client.on.storage_connection_info_gone, self._on_second_storage_connection_info_gone
+            self.second_azure_client.on.storage_connection_info_gone,
+            self._on_second_storage_connection_info_gone,
         )
         # self.framework.observe(self.on.update_status, self.update_status)
 
@@ -103,7 +107,6 @@ class ApplicationCharm(CharmBase):
     def _peers(self):
         """Retrieve the peer relation (`ops.model.Relation`)."""
         return self.model.get_relation(PEER)
-
 
 
 if __name__ == "__main__":
