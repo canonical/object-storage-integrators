@@ -1,3 +1,6 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 """Utility functions related to secrets."""
 
 import logging
@@ -10,9 +13,7 @@ import ops.lib
 import ops.main
 import ops.model
 
-
 logger = logging.getLogger(__name__)
-
 
 
 def decode_secret_key(model, secret_id: str) -> Optional[str]:
@@ -34,9 +35,7 @@ def decode_secret_key(model, secret_id: str) -> Optional[str]:
         secret_content = model.get_secret(id=secret_id).get_content(refresh=True)
 
         if not secret_content.get("secret-key"):
-            raise ValueError(
-                f"The field 'secret-key' was not found in the secret '{secret_id}'."
-            )
+            raise ValueError(f"The field 'secret-key' was not found in the secret '{secret_id}'.")
         return secret_content["secret-key"]
     except ops.model.SecretNotFoundError:
         raise ops.model.SecretNotFoundError(f"The secret '{secret_id}' does not exist.")

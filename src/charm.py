@@ -13,11 +13,11 @@ import ops.framework
 import ops.lib
 import ops.main
 import ops.model
+
+from core.context import Context
+from events.actions import ActionEvents
 from events.general import GeneralEvents
 from events.provider import AzureStorageProviderEvents
-from events.actions import ActionEvents
-from core.context import Context
-
 
 logger = logging.getLogger(__name__)
 

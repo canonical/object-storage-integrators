@@ -3,7 +3,6 @@
 
 import unittest
 from asyncio.log import logger
-from unittest import mock
 
 from ops.model import BlockedStatus
 from ops.testing import Harness
@@ -47,5 +46,3 @@ class TestCharm(unittest.TestCase):
         self.assertEqual(self.harness.charm.config["container"], "container")
         self.assertEqual(self.harness.charm.config["path"], "some/path")
         # self.assertEqual(self.harness.charm.config["credentials"], secret_id )
-
-

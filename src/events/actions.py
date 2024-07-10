@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2024 Canonical Limited
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """Action related event handlers."""
@@ -24,7 +24,6 @@ class ActionEvents(BaseEventHandler, WithLogging):
         self.framework.observe(
             self.charm.on.get_azure_connection_info_action, self.on_get_connection_info_action
         )
-
 
     def on_get_connection_info_action(self, event: ActionEvent):
         """Handle the action `get_connection_info`."""

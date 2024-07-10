@@ -20,5 +20,5 @@ options:
     type: secret
     description: |
       The credentials to connect to Azure Storage account. This needs to be a Juju 
-      Secret URI, that contains the following keys:
+      Secret URI pointing to a secret that contains the following keys:
       1. secret-key: The secret key corresponding to the Azure Storage account

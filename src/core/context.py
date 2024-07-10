@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-# Copyright 2024 Canonical Limited
+
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """Charm Context definition and parsing logic."""
 
 from ops import ConfigData, Model
 
+from constants import AZURE_MANDATORY_OPTIONS
+from core.domain import AzureConnectionInfo
 from utils.logging import WithLogging
 from utils.secrets import decode_secret_key
-from core.domain import AzureConnectionInfo
-from constants import AZURE_MANDATORY_OPTIONS
 
 
 class Context(WithLogging):
@@ -19,13 +20,13 @@ class Context(WithLogging):
         self.model = model
         self.charm_config = config
 
-
     @property
     def azure_storage(self):
+        """Return information related to Azure Storage connection parameters."""
         for opt in AZURE_MANDATORY_OPTIONS:
             if self.charm_config.get(opt) is None:
                 return {}
-        
+
         credentials = self.charm_config.get("credentials")
         try:
             secret_key = decode_secret_key(self.model, credentials)
@@ -38,6 +39,5 @@ class Context(WithLogging):
             container=self.charm_config.get("container"),
             storage_account=self.charm_config.get("storage-account"),
             secret_key=secret_key,
-            path=self.charm_config.get("path")
+            path=self.charm_config.get("path"),
         )
-    

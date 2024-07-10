@@ -230,12 +230,6 @@ class AzureStorageProviderData(ProviderData):
     def __init__(self, model: Model, relation_name: str) -> None:
         super().__init__(model, relation_name)
 
-    def set_container(self, relation_id: int, container: str) -> None:
-        self.update_relation_data(relation_id, {"container": container})
-
-    def set_secret_key(self, relation_id, secret_key: str) -> None:
-        self.update_relation_data(relation_id, {"secret-key": secret_key})
-
 
 class AzureStorageProviderEventHandlers(EventHandlers):
     """The event handlers related to provider side of Azure Storage relation."""

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2024 Canonical Limited
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """Base utilities exposing common functionalities for all Events classes."""
@@ -8,22 +8,17 @@ from functools import wraps
 from typing import Callable
 
 from ops import EventBase, Object, StatusBase
+from ops.model import ActiveStatus, BlockedStatus
 
 from constants import AZURE_MANDATORY_OPTIONS
 from utils.logging import WithLogging
 from utils.secrets import decode_secret_key
-from ops.model import ActiveStatus, BlockedStatus
 
 
 class BaseEventHandler(Object, WithLogging):
     """Base class for all Event Handler classes in the Object Storage Integrator."""
 
-
-    def get_app_status(
-        self,
-        model,
-        charm_config
-    ) -> StatusBase:
+    def get_app_status(self, model, charm_config) -> StatusBase:
         """Return the status of the charm."""
         missing_options = []
         for config_option in AZURE_MANDATORY_OPTIONS:
@@ -51,8 +46,12 @@ def compute_status(
         """Return output after resetting statuses."""
         res = hook(event_handler, event)
         if event_handler.charm.unit.is_leader():
-            event_handler.charm.app.status = event_handler.get_app_status(event_handler.charm.model, event_handler.charm.config)
-        event_handler.charm.unit.status = event_handler.get_app_status(event_handler.charm.model, event_handler.charm.config)
+            event_handler.charm.app.status = event_handler.get_app_status(
+                event_handler.charm.model, event_handler.charm.config
+            )
+        event_handler.charm.unit.status = event_handler.get_app_status(
+            event_handler.charm.model, event_handler.charm.config
+        )
         return res
 
     return wrapper_hook
