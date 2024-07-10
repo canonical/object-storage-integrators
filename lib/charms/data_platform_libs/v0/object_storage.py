@@ -58,28 +58,28 @@ class ContainerEvent(ObjectStorageEvent):
         return self.relation.data[self.relation.app].get("container", "")
 
 
-class CredentialRequestedEvent(ContainerEvent):
+class StorageConnectionInfoRequestedEvent(ContainerEvent):
     pass
 
 
-class CredentialsChangedEvent(ContainerEvent):
+class StorageConnectionInfoChangedEvent(ContainerEvent):
     pass
 
 
-class CredentialsGoneEvent(RelationEvent):
+class StorageConnectionInfoGoneEvent(RelationEvent):
     pass
 
 
 class AzureStorageProviderEvents(CharmEvents):
     """Events for the AzureStorageProvider side implementation."""
-    storage_connection_info_requested = EventSource(CredentialRequestedEvent)
+    storage_connection_info_requested = EventSource(StorageConnectionInfoRequestedEvent)
 
 
 class AzureStorageRequirerEvents(CharmEvents):
     """Events for the AzureStorageRequirer side implementation."""
 
-    storage_connection_info_changed = EventSource(CredentialsChangedEvent)
-    storage_connection_info_gone = EventSource(CredentialsGoneEvent)
+    storage_connection_info_changed = EventSource(StorageConnectionInfoChangedEvent)
+    storage_connection_info_gone = EventSource(StorageConnectionInfoGoneEvent)
 
 
 class AzureStorageRequirerData(RequirerData):

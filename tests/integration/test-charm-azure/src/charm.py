@@ -12,8 +12,8 @@ import logging
 
 from charms.data_platform_libs.v0.object_storage import (
     AzureStorageRequires,
-    CredentialsChangedEvent,
-    CredentialsGoneEvent,
+    StorageConnectionInfoChangedEvent,
+    StorageConnectionInfoGoneEvent,
 )
 from ops.charm import CharmBase, RelationJoinedEvent
 from ops.main import main
@@ -71,7 +71,7 @@ class ApplicationCharm(CharmBase):
             self.second_azure_client.on.storage_connection_info_gone,
             self._on_second_storage_connection_info_gone,
         )
-        # self.framework.observe(self.on.update_status, self.update_status)
+        self.framework.observe(self.on.update_status, self._on_update_status)
 
     def _on_start(self, _) -> None:
         """Only sets an waiting status."""
@@ -87,19 +87,19 @@ class ApplicationCharm(CharmBase):
         logger.info("Relation_2 joined...")
         self.unit.status = ActiveStatus()
 
-    def _on_first_storage_connection_info_changed(self, e: CredentialsChangedEvent):
+    def _on_first_storage_connection_info_changed(self, e: StorageConnectionInfoChangedEvent):
         credentials = self.first_azure_client.get_azure_connection_info()
         logger.info(f"Relation_1 credentials changed. New credentials: {credentials}")
 
-    def _on_second_storage_connection_info_changed(self, e: CredentialsChangedEvent):
+    def _on_second_storage_connection_info_changed(self, e: StorageConnectionInfoChangedEvent):
         credentials = self.second_azure_client.get_azure_connection_info()
         logger.info(f"Relation_2 credentials changed. New credentials: {credentials}")
 
-    def _on_first_storage_connection_info_gone(self, _: CredentialsGoneEvent):
+    def _on_first_storage_connection_info_gone(self, _: StorageConnectionInfoGoneEvent):
         logger.info("Relation_1 credentials gone...")
         self.unit.status = WaitingStatus("Waiting for relation")
 
-    def _on_second_storage_connection_info_gone(self, _: CredentialsGoneEvent):
+    def _on_second_storage_connection_info_gone(self, _: StorageConnectionInfoGoneEvent):
         logger.info("Relation_2 credentials gone...")
         self.unit.status = WaitingStatus("Waiting for relation")
 
@@ -107,6 +107,12 @@ class ApplicationCharm(CharmBase):
     def _peers(self):
         """Retrieve the peer relation (`ops.model.Relation`)."""
         return self.model.get_relation(PEER)
+
+    def _on_update_status(self, _):
+        first_info = self.first_azure_client.get_azure_connection_info()
+        logger.info(f"First Azure client info: {first_info}")
+        second_info = self.second_azure_client.get_azure_connection_info()
+        logger.info(f"Second Azure client info: {second_info}")
 
 
 if __name__ == "__main__":

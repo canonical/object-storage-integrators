@@ -8,7 +8,7 @@
 from charms.data_platform_libs.v0.object_storage import (
     AzureStorageProviderData,
     AzureStorageProviderEventHandlers,
-    CredentialRequestedEvent,
+    StorageConnectionInfoRequestedEvent,
 )
 from ops import CharmBase
 
@@ -39,8 +39,10 @@ class AzureStorageProviderEvents(BaseEventHandler, WithLogging):
             self._on_azure_storage_connection_info_requested,
         )
 
-    def _on_azure_storage_connection_info_requested(self, event: CredentialRequestedEvent):
-        """Handle the `credential-requested` event."""
+    def _on_azure_storage_connection_info_requested(
+        self, event: StorageConnectionInfoRequestedEvent
+    ):
+        """Handle the `storage-connection-info-requested` event."""
         if not self.charm.unit.is_leader():
             return
 

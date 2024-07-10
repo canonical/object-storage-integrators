@@ -17,6 +17,7 @@ from .helpers import (
     get_relation_data,
     is_relation_broken,
     is_relation_joined,
+    update_juju_secret,
 )
 
 logger = logging.getLogger(__name__)
@@ -176,6 +177,72 @@ async def test_relation_creation(ops_test: OpsTest):
     secret_uri = application_data["secret-extra"]
     secret_data = await get_juju_secret(ops_test, secret_uri)
     assert secret_data["secret-key"] == "new-test-secret-key"
+
+
+@pytest.mark.group(1)
+@pytest.mark.abort_on_fail
+async def test_secret_updated(ops_test: OpsTest):
+    """Tests the update of secret-key via Juju secret."""
+    secret_uri = await update_juju_secret(
+        ops_test,
+        charm_name=CHARM_NAME,
+        secret_label="test-secret",
+        data={"secret-key": "has-been-changed"},
+    )
+    # wait for active status
+    await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="active", timeout=1000)
+    # test the returns
+    object_storage_integrator_unit = ops_test.model.applications[CHARM_NAME].units[0]
+    action = await object_storage_integrator_unit.run_action(
+        action_name="get-azure-connection-info"
+    )
+    action_result = await action.wait()
+    configured_options = action_result.results
+    # test the correctness of the configuration fields
+    assert configured_options["storage-account"] == "stoacc"
+    assert configured_options["path"] == "/test/path_1/"
+    assert configured_options["secret-key"] == "**********"
+
+    # test the content of the relation data bag
+    relation_data = await get_relation_data(ops_test, TEST_APP_NAME, FIRST_RELATION)
+    application_data = await get_application_data(ops_test, TEST_APP_NAME, FIRST_RELATION)
+    logger.info(relation_data)
+    logger.info(application_data)
+
+    # check correctness for some fields
+    assert "secret-extra" in application_data
+    assert "container" in application_data
+    assert application_data["container"] == "new-container-name"
+    assert application_data["storage-account"] == "stoacc"
+    assert application_data["path"] == "/test/path_1/"
+    secret_uri = application_data["secret-extra"]
+    secret_data = await get_juju_secret(ops_test, secret_uri)
+    assert secret_data["secret-key"] == "has-been-changed"
+
+
+@pytest.mark.group(1)
+@pytest.mark.abort_on_fail
+async def test_config_reset_container(ops_test: OpsTest):
+    """Tests the correct handling of configuration parameters."""
+    configuration_parameters = {
+        "container": "",
+    }
+    # apply new configuration options
+    await ops_test.model.applications[CHARM_NAME].set_config(configuration_parameters)
+
+    # wait for idle status
+    await ops_test.model.wait_for_idle(apps=[CHARM_NAME], timeout=1000)
+    assert ops_test.model.applications[CHARM_NAME].units[0].workload_status == "blocked"
+
+    configuration_parameters = {
+        "container": "reconfigured-container",
+    }
+    # apply new configuration options
+    await ops_test.model.applications[CHARM_NAME].set_config(configuration_parameters)
+
+    # wait for idle status
+    await ops_test.model.wait_for_idle(apps=[CHARM_NAME], timeout=1000, status="active")
+    assert ops_test.model.applications[CHARM_NAME].units[0].workload_status == "active"
 
 
 @pytest.mark.group(1)

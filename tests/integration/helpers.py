@@ -136,7 +136,7 @@ async def get_juju_secret(ops_test: OpsTest, secret_uri: str) -> Dict[str, str]:
 async def add_juju_secret(
     ops_test: OpsTest, charm_name: str, secret_label: str, data: Dict[str, str]
 ) -> str:
-    """Retrieve juju secret."""
+    """Add a new juju secret."""
     key_values = " ".join([f"{key}={value}" for key, value in data.items()])
     command = f"add-secret {secret_label} {key_values}"
     _, stdout, _ = await ops_test.juju(*command.split())
@@ -144,3 +144,16 @@ async def add_juju_secret(
     command = f"grant-secret {secret_label} {charm_name}"
     _, stdout, _ = await ops_test.juju(*command.split())
     return secret_uri
+
+
+async def update_juju_secret(
+    ops_test: OpsTest, charm_name: str, secret_label: str, data: Dict[str, str]
+) -> str:
+    """Update the given juju secret."""
+    key_values = " ".join([f"{key}={value}" for key, value in data.items()])
+    command = f"update-secret {secret_label} {key_values}"
+    retcode, stdout, stderr = await ops_test.juju(*command.split())
+    if retcode != 0:
+        logger.warning(
+            f"Update Juju secret exited with non zero status. \nSTDOUT: {stdout.strip()} \nSTDERR: {stderr.strip()}"
+        )

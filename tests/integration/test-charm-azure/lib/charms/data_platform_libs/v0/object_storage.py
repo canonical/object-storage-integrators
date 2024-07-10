@@ -58,29 +58,29 @@ class ContainerEvent(ObjectStorageEvent):
         return self.relation.data[self.relation.app].get("container", "")
 
 
-class CredentialRequestedEvent(ContainerEvent):
+class StorageConnectionInfoRequestedEvent(ContainerEvent):
     pass
 
 
-class CredentialsChangedEvent(ContainerEvent):
+class StorageConnectionInfoChangedEvent(ContainerEvent):
     pass
 
 
-class CredentialsGoneEvent(RelationEvent):
+class StorageConnectionInfoGoneEvent(RelationEvent):
     pass
 
 
 class AzureStorageProviderEvents(CharmEvents):
     """Events for the AzureStorageProvider side implementation."""
 
-    storage_connection_info_requested = EventSource(CredentialRequestedEvent)
+    storage_connection_info_requested = EventSource(StorageConnectionInfoRequestedEvent)
 
 
 class AzureStorageRequirerEvents(CharmEvents):
     """Events for the AzureStorageRequirer side implementation."""
 
-    storage_connection_info_changed = EventSource(CredentialsChangedEvent)
-    storage_connection_info_gone = EventSource(CredentialsGoneEvent)
+    storage_connection_info_changed = EventSource(StorageConnectionInfoChangedEvent)
+    storage_connection_info_gone = EventSource(StorageConnectionInfoGoneEvent)
 
 
 class AzureStorageRequirerData(RequirerData):
@@ -131,7 +131,10 @@ class AzureStorageRequirerEventHandlers(RequirerEventHandlers):
         """Return the azure storage connection info as a dictionary."""
         for relation in self.relations:
             if relation and relation.app:
-                return self.relation_data.fetch_relation_data([relation.id])[relation.id]
+                info = self.relation_data.fetch_relation_data([relation.id])[relation.id]
+                if not all([param in info for param in AZURE_STORAGE_REQUIRED_INFO]):
+                    continue
+                return info
         return {}
 
     def _on_relation_changed_event(self, event: RelationChangedEvent) -> None:
