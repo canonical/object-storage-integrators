@@ -16,7 +16,7 @@ from utils.secrets import decode_secret_key
 
 
 class BaseEventHandler(Object, WithLogging):
-    """Base class for all Event Handler classes in the Object Storage Integrator."""
+    """Base class for all Event Handler classes in the Azure Storage Integrator."""
 
     def get_app_status(self, model, charm_config) -> StatusBase:
         """Return the status of the charm."""

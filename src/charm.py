@@ -22,8 +22,8 @@ from events.provider import AzureStorageProviderEvents
 logger = logging.getLogger(__name__)
 
 
-class ObjectStorageIntegratorCharm(ops.charm.CharmBase):
-    """Charm for object storage integrator service."""
+class AzureStorageIntegratorCharm(ops.charm.CharmBase):
+    """Charm for Azure storage integrator service."""
 
     def __init__(self, *args) -> None:
         super().__init__(*args)
@@ -38,4 +38,4 @@ class ObjectStorageIntegratorCharm(ops.charm.CharmBase):
 
 
 if __name__ == "__main__":
-    ops.main.main(ObjectStorageIntegratorCharm)
+    ops.main.main(AzureStorageIntegratorCharm)

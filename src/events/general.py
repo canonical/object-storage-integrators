@@ -6,14 +6,14 @@
 
 
 import ops
-from charms.data_platform_libs.v0.object_storage import AzureStorageProviderData
+from charms.data_platform_libs.v0.azure_storage import AzureStorageProviderData
 from ops import CharmBase
 from ops.charm import ConfigChangedEvent, StartEvent
 
 from constants import AZURE_RELATION_NAME
 from core.context import Context
 from events.base import BaseEventHandler, compute_status
-from managers.object_storage import ObjectStorageManager
+from managers.azure_storage import AzureStorageManager
 from utils.logging import WithLogging
 
 
@@ -27,7 +27,7 @@ class GeneralEvents(BaseEventHandler, WithLogging):
         self.context = context
 
         self.azure_provider_data = AzureStorageProviderData(self.charm.model, AZURE_RELATION_NAME)
-        self.object_storage_manager = ObjectStorageManager(self.azure_provider_data)
+        self.azure_storage_manager = AzureStorageManager(self.azure_provider_data)
 
         self.framework.observe(self.charm.on.start, self._on_start)
         self.framework.observe(self.charm.on.update_status, self._on_update_status)
@@ -53,7 +53,7 @@ class GeneralEvents(BaseEventHandler, WithLogging):
             return
 
         self.logger.debug(f"Config changed... Current configuration: {self.charm.config}")
-        self.object_storage_manager.update(self.context.azure_storage)
+        self.azure_storage_manager.update(self.context.azure_storage)
 
     @compute_status
     def _on_secret_changed(self, event: ops.SecretChangedEvent):
@@ -74,4 +74,4 @@ class GeneralEvents(BaseEventHandler, WithLogging):
         if self.charm.config.get("credentials") != secret.id:
             return
 
-        self.object_storage_manager.update(self.context.azure_storage)
+        self.azure_storage_manager.update(self.context.azure_storage)

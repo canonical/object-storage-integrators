@@ -102,8 +102,8 @@ async def test_config_options(ops_test: OpsTest):
     # wait for active status
     await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="active", timeout=1000)
     # test the returns
-    object_storage_integrator_unit = ops_test.model.applications[CHARM_NAME].units[0]
-    action = await object_storage_integrator_unit.run_action(
+    azure_storage_integrator_unit = ops_test.model.applications[CHARM_NAME].units[0]
+    action = await azure_storage_integrator_unit.run_action(
         action_name="get-azure-connection-info"
     )
     action_result = await action.wait()
@@ -192,8 +192,8 @@ async def test_secret_updated(ops_test: OpsTest):
     # wait for active status
     await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="active", timeout=1000)
     # test the returns
-    object_storage_integrator_unit = ops_test.model.applications[CHARM_NAME].units[0]
-    action = await object_storage_integrator_unit.run_action(
+    azure_storage_integrator_unit = ops_test.model.applications[CHARM_NAME].units[0]
+    action = await azure_storage_integrator_unit.run_action(
         action_name="get-azure-connection-info"
     )
     action_result = await action.wait()

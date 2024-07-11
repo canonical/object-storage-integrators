@@ -7,12 +7,12 @@ from asyncio.log import logger
 from ops.model import BlockedStatus
 from ops.testing import Harness
 
-from charm import ObjectStorageIntegratorCharm
+from charm import AzureStorageIntegratorCharm
 
 
 class TestCharm(unittest.TestCase):
     def setUp(self):
-        self.harness = Harness(ObjectStorageIntegratorCharm)
+        self.harness = Harness(AzureStorageIntegratorCharm)
         self.addCleanup(self.harness.cleanup)
         self.harness.begin()
         self.charm = self.harness.charm
@@ -32,17 +32,11 @@ class TestCharm(unittest.TestCase):
 
         # trigger the leader_elected and config_changed events
         self.harness.set_leader(True)
-        # secret_id = self.harness.add_user_secret({"secret-key": "some-secret"})
-        # secret_id = self.harness.add_model_secret(
-        #     self.charm.app.name, {"secret-key": "some-secret"}
-        # )
-        # self.harness.grant_secret(secret_id, self.charm.app.name)
+
         self.harness.update_config({"storage-account": "storage-account"})
         self.harness.update_config({"container": "container"})
         self.harness.update_config({"path": "some/path"})
-        # self.harness.update_config({"credentials": secret_id})
 
         self.assertEqual(self.harness.charm.config["storage-account"], "storage-account")
         self.assertEqual(self.harness.charm.config["container"], "container")
         self.assertEqual(self.harness.charm.config["path"], "some/path")
-        # self.assertEqual(self.harness.charm.config["credentials"], secret_id )

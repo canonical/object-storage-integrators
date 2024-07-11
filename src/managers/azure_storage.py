@@ -2,12 +2,12 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""Object Storage manager."""
+"""Azure Storage manager."""
 
 from utils.logging import WithLogging
 
 
-class ObjectStorageManager(WithLogging):
+class AzureStorageManager(WithLogging):
     """Kyuubi manager class."""
 
     def __init__(self, relation_data):

@@ -6,7 +6,6 @@
 
 AZURE_RELATION_NAME = "azure-credentials"
 
-
 AZURE_MANDATORY_OPTIONS = ["container", "storage-account", "credentials", "connection-protocol"]
 
 KEYS_LIST = ["secret-key"]
