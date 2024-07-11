@@ -177,6 +177,14 @@ class AzureStorageRequirerEventHandlers(RequirerEventHandlers):
             )
             return
 
+        if event.secret.label != self.relation_data._generate_secret_label(
+            relation.name,
+            relation.id,
+            "extra",  
+        ):
+            logging.info("Secret is not relevant for us.")
+            return
+
         if relation.app == self.charm.app:
             logging.info("Secret changed event ignored for Secret Owner")
 

@@ -10,7 +10,7 @@ the azure storage requires-provides relation.
 
 import logging
 
-from charms.data_platform_libs.v0.object_storage import (
+from charms.data_platform_libs.v0.azure_storage import (
     AzureStorageRequires,
     StorageConnectionInfoChangedEvent,
     StorageConnectionInfoGoneEvent,
@@ -36,7 +36,6 @@ class ApplicationCharm(CharmBase):
 
         # Default charm events.
         self.framework.observe(self.on.start, self._on_start)
-        # self.framework.observe(self.on.secret_changed, self._on_secret_changed)
 
         # Events related to the requested database
         # (these events are defined in the database requires charm library).
