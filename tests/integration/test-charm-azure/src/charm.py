@@ -83,7 +83,7 @@ class ApplicationCharm(CharmBase):
         self.unit.status = ActiveStatus()
 
     def _on_second_relation_joined(self, _: RelationJoinedEvent):
-        """On s3 credential relation joined."""
+        """On azure credential relation joined."""
         logger.info("Relation_2 joined...")
         self.unit.status = ActiveStatus()
 

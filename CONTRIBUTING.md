@@ -87,7 +87,7 @@ juju deploy ./object-storage-integrator_ubuntu-22.04-amd64.charm
 
 ## Code overview
 
-The core implementation of this charm is represented by the [S3IntegratorCharm](./src/charm.py) class. This class will handle the [core lifecycle events](https://juju.is/docs/sdk/events) associated with the charm.
+The core implementation of this charm is represented by the [azure-storage-integrator](./src/charm.py) class. This class will handle the [core lifecycle events](https://juju.is/docs/sdk/events) associated with the charm.
 
 
 ## Canonical Contributor Agreement
