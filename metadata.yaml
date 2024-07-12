@@ -1,0 +1,31 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+name: azure-storage-integrator
+display-name: Azure Storage Integrator
+summary: A provider charm for Azure storage credentials.
+description: |
+  Azure Storage Integrator is an integrator charm for providing credentials
+  for Azure blob storage and Azure Data Lake Storage v2 to consumer charms which
+  seek to access shared object storage data. Store the credentials centrally in
+  the integrator charm and relate consumer charms as needed.
+
+  This charm supports both bare-metal/virtual-machines and K8s.
+docs: https://github.com/canonical/object-storage-integrators
+source: https://github.com/canonical/object-storage-integrators
+issues: https://github.com/canonical/object-storage-integrators/issues
+website:
+  - https://ubuntu.com/data
+  - https://charmhub.io/azure-storage-integrator
+  - https://github.com/canonical/object-storage-integrators
+  - https://launchpad.net/~data-platform
+  - https://chat.charmhub.io/charmhub/channels/data-platform
+maintainers:
+  - Data Platform Team <data-platform@lists.launchpad.net>
+
+assumes:
+  - juju >= 3.4.0
+
+provides:
+  azure-credentials:
+    interface: azure

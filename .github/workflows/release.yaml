@@ -1,0 +1,54 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+name: Release to Charmhub
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  lib-check:
+    name: Check libraries
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: |
+          # Workaround for https://github.com/canonical/charmcraft/issues/1389#issuecomment-1880921728
+          touch requirements.txt
+      - name: Check libs
+        uses: canonical/charming-actions/check-libraries@2.4.0
+        with:
+          # FIXME: CHARMHUB_TOKEN will expire in 2024-01-26
+          credentials: "${{ secrets.CHARMHUB_TOKEN }}"
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+  ci-tests:
+    needs:
+      - lib-check
+    name: Tests
+    uses: ./.github/workflows/ci.yaml
+    secrets: inherit
+
+  build:
+    name: Build charm
+    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v16.2.1
+
+  release-to-charmhub:
+    name: Release to CharmHub
+    needs:
+      - lib-check
+      - ci-tests
+      - build
+    uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@v16.2.1
+    with:
+      channel: latest/edge
+      artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
+    secrets:
+      charmhub-token: ${{ secrets.CHARMHUB_TOKEN }}
+    permissions:
+      contents: write  # Needed to create GitHub release

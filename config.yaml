@@ -1,0 +1,24 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+options:
+  container:
+    type: string
+    description: The name of the Azure Storage Container
+  storage-account:
+    type: string
+    description: The name of the Azure storage account
+  path:
+    type: string
+    description: The path inside the bucket/container to store objects.
+    default: ''
+  connection-protocol:
+    type: string  
+    description: The storage protocol to use when connecting to Azure storage
+    default: 'abfss'
+  credentials:
+    type: secret
+    description: |
+      The credentials to connect to Azure Storage account. This needs to be a Juju 
+      Secret URI pointing to a secret that contains the following keys:
+      1. secret-key: The secret key corresponding to the Azure Storage account
