@@ -10,7 +10,7 @@ authors = []
 
 [tool.poetry.dependencies]
 python = "^3.10"
-ops = "^2.11.0"
+ops = "^2.15.0"
 
 [tool.poetry.group.charm-libs.dependencies]
 
