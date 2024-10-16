@@ -5,6 +5,8 @@
 
 """Charm Context definition and parsing logic."""
 
+from typing import Optional
+
 from ops import ConfigData, Model
 
 from constants import AZURE_MANDATORY_OPTIONS
@@ -21,11 +23,11 @@ class Context(WithLogging):
         self.charm_config = config
 
     @property
-    def azure_storage(self):
+    def azure_storage(self) -> Optional[AzureConnectionInfo]:
         """Return information related to Azure Storage connection parameters."""
         for opt in AZURE_MANDATORY_OPTIONS:
             if self.charm_config.get(opt) is None:
-                return {}
+                return None
 
         credentials = self.charm_config.get("credentials")
         try:

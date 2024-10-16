@@ -43,10 +43,13 @@ class AzureStorageProviderEvents(BaseEventHandler, WithLogging):
         self, event: StorageConnectionInfoRequestedEvent
     ):
         """Handle the `storage-connection-info-requested` event."""
+        self.logger.info("On storage-connection-info-requested")
         if not self.charm.unit.is_leader():
             return
 
         container_name = self.charm.config.get("container")
-        assert container_name is not None
+        # assert container_name is not None
+        if not container_name:
+            self.logger.warning("Container is setup by the requirer application!")
 
         self.azure_storage_manager.update(self.context.azure_storage)
