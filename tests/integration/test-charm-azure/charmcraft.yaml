@@ -6,8 +6,4 @@ bases:
   - name: ubuntu
     channel: "22.04"
     architectures: [amd64]
-
-parts:
-  charm:
-    prime:
-      - venv/
+  

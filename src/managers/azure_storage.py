@@ -15,7 +15,7 @@ class AzureStorageManager(WithLogging):
 
     def update(self, azure_connection_info):
         """Update the contents of the relation data bag."""
-        if len(self.relation_data.relations) > 0:
+        if len(self.relation_data.relations) > 0 and azure_connection_info:
             for relation in self.relation_data.relations:
                 self.relation_data.update_relation_data(
                     relation.id, azure_connection_info.to_dict()
