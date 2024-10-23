@@ -8,6 +8,7 @@ from ops.model import BlockedStatus
 from ops.testing import Harness
 
 from charm import AzureStorageIntegratorCharm
+from core.domain import AzureConnectionInfo
 
 
 class TestCharm(unittest.TestCase):
@@ -28,15 +29,22 @@ class TestCharm(unittest.TestCase):
 
     def test_on_config_changed(self):
         """Checks that configuration parameters are correctly stored in the databag."""
-        # ensure that the peer relation databag is empty
-
         # trigger the leader_elected and config_changed events
         self.harness.set_leader(True)
 
         self.harness.update_config({"storage-account": "storage-account"})
         self.harness.update_config({"container": "container"})
+        self.harness.update_config({"credentials": "secret:sdfasdfadfasdf"})
         self.harness.update_config({"path": "some/path"})
 
         self.assertEqual(self.harness.charm.config["storage-account"], "storage-account")
         self.assertEqual(self.harness.charm.config["container"], "container")
         self.assertEqual(self.harness.charm.config["path"], "some/path")
+
+        self.assertIsNotNone(self.harness.charm.context.azure_storage)
+        self.assertEqual(type(self.harness.charm.context.azure_storage), AzureConnectionInfo)
+
+    def test_azure_storage_info_none(self):
+        """Checks that context.azure_storage returns None when mandatory configs are not set."""
+        self.harness.update_config({"storage-account": None})
+        self.assertIsNone(self.harness.charm.context.azure_storage)
