@@ -51,6 +51,7 @@ jobs:
       matrix:
         juju:
           - agent: 3.4.0
+          - agent: 3.5.4
         cloud:
           - lxd
           - microk8s
