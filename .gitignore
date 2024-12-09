@@ -12,9 +12,6 @@ __pycache__/
 # C extensions
 *.so
 
-# Requirements
-/requirements.txt
-/requirements-last-build.txt
 
 # Distribution / packaging
 .Python
