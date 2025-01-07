@@ -37,7 +37,7 @@ class BaseEventHandler(Object, WithLogging):
 
 
 def compute_status(
-    hook: Callable[[BaseEventHandler, EventBase], None]
+    hook: Callable[[BaseEventHandler, EventBase], None],
 ) -> Callable[[BaseEventHandler, EventBase], None]:
     """Decorator to automatically compute statuses at the end of the hook."""
 

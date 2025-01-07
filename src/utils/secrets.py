@@ -16,10 +16,11 @@ import ops.model
 logger = logging.getLogger(__name__)
 
 
-def decode_secret_key(model, secret_id: str) -> Optional[str]:
+def decode_secret_key(model: ops.Model, secret_id: str) -> Optional[str]:
     """Decode the secret with given secret_id and return the secret-key in plaintext value.
 
     Args:
+        model: juju model
         secret_id (str): The ID (URI) of the secret that contains the secret key
 
     Raises:
