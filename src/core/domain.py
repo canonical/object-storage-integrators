@@ -5,7 +5,6 @@
 
 """Definition of various model classes."""
 
-
 from dataclasses import dataclass
 
 

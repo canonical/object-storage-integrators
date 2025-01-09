@@ -4,7 +4,6 @@
 
 """Azure Storage Provider related event handlers."""
 
-
 from charms.data_platform_libs.v0.azure_storage import (
     AzureStorageProviderData,
     AzureStorageProviderEventHandlers,

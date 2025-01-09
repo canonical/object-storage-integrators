@@ -7,6 +7,7 @@ name = "charm"
 version = "0.1.0"
 description = ""
 authors = []
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -18,32 +19,27 @@ ops = "^2.17.0"
 optional = true
 
 [tool.poetry.group.format.dependencies]
-isort = "^5.13.2"
-black = "^24.3.0"
+ruff = "^0.8.6"
 
 [tool.poetry.group.lint]
 optional = true
 
 [tool.poetry.group.lint.dependencies]
+ruff = "^0.8.6"
 codespell = "^2.2.6"
-pyproject-flake8 = "^6.1.0"
-flake8-docstrings = "^1.7.0"
-flake8-copyright = "^0.2.4"
-flake8-builtins = "^2.2.0"
-pep8-naming = "^0.13.3"
 
 [tool.poetry.group.unit.dependencies]
-coverage = {extras = ["toml"], version = "^7.4.4"}
+coverage = { extras = ["toml"], version = "^7.4.4" }
 pytest = "^8.1.1"
 pytest-asyncio = "*"
 parameterized = "^0.9.0"
 
 [tool.poetry.group.integration.dependencies]
 pytest = "^8.1.1"
-pytest-github-secrets = {git = "https://github.com/canonical/data-platform-workflows", tag = "v16.2.1", subdirectory = "python/pytest_plugins/github_secrets"}
 pytest-operator = "^0.34.0"
-pytest-operator-cache = {git = "https://github.com/canonical/data-platform-workflows", tag = "v16.2.1", subdirectory = "python/pytest_plugins/pytest_operator_cache"}
-pytest-operator-groups = {git = "https://github.com/canonical/data-platform-workflows", tag = "v16.2.1", subdirectory = "python/pytest_plugins/pytest_operator_groups"}
+pytest-github-secrets = { git = "https://github.com/canonical/data-platform-workflows", tag = "v24.0.6", subdirectory = "python/pytest_plugins/github_secrets" }
+pytest-operator-cache = { git = "https://github.com/canonical/data-platform-workflows", tag = "v24.0.6", subdirectory = "python/pytest_plugins/pytest_operator_cache" }
+pytest-operator-groups = { git = "https://github.com/canonical/data-platform-workflows", tag = "v24.0.6", subdirectory = "python/pytest_plugins/pytest_operator_groups" }
 juju = "^3.3.1.1"
 
 # Testing tools configuration
@@ -62,25 +58,36 @@ markers = ["unstable"]
 # Formatting tools configuration
 [tool.black]
 line-length = 99
-target-version = ["py38"]
+target-version = ["py310"]
 
-[tool.isort]
-profile = "black"
+[tool.ruff]
+line-length = 99
+extend-exclude = ["__pycache__", "*.egg_info", "tests/integration/test-charm-azure"]
+target-version = "py310"
+src = ["src", "tests"]
 
-# Linting tools configuration
-[tool.flake8]
-max-line-length = 99
-max-doc-length = 99
-max-complexity = 10
-exclude = [".git", "__pycache__", ".tox", "build", "dist", "*.egg_info", "venv"]
-select = ["E", "W", "F", "C", "N", "R", "D", "H"]
-# Ignore W503, E501 because using black creates errors with this
-# Ignore D107 Missing docstring in __init__
-ignore = ["W503", "E501", "D107"]
-# D100, D101, D102, D103: Ignore missing docstrings in tests
-per-file-ignores = ["tests/*:D100,D101,D102,D103,D104"]
-docstring-convention = "google"
-# Check for properly formatted copyright header in each file
-copyright-check = "True"
-copyright-author = "Canonical Ltd."
-copyright-regexp = "Copyright\\s\\d{4}([-,]\\d{4})*\\s+%(author)s"
+[tool.ruff.lint]
+select = ["E", "W", "F", "C", "N", "D", "I001"]
+extend-ignore = [
+  "D203",
+  "D204",
+  "D213",
+  "D215",
+  "D400",
+  "D401",
+  "D404",
+  "D406",
+  "D407",
+  "D408",
+  "D409",
+  "D413",
+]
+ignore = ["E501", "D107"]
+per-file-ignores = { "tests/*" = ["D100", "D101", "D102", "D103", "D104", "E999"] }
+mccabe.max-complexity = 10
+
+[tool.pyright]
+include = ["src"]
+extraPaths = ["./lib", "src"]
+pythonVersion = "3.10"
+pythonPlatform = "All"
