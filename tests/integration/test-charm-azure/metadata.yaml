@@ -10,6 +10,6 @@ summary: |
 
 requires:
   first-azure-credentials:
-    interface: azure
+    interface: azure-storage
   second-azure-credentials:
-    interface: azure
+    interface: azure-storage

@@ -28,4 +28,4 @@ assumes:
 
 provides:
   azure-credentials:
-    interface: azure
+    interface: azure-storage
