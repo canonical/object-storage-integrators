@@ -40,10 +40,10 @@ jobs:
           - .
           - tests/integration/test-charm-azure
     name: Build charm
-    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v24.0.6 
+    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v24.0.6
     with:
       path-to-charm-directory: ${{ matrix.path }}
-      cache: false # TODO: Add to ccc-hub
+      cache: true
 
   integration-test:
     strategy:
@@ -63,7 +63,7 @@ jobs:
       - build
     uses: canonical/data-platform-workflows/.github/workflows/integration_test_charm.yaml@v24.0.6
     with:
-      artifact-prefix: packed-charm-cache-false # TODO: use true after adding to ccc-hub
+      artifact-prefix: packed-charm-cache-true
       architecture: ${{ matrix.architecture }}
       cloud: ${{ matrix.cloud }}
       juju-agent-version: ${{ matrix.juju.agent }}
