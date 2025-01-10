@@ -22,7 +22,7 @@ class AzureStorageProviderEvents(BaseEventHandler, WithLogging):
     """Class implementing Azure Integration event hooks."""
 
     def __init__(self, charm: CharmBase, context: Context):
-        super().__init__(charm, "azure-provider")
+        super().__init__(charm, "azure-storage-provider")
 
         self.charm = charm
         self.context = context

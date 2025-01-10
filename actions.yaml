@@ -1,5 +1,5 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-get-azure-connection-info:
+get-azure-storage-connection-info:
   description: Returns Azure connection parameters

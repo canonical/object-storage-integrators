@@ -9,7 +9,7 @@ summary: |
   only for testing of the libs in this repository.
 
 requires:
-  first-azure-credentials:
+  first-azure-storage-credentials:
     interface: azure-storage
-  second-azure-credentials:
+  second-azure-storage-credentials:
     interface: azure-storage

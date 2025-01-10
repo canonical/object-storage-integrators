@@ -27,5 +27,5 @@ assumes:
   - juju >= 3.4.0
 
 provides:
-  azure-credentials:
+  azure-storage-credentials:
     interface: azure-storage

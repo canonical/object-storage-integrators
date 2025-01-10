@@ -32,7 +32,7 @@ This is an operator charm providing an integrator for connecting to Azure Storag
 
 5. Now the charm should be in active and idle condition. To relate it with a consumer charm, simply do:
     ```
-    juju integrate azure-storage-integrator:azure-credentials consumer-charm:some-interface
+    juju integrate azure-storage-integrator:azure-storage-credentials consumer-charm:some-interface
     ```
 
 Now whenever the user changes the configuration options in azure-storage-integrator charm, appropriate event handlers are fired

@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 
 PEER = "application-peers"
 
-FIRST_RELATION = "first-azure-credentials"
-SECOND_RELATION = "second-azure-credentials"
+FIRST_RELATION = "first-azure-storage-credentials"
+SECOND_RELATION = "second-azure-storage-credentials"
 CONTAINER_NAME = "test-bucket"
 
 
