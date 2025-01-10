@@ -2,4 +2,4 @@
 # See LICENSE file for licensing details.
 
 get-azure-storage-connection-info:
-  description: Returns Azure connection parameters
+  description: Returns Azure storage connection parameters
