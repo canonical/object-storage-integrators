@@ -22,7 +22,8 @@ class ActionEvents(BaseEventHandler, WithLogging):
         self.context = context
 
         self.framework.observe(
-            self.charm.on.get_azure_connection_info_action, self.on_get_connection_info_action
+            self.charm.on.get_azure_storage_connection_info_action,
+            self.on_get_connection_info_action,
         )
 
     def on_get_connection_info_action(self, event: ActionEvent):
