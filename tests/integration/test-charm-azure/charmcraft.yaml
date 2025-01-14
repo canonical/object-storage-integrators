@@ -1,9 +1,9 @@
-# Copyright 2024 Canonical Ltd.
+# Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 type: charm
-bases:
-  - name: ubuntu
-    channel: "22.04"
-    architectures: [amd64]
-  
+platforms:
+  ubuntu@22.04:amd64:
+parts:
+  charm:
+    plugin: charm
