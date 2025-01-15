@@ -24,7 +24,7 @@ jobs:
       - name: Check libs
         uses: canonical/charming-actions/check-libraries@2.4.0
         with:
-          charmcraft-channel: latest/beta/data-platform  # TODO: remove after charmcraft 3.3 stable release
+          charmcraft-channel: latest/candidate  # TODO: remove after charmcraft 3.3 stable release
           # FIXME: CHARMHUB_TOKEN will expire in 2024-01-26
           credentials: "${{ secrets.CHARMHUB_TOKEN }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
@@ -39,7 +39,7 @@ jobs:
     name: Build charm
     uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v26.0.0
     with:
-      charmcraft-snap-channel: latest/beta/data-platform  # TODO: remove after charmcraft 3.3 stable release
+      charmcraft-snap-channel: latest/candidate  # TODO: remove after charmcraft 3.3 stable release
 
   release-to-charmhub:
     name: Release to CharmHub
@@ -49,7 +49,7 @@ jobs:
       - build
     uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@v26.0.0
     with:
-      charmcraft-snap-channel: latest/beta/data-platform  # TODO: remove after charmcraft 3.3 stable release
+      charmcraft-snap-channel: latest/candidate  # TODO: remove after charmcraft 3.3 stable release
       channel: latest/edge
       artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
     secrets:
