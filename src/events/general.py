@@ -34,11 +34,23 @@ class GeneralEvents(BaseEventHandler, WithLogging):
             self.charm.model, LEGACY_AZURE_RELATION_NAME
         )
         self.legacy_azure_storage_manager = AzureStorageManager(self.legacy_azure_provider_data)
+        self.framework.observe(
+            self.charm.on[LEGACY_AZURE_RELATION_NAME].relation_joined, self._log_deprecation_notice
+        )
 
         self.framework.observe(self.charm.on.start, self._on_start)
         self.framework.observe(self.charm.on.update_status, self._on_update_status)
         self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
         self.framework.observe(self.charm.on.secret_changed, self._on_secret_changed)
+
+    def _log_deprecation_notice(self, *args) -> None:
+        """Log a deprecation notice for legacy interface.
+
+        TODO: Remove this once all users have migrated to the new azure storage interface
+        """
+        self.logger.warning(
+            "The interface 'azure' has been deprecated. Please use 'azure-storage' interface instead."
+        )
 
     @compute_status
     def _on_start(self, _: StartEvent) -> None:
