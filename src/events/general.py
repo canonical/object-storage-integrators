@@ -9,7 +9,7 @@ from charms.data_platform_libs.v0.azure_storage import AzureStorageProviderData
 from ops import CharmBase
 from ops.charm import ConfigChangedEvent, StartEvent
 
-from constants import AZURE_RELATION_NAME
+from constants import AZURE_RELATION_NAME, LEGACY_AZURE_RELATION_NAME
 from core.context import Context
 from events.base import BaseEventHandler, compute_status
 from managers.azure_storage import AzureStorageManager
@@ -28,9 +28,15 @@ class GeneralEvents(BaseEventHandler, WithLogging):
         self.azure_provider_data = AzureStorageProviderData(self.charm.model, AZURE_RELATION_NAME)
         self.azure_storage_manager = AzureStorageManager(self.azure_provider_data)
 
+        # DEPRECATED: This code is here only for backward compatibility.
+        # TODO: Remove this once all users have migrated to the new azure storage interface
+        self.legacy_azure_provider_data = AzureStorageProviderData(
+            self.charm.model, LEGACY_AZURE_RELATION_NAME
+        )
+        self.legacy_azure_storage_manager = AzureStorageManager(self.legacy_azure_provider_data)
+
         self.framework.observe(self.charm.on.start, self._on_start)
         self.framework.observe(self.charm.on.update_status, self._on_update_status)
-
         self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
         self.framework.observe(self.charm.on.secret_changed, self._on_secret_changed)
 
@@ -54,6 +60,9 @@ class GeneralEvents(BaseEventHandler, WithLogging):
         self.logger.debug(f"Config changed... Current configuration: {self.charm.config}")
         self.azure_storage_manager.update(self.context.azure_storage)
 
+        # TODO: Remove this once all users have migrated to the new azure storage interface
+        self.legacy_azure_storage_manager.update(self.context.azure_storage)
+
     @compute_status
     def _on_secret_changed(self, event: ops.SecretChangedEvent):
         """Handle the secret changed event.
@@ -74,3 +83,6 @@ class GeneralEvents(BaseEventHandler, WithLogging):
             return
 
         self.azure_storage_manager.update(self.context.azure_storage)
+
+        # TODO: Remove this once all users have migrated to the new azure storage interface
+        self.legacy_azure_storage_manager.update(self.context.azure_storage)
