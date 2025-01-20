@@ -49,7 +49,7 @@ class GeneralEvents(BaseEventHandler, WithLogging):
         TODO: Remove this once all users have migrated to the new azure storage interface
         """
         self.logger.warning(
-            "The interface 'azure' has been deprecated. Please use 'azure-storage' interface instead."
+            "The interface 'azure' has been deprecated. Please use 'azure_storage' interface instead."
         )
 
     @compute_status

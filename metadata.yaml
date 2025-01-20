@@ -34,4 +34,4 @@ provides:
     interface: azure
 
   azure-storage-credentials:
-    interface: azure-storage
+    interface: azure_storage
