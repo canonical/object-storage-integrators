@@ -29,7 +29,7 @@ class GeneralEvents(BaseEventHandler, WithLogging):
         self.azure_storage_manager = AzureStorageManager(self.azure_provider_data)
 
         # DEPRECATED: This code is here only for backward compatibility.
-        # TODO: Remove this once all users have migrated to the new azure storage interface
+        # TODO (azure-interface): Remove this once all users have migrated to the new azure storage interface
         self.legacy_azure_provider_data = AzureStorageProviderData(
             self.charm.model, LEGACY_AZURE_RELATION_NAME
         )
@@ -46,7 +46,7 @@ class GeneralEvents(BaseEventHandler, WithLogging):
     def _log_deprecation_notice(self, *args) -> None:
         """Log a deprecation notice for legacy interface.
 
-        TODO: Remove this once all users have migrated to the new azure storage interface
+        TODO (azure-interface): Remove this once all users have migrated to the new azure storage interface
         """
         self.logger.warning(
             "The interface 'azure' has been deprecated. Please use 'azure_storage' interface instead."
@@ -72,7 +72,7 @@ class GeneralEvents(BaseEventHandler, WithLogging):
         self.logger.debug(f"Config changed... Current configuration: {self.charm.config}")
         self.azure_storage_manager.update(self.context.azure_storage)
 
-        # TODO: Remove this once all users have migrated to the new azure storage interface
+        # TODO (azure-interface): Remove this once all users have migrated to the new azure storage interface
         self.legacy_azure_storage_manager.update(self.context.azure_storage)
 
     @compute_status
@@ -96,5 +96,5 @@ class GeneralEvents(BaseEventHandler, WithLogging):
 
         self.azure_storage_manager.update(self.context.azure_storage)
 
-        # TODO: Remove this once all users have migrated to the new azure storage interface
+        # TODO (azure-interface): Remove this once all users have migrated to the new azure storage interface
         self.legacy_azure_storage_manager.update(self.context.azure_storage)

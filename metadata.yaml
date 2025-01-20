@@ -29,7 +29,7 @@ assumes:
 provides:
 
   # DEPRECATED
-  # TODO: Remove this once all users have been upgraded to the new interface.
+  # TODO (azure-interface): Remove this once all users have been upgraded to the new interface.
   azure-credentials:
     interface: azure
 

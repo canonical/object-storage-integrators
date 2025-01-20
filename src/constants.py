@@ -3,7 +3,7 @@
 
 """File containing constants to be used in the charm."""
 
-# TODO: Remove this once all users migrate to the new azure storage interface
+# TODO (azure-interface): Remove this once all users migrate to the new azure storage interface
 LEGACY_AZURE_RELATION_NAME = "azure-credentials"
 
 AZURE_RELATION_NAME = "azure-storage-credentials"
