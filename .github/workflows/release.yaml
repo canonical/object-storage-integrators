@@ -24,6 +24,7 @@ jobs:
       - name: Check libs
         uses: canonical/charming-actions/check-libraries@2.4.0
         with:
+          charmcraft-channel: latest/candidate  # TODO: remove after charmcraft 3.3 stable release
           # FIXME: CHARMHUB_TOKEN will expire in 2024-01-26
           credentials: "${{ secrets.CHARMHUB_TOKEN }}"
           github-token: "${{ secrets.GITHUB_TOKEN }}"
@@ -34,22 +35,16 @@ jobs:
     uses: ./.github/workflows/ci.yaml
     secrets: inherit
 
-  build:
-    name: Build charm
-    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v24.0.6
-    with:
-      cache: false
-
   release-to-charmhub:
     name: Release to CharmHub
     needs:
       - lib-check
       - ci-tests
-      - build
-    uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@v24.0.6
+    uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@v29.0.0
     with:
+      charmcraft-snap-channel: latest/candidate  # TODO: remove after charmcraft 3.3 stable release
       channel: latest/edge
-      artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
+      artifact-prefix: ${{ needs.ci-tests.outputs.artifact-prefix }}
     secrets:
       charmhub-token: ${{ secrets.CHARMHUB_TOKEN }}
     permissions:

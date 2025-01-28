@@ -11,7 +11,7 @@ description: |
   the integrator charm and relate consumer charms as needed.
 
   This charm supports both bare-metal/virtual-machines and K8s.
-docs: https://github.com/canonical/object-storage-integrators
+docs: https://discourse.charmhub.io/t/azure-storage-integrator-documentation/16610
 source: https://github.com/canonical/object-storage-integrators
 issues: https://github.com/canonical/object-storage-integrators/issues
 website:

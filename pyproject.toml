@@ -2,12 +2,8 @@
 # See LICENSE file for licensing details.
 
 [tool.poetry]
-# Charm is not packed as a standard Python package; this information is not used
-name = "charm"
-version = "0.1.0"
-description = ""
-authors = []
 package-mode = false
+requires-poetry = ">=2.0.0"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -37,9 +33,9 @@ parameterized = "^0.9.0"
 [tool.poetry.group.integration.dependencies]
 pytest = "^8.1.1"
 pytest-operator = "^0.34.0"
-pytest-github-secrets = { git = "https://github.com/canonical/data-platform-workflows", tag = "v24.0.6", subdirectory = "python/pytest_plugins/github_secrets" }
-pytest-operator-cache = { git = "https://github.com/canonical/data-platform-workflows", tag = "v24.0.6", subdirectory = "python/pytest_plugins/pytest_operator_cache" }
-pytest-operator-groups = { git = "https://github.com/canonical/data-platform-workflows", tag = "v24.0.6", subdirectory = "python/pytest_plugins/pytest_operator_groups" }
+pytest-github-secrets = { git = "https://github.com/canonical/data-platform-workflows", tag = "v29.0.0", subdirectory = "python/pytest_plugins/github_secrets" }
+pytest-operator-cache = { git = "https://github.com/canonical/data-platform-workflows", tag = "v29.0.0", subdirectory = "python/pytest_plugins/pytest_operator_cache" }
+pytest-operator-groups = { git = "https://github.com/canonical/data-platform-workflows", tag = "v29.0.0", subdirectory = "python/pytest_plugins/pytest_operator_groups" }
 juju = "^3.3.1.1"
 
 # Testing tools configuration
