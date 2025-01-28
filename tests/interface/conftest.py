@@ -1,7 +1,8 @@
 import pytest
-from charm import AzureStorageIntegratorCharm
 from interface_tester import InterfaceTester
 from scenario.state import State
+
+from charm import AzureStorageIntegratorCharm
 
 
 @pytest.fixture
