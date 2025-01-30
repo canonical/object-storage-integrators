@@ -4,17 +4,17 @@
 options:
   container:
     type: string
-    description: The name of the Azure Storage Container
+    description: The name of the Azure Storage Container.
   storage-account:
     type: string
-    description: The name of the Azure storage account
+    description: The name of the Azure storage account.
   path:
     type: string
     description: The path inside the bucket/container to store objects.
     default: ''
   connection-protocol:
     type: string  
-    description: The storage protocol to use when connecting to Azure storage
+    description: The storage protocol to use when connecting to Azure storage. Possible values: `wasb`, `wasbs` for Azure Blob Storage and `abfs`, `abfss` for Azure Data Lake Storage v2.
     default: 'abfss'
   credentials:
     type: secret
