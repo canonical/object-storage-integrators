@@ -10,6 +10,7 @@ python = "^3.10"
 ops = {version = ">=2.18.0", extras = ["testing"]}
 
 [tool.poetry.group.charm-libs.dependencies]
+cosl = "^0.0.51"
 
 [tool.poetry.group.format]
 optional = true
