@@ -27,5 +27,11 @@ assumes:
   - juju >= 3.4.0
 
 provides:
+
+  # DEPRECATED
+  # TODO (azure-interface): Remove this once all users have been upgraded to the new interface.
   azure-credentials:
     interface: azure
+
+  azure-storage-credentials:
+    interface: azure_storage

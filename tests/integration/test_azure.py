@@ -32,8 +32,8 @@ TEST_APP_NAME = TEST_APP_METADATA["name"]
 
 
 APPS = [CHARM_NAME, TEST_APP_NAME]
-FIRST_RELATION = "first-azure-credentials"
-SECOND_RELATION = "second-azure-credentials"
+FIRST_RELATION = "first-azure-storage-credentials"
+SECOND_RELATION = "second-azure-storage-credentials"
 
 
 @pytest.mark.group(1)
@@ -104,7 +104,7 @@ async def test_config_options(ops_test: OpsTest):
     # test the returns
     azure_storage_integrator_unit = ops_test.model.applications[CHARM_NAME].units[0]
     action = await azure_storage_integrator_unit.run_action(
-        action_name="get-azure-connection-info"
+        action_name="get-azure-storage-connection-info"
     )
     action_result = await action.wait()
     configured_options = action_result.results
@@ -192,7 +192,7 @@ async def test_secret_updated(ops_test: OpsTest):
     # test the returns
     azure_storage_integrator_unit = ops_test.model.applications[CHARM_NAME].units[0]
     action = await azure_storage_integrator_unit.run_action(
-        action_name="get-azure-connection-info"
+        action_name="get-azure-storage-connection-info"
     )
     action_result = await action.wait()
     configured_options = action_result.results

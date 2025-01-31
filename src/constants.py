@@ -3,7 +3,10 @@
 
 """File containing constants to be used in the charm."""
 
-AZURE_RELATION_NAME = "azure-credentials"
+# TODO (azure-interface): Remove this once all users migrate to the new azure storage interface
+LEGACY_AZURE_RELATION_NAME = "azure-credentials"
+
+AZURE_RELATION_NAME = "azure-storage-credentials"
 
 AZURE_MANDATORY_OPTIONS = ["container", "storage-account", "credentials", "connection-protocol"]
 

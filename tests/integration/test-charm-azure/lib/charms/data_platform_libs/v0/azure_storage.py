@@ -127,7 +127,7 @@ class AzureStorageRequirerEventHandlers(RequirerEventHandlers):
         event_data = {"container": self.container}
         self.relation_data.update_relation_data(event.relation.id, event_data)
 
-    def get_azure_connection_info(self) -> Dict[str, str]:
+    def get_azure_storage_connection_info(self) -> Dict[str, str]:
         """Return the azure storage connection info as a dictionary."""
         for relation in self.relations:
             if relation and relation.app:
@@ -147,7 +147,7 @@ class AzureStorageRequirerEventHandlers(RequirerEventHandlers):
 
         # check if the mandatory options are in the relation data
         contains_required_options = True
-        credentials = self.get_azure_connection_info()
+        credentials = self.get_azure_storage_connection_info()
         missing_options = []
         for configuration_option in AZURE_STORAGE_REQUIRED_INFO:
             if configuration_option not in credentials:
@@ -194,7 +194,7 @@ class AzureStorageRequirerEventHandlers(RequirerEventHandlers):
 
         # check if the mandatory options are in the relation data
         contains_required_options = True
-        credentials = self.get_azure_connection_info()
+        credentials = self.get_azure_storage_connection_info()
         missing_options = []
         for configuration_option in AZURE_STORAGE_REQUIRED_INFO:
             if configuration_option not in credentials:
