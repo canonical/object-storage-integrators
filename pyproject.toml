@@ -84,6 +84,9 @@ ignore = ["E501", "D107"]
 per-file-ignores = { "tests/*" = ["D100", "D101", "D102", "D103", "D104", "E999"] }
 mccabe.max-complexity = 10
 
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
 [tool.pyright]
 include = ["src"]
 extraPaths = ["./lib", "src"]
