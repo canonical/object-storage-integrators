@@ -807,23 +807,40 @@ signedtoken = ["cryptography (>=3.0.0)", "pyjwt (>=2.0.0,<3)"]
 
 [[package]]
 name = "ops"
-version = "2.17.0"
+version = "2.18.0"
 description = "The Python library behind great charms"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "ops-2.17.0-py3-none-any.whl", hash = "sha256:b6b7cebd1897bc1ea26312f1ddece693fbb5b392d5a395d5deef59204b98925e"},
-    {file = "ops-2.17.0.tar.gz", hash = "sha256:04f298bed94bfde3dd38ba39d309cda03d595273e815add6d0affb110cacb77b"},
+    {file = "ops-2.18.0-py3-none-any.whl", hash = "sha256:19aa71d06bdeac1af76ab31de3aab5ec828a92796ff157141c3c324b588cfaaf"},
+    {file = "ops-2.18.0.tar.gz", hash = "sha256:4ef43553097e1d27af6f1a1906a8dbcbac379f316124e40f7638923ed992b1ad"},
 ]
 
 [package.dependencies]
+ops-scenario = {version = ">=7.0.5,<8", optional = true, markers = "extra == \"testing\""}
 PyYAML = "==6.*"
 websocket-client = "==1.*"
 
 [package.extras]
-docs = ["canonical-sphinx-extensions", "furo", "linkify-it-py", "myst-parser", "ops-scenario (>=7.0.5,<8)", "pyspelling", "sphinx (>=8.0.0,<8.1.0)", "sphinx-autobuild", "sphinx-copybutton", "sphinx-design", "sphinx-notfound-page", "sphinx-tabs", "sphinxcontrib-jquery", "sphinxext-opengraph"]
+docs = ["canonical-sphinx-extensions", "furo", "linkify-it-py", "myst-parser", "pyspelling", "sphinx (>=8.0.0,<8.1.0)", "sphinx-autobuild", "sphinx-copybutton", "sphinx-design", "sphinx-notfound-page", "sphinx-tabs", "sphinxcontrib-jquery", "sphinxext-opengraph"]
 testing = ["ops-scenario (>=7.0.5,<8)"]
+
+[[package]]
+name = "ops-scenario"
+version = "7.1.1"
+description = "Python library providing a state-transition testing API for Operator Framework charms."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "ops_scenario-7.1.1-py3-none-any.whl", hash = "sha256:259561135f742ac9860a3857833fee81da3319a56b31111fcd1e714150be72de"},
+    {file = "ops_scenario-7.1.1.tar.gz", hash = "sha256:f009bb4d89113638efffec2010a968f90fa742c230106245201ba5557bd728cc"},
+]
+
+[package.dependencies]
+ops = ">=2.18,<3.0"
+PyYAML = ">=6.0.1"
 
 [[package]]
 name = "packaging"
@@ -1623,4 +1640,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "12f2709e852753f3eeeb65b47b5927d7d642c1c40e90873e42280dd7f9d6e27d"
+content-hash = "4585a56bb6f73511eedba395a00fe398fbfd4e35efbc8942b90cbf8558e600b0"
