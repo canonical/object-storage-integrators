@@ -80,7 +80,7 @@ backends:
     environment:
       CI: '$(HOST: echo $CI)'
     systems:
-      - ubuntu-22.04:
+      - ubuntu-24.04:
           username: runner
 
 suites:
