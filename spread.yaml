@@ -71,7 +71,10 @@ backends:
       PermitEmptyPasswords yes
       EOF
 
-      ADDRESS localhost
+      sudo systemctl daemon-reload
+      sudo systemctl restart ssh
+
+      ADDRESS "127.0.0.1"
     # HACK: spread does not pass environment variables set on runner
     # Manually pass specific environment variables
     environment:
