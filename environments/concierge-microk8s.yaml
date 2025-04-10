@@ -1,0 +1,11 @@
+juju:
+  model-defaults:
+    logging-config: <root>=INFO; unit=DEBUG
+providers:
+  microk8s:
+    enable: true
+    bootstrap: true
+    addons:
+      - dns
+      - hostpath-storage
+      - metallb:10.64.140.43-10.64.140.49

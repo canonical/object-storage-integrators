@@ -36,15 +36,30 @@ FIRST_RELATION = "first-azure-storage-credentials"
 SECOND_RELATION = "second-azure-storage-credentials"
 
 
-@pytest.mark.group(1)
+@pytest.fixture
+def azure_charm() -> Path:
+    if not (path := next(iter(Path.cwd().glob("*.charm")), None)):
+        raise FileNotFoundError("Could not find packed azure-storage-integrator charm.")
+
+    return path
+
+
+@pytest.fixture
+def test_charm() -> Path:
+    if not (
+        path := next(
+            iter((Path.cwd() / "tests/integration/test-charm-azure").glob("*.charm")), None
+        )
+    ):
+        raise FileNotFoundError("Could not find packed test charm.")
+
+    return path
+
+
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
-async def test_build_and_deploy(ops_test: OpsTest):
+async def test_build_and_deploy(ops_test: OpsTest, azure_charm: Path, test_charm: Path) -> None:
     """Build the charm and deploy 1 units for provider and requirer charm."""
-    # Build and deploy charm from local source folder
-    azure_charm = await ops_test.build_charm(".")
-    test_charm = await ops_test.build_charm("./tests/integration/test-charm-azure/")
-
     await asyncio.gather(
         ops_test.model.deploy(azure_charm, application_name=CHARM_NAME, num_units=1),
         ops_test.model.deploy(test_charm, application_name=TEST_APP_NAME, num_units=1),
@@ -81,7 +96,6 @@ async def test_build_and_deploy(ops_test: OpsTest):
     assert len(ops_test.model.applications[TEST_APP_NAME].units) == 1
 
 
-@pytest.mark.group(1)
 @pytest.mark.abort_on_fail
 async def test_config_options(ops_test: OpsTest):
     """Tests the correct handling of configuration parameters."""
@@ -114,7 +128,6 @@ async def test_config_options(ops_test: OpsTest):
     assert configured_options["secret-key"] == "**********"
 
 
-@pytest.mark.group(1)
 @pytest.mark.abort_on_fail
 async def test_relation_creation(ops_test: OpsTest):
     """Relate charms and wait for the expected changes in status."""
@@ -177,7 +190,6 @@ async def test_relation_creation(ops_test: OpsTest):
     assert secret_data["secret-key"] == "new-test-secret-key"
 
 
-@pytest.mark.group(1)
 @pytest.mark.abort_on_fail
 async def test_secret_updated(ops_test: OpsTest):
     """Tests the update of secret-key via Juju secret."""
@@ -218,7 +230,6 @@ async def test_secret_updated(ops_test: OpsTest):
     assert secret_data["secret-key"] == "has-been-changed"
 
 
-@pytest.mark.group(1)
 @pytest.mark.abort_on_fail
 async def test_config_reset_container(ops_test: OpsTest):
     """Tests the correct handling of configuration parameters."""
@@ -243,7 +254,6 @@ async def test_config_reset_container(ops_test: OpsTest):
     assert ops_test.model.applications[CHARM_NAME].units[0].workload_status == "active"
 
 
-@pytest.mark.group(1)
 async def test_relation_broken(ops_test: OpsTest):
     """Remove relation and wait for the expected changes in status."""
     # Remove relations
