@@ -1,0 +1,54 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+options:
+  endpoint:
+    type: string
+    description: The endpoint used to connect to the object storage.
+    default: ""
+  bucket:
+    type: string
+    description: The bucket/container name delivered by the provider.
+  region:
+    type: string
+    description: The region used to connect to the object storage.
+    default: ""
+  path:
+    type: string
+    description: The path inside the bucket/container to store objects.
+    default: ""
+  attributes:
+    type: string
+    description: The custom metadata (HTTP headers).
+    default: ""
+  s3-uri-style:
+    type: string
+    description: The S3 protocol specific bucket path lookup type.
+    default: ""
+  storage-class:
+    type: string
+    description: Storage Class for objects uploaded to the object storage.
+    default: ""
+  tls-ca-chain:
+    type: string
+    description: The complete CA chain, which can be used for HTTPS validation.
+    default: ""
+  s3-api-version:
+    type: string
+    description: S3 protocol specific API signature. Accepted values "2" or "4" 
+  experimental-delete-older-than-days:
+    type: int
+    description: |
+      Full backups can be retained for a number of days. The removal of expired
+      backups happens immediately after finishing the first successful backup after
+      retention period.
+      When full backup expires, the all differential and incremental backups which
+      depends on this full backup also expires.
+      This option is EXPERIMENTAL.
+      Allowed values are: from 1 to 9999999.
+  credentials:
+    type: secret
+    description: |
+      The credentials to connect to an S3 compatible object storage. This needs to be a Juju
+      Secret URI pointing to a secret that contains the following keys:
+      1. access-key: Access key (account) for connecting to the object storage.
+      2. secret-key: Access key secret (password) for connecting to the object storage.
