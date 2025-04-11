@@ -1,0 +1,5 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+get-s3-connection-info:
+  description: Returns S3 connection parameters

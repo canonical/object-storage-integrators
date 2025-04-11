@@ -1,0 +1,85 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+[tool.poetry]
+package-mode = false
+requires-poetry = ">=2.0.0"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+ops = ">=2.18.0"
+pydantic = "^2.11.3"
+
+[tool.poetry.group.charm-libs.dependencies]
+
+[tool.poetry.group.format]
+optional = true
+
+[tool.poetry.group.format.dependencies]
+ruff = "^0.8.6"
+
+[tool.poetry.group.lint]
+optional = true
+
+[tool.poetry.group.lint.dependencies]
+ruff = "^0.8.6"
+codespell = "^2.2.6"
+
+[tool.poetry.group.unit.dependencies]
+coverage = { extras = ["toml"], version = "^7.4.4" }
+pytest = "^8.1.1"
+pytest-asyncio = "*"
+ops = { version = ">=2.18.0", extras = ["testing"] }
+
+[tool.poetry.group.integration.dependencies]
+pytest = "^8.1.1"
+pytest-operator = "^0.34.0"
+juju = "^3.3.1.1"
+
+# Testing tools configuration
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+log_cli_level = "INFO"
+asyncio_mode = "auto"
+markers = ["unstable"]
+
+[tool.ruff]
+line-length = 99
+extend-exclude = ["__pycache__", "*.egg_info", "tests/integration/test-charm-s3"]
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "C", "N", "D", "I001"]
+extend-ignore = [
+  "D203",
+  "D204",
+  "D213",
+  "D215",
+  "D400",
+  "D401",
+  "D404",
+  "D406",
+  "D407",
+  "D408",
+  "D409",
+  "D413",
+]
+ignore = ["E501", "D107"]
+per-file-ignores = { "tests/*" = ["D100", "D101", "D102", "D103", "D104", "E999"] }
+mccabe.max-complexity = 10
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.pyright]
+include = ["src"]
+extraPaths = ["./lib", "src"]
+pythonVersion = "3.10"
+pythonPlatform = "All"
