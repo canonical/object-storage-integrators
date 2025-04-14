@@ -45,7 +45,6 @@ def test_on_start_blocked(ctx: Context[S3IntegratorCharm], base_state: State) ->
 
     # Then
     assert isinstance(status := state_out.unit_status, BlockedStatus)
-    assert "bucket" in status.message
     assert "credentials" in status.message
 
 

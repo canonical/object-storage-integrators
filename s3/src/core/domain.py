@@ -51,7 +51,9 @@ class CharmConfig(BaseConfigModel):
     """Manager for the structured configuration."""
 
     endpoint: Annotated[str | None, BeforeValidator(nullify_empty_string)]
-    bucket: str = Field(pattern=BUCKET_REGEX)
+    bucket: Annotated[str | None, BeforeValidator(nullify_empty_string)] = Field(
+        None, pattern=BUCKET_REGEX
+    )
     region: Annotated[str | None, BeforeValidator(nullify_empty_string)]
     path: Annotated[str | None, BeforeValidator(nullify_empty_string)]
     attributes: Annotated[str | None, BeforeValidator(nullify_empty_string)]
