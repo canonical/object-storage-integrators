@@ -22,6 +22,16 @@ def s3_charm() -> Path:
     return path
 
 
+@pytest.fixture
+def test_charm() -> Path:
+    if not (
+        path := next(iter((Path.cwd() / "tests/integration/test-charm-s3").glob("*.charm")), None)
+    ):
+        raise FileNotFoundError("Could not find packed test charm.")
+
+    return path
+
+
 @pytest.fixture(scope="module")
 def juju():
     with jubilant.temp_model() as juju:
@@ -46,8 +56,8 @@ def s3_info() -> dict[str, str]:
 
     return {
         "endpoint": endpoint,
-        "access_key": access_key,
-        "secret_key": secret_key,
+        "access-key": access_key,
+        "secret-key": secret_key,
     }
 
 

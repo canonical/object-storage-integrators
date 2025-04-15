@@ -14,7 +14,7 @@ import logging
 
 from s3_lib import S3Requires, StorageConnectionInfoChangedEvent, StorageConnectionInfoGoneEvent
 from ops.charm import CharmBase, RelationJoinedEvent
-from ops import main
+from ops import ActionEvent, main
 from ops.model import ActiveStatus, WaitingStatus
 
 logger = logging.getLogger(__name__)
@@ -67,6 +67,8 @@ class ApplicationCharm(CharmBase):
             self._on_second_storage_connection_info_gone,
         )
         self.framework.observe(self.on.update_status, self._on_update_status)
+        self.framework.observe(self.on.get_first_s3_action, self._on_get_first_s3_action)
+        self.framework.observe(self.on.get_second_s3_action, self._on_get_second_s3_action)
 
     def _on_start(self, _) -> None:
         """Only sets an waiting status."""
@@ -98,10 +100,11 @@ class ApplicationCharm(CharmBase):
         logger.info("Relation_2 credentials gone...")
         self.unit.status = WaitingStatus("Waiting for relation")
 
-    @property
-    def _peers(self):
-        """Retrieve the peer relation (`ops.model.Relation`)."""
-        return self.model.get_relation(PEER)
+    def _on_get_first_s3_action(self, event: ActionEvent) -> None:
+        event.set_results(self.first_s3_client.get_s3_connection_info())
+
+    def _on_get_second_s3_action(self, event: ActionEvent) -> None:
+        event.set_results(self.second_s3_client.get_s3_connection_info())
 
     def _on_update_status(self, _):
         first_info = self.first_s3_client.get_s3_connection_info()
