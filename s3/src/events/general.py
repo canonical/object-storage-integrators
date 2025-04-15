@@ -8,9 +8,11 @@ import ops
 from ops import CharmBase
 from ops.charm import ConfigChangedEvent, StartEvent
 
+from constants import S3_RELATION_NAME
 from core.context import Context
 from events.base import BaseEventHandler, compute_status
 from managers.s3 import S3Manager
+from s3_lib import S3ProviderData
 from utils.logging import WithLogging
 
 
@@ -23,8 +25,8 @@ class GeneralEvents(BaseEventHandler, WithLogging):
         self.charm = charm
         self.context = context
 
-        # TODO: pass proper interface
-        self.s3_manager = S3Manager({})
+        self.s3_provider_data = S3ProviderData(self.charm.model, S3_RELATION_NAME)
+        self.s3_manager = S3Manager(self.s3_provider_data)
 
         self.framework.observe(self.charm.on.start, self._on_start)
         self.framework.observe(self.charm.on.update_status, self._on_update_status)
