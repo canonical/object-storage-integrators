@@ -152,7 +152,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
         for relation in self.relations:
             if relation and relation.app:
                 info = self.relation_data.fetch_relation_data([relation.id])[relation.id]
-                if not set(S3_REQUIRED_OPTIONS) - set(info):
+                if set(S3_REQUIRED_OPTIONS) - set(info):
                     continue
                 return info
         return {}
