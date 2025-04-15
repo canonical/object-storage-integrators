@@ -19,4 +19,4 @@ class S3Manager(WithLogging):
         """Update the contents of the relation data bag."""
         if len(self.relation_data.relations) > 0 and s3_connection_info:
             for relation in self.relation_data.relations:
-                self.relation_data.update_relation_data(relation.id, s3_connection_info)
+                self.relation_data.update_relation_data(relation.id, dict(s3_connection_info))

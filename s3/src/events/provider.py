@@ -2,7 +2,7 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""Azure Storage Provider related event handlers."""
+"""S3 Provider related event handlers."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ class S3ProviderEvents(BaseEventHandler, WithLogging):
         self.context = context
         self.s3_provider_data = S3ProviderData(self.charm.model, S3_RELATION_NAME)
         self.s3_provider = S3ProviderEventHandlers(self.charm, self.s3_provider_data)
-        self.azure_storage_manager = S3Manager(self.s3_provider_data)
+        self.s3_manager = S3Manager(self.s3_provider_data)
         self.framework.observe(
             self.s3_provider.on.storage_connection_info_requested,
             self._on_s3_connection_info_requested,
@@ -46,8 +46,7 @@ class S3ProviderEvents(BaseEventHandler, WithLogging):
             return
 
         bucket_name = self.charm.config.get("bucket")
-        # assert container_name is not None
         if not bucket_name:
             self.logger.warning("Bucket is setup by the requirer application!")
 
-        self.azure_storage_manager.update(self.context.s3)
+        self.s3_manager.update(self.context.s3)
