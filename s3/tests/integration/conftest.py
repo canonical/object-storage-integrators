@@ -2,10 +2,11 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 import logging
+import os
 import random
 import string
+import subprocess
 from pathlib import Path
-from subprocess import check_output
 
 import jubilant
 import pytest
@@ -41,24 +42,32 @@ def juju():
 @pytest.fixture(scope="module")
 def s3_info() -> dict[str, str]:
     """S3 object storage info."""
-    logger.info("Retrieving minio creds")
+    logger.info("Retrieving s3 creds")
 
-    setup_minio_output = (
-        check_output(
-            "./tests/integration/setup/setup_minio.sh | tail -n 1", shell=True, stderr=None
+    if os.environ.get("SUBSTRATE", "microk8s") == "vm":
+        return {
+            "endpoint": "http://localhost:80",
+            "access-key": "foo",
+            "secret-key": "bar",
+        }
+
+    else:
+        setup_minio_output = (
+            subprocess.check_output(
+                "./tests/integration/setup/setup_minio.sh | tail -n 1", shell=True, stderr=None
+            )
+            .decode("utf-8")
+            .strip()
         )
-        .decode("utf-8")
-        .strip()
-    )
 
-    logger.info(f"Minio output:\n{setup_minio_output}")
-    endpoint, access_key, secret_key = setup_minio_output.strip().split(",")
+        logger.info(f"Minio output:\n{setup_minio_output}")
+        endpoint, access_key, secret_key = setup_minio_output.strip().split(",")
 
-    return {
-        "endpoint": endpoint,
-        "access-key": access_key,
-        "secret-key": secret_key,
-    }
+        return {
+            "endpoint": endpoint,
+            "access-key": access_key,
+            "secret-key": secret_key,
+        }
 
 
 @pytest.fixture(scope="module")
