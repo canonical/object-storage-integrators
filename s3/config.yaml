@@ -50,5 +50,5 @@ options:
     description: |
       The credentials to connect to an S3 compatible object storage. This needs to be a Juju
       Secret URI pointing to a secret that contains the following keys:
-      1. access-key: Access key (account) for connecting to the object storage.
-      2. secret-key: Access key secret (password) for connecting to the object storage.
+      1. access-key: Access key for accessing the object storage backend.
+      2. secret-key: Access key secret for accessing the object storage backend.

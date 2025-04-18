@@ -3,7 +3,7 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""A charm for integrating s3 object storage to a charmed application."""
+"""A charm for sharing s3 complaint object storage credentials to a charmed application."""
 
 import logging
 
