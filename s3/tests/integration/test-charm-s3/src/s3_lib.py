@@ -18,6 +18,86 @@ This library provides the relevant interface code implementing the communication
 specification for fetching, retrieving, triggering, and responding to events related to
 the S3 provider charm and its consumers.
 
+
+### Provider charm
+
+The provider is implemented in the `s3-integrator` charm which is meant to be deployed
+alongside one or more consumer charms. The provider charm is serving the s3 credentials and
+metadata needed to communicate and work with an S3 compatible backend.
+
+Example:
+```python
+
+from s3_lib import (
+    S3ProviderData,
+    S3ProviderEventHandlers,
+    StorageConnectionInfoRequestedEvent,
+)
+
+class ExampleProviderCharm(CharmBase):
+    def __init__(self, *args) -> None:
+        super().__init__(*args)
+
+        self.s3_provider_data = S3ProviderData(self.charm.model, S3_RELATION_NAME)
+        self.s3_provider = S3ProviderEventHandlers(self.charm, self.s3_provider_data)
+
+        self.framework.observe(
+            self.s3_provider.on.storage_connection_info_requested,
+            self._on_s3_connection_info_requested,
+        )
+
+    def _on_s3_connection_info_requested(self, _: StorageConnectionInfoRequestedEvent) -> None:
+        if not self.charm.unit.is_leader():
+            return
+
+        bucket_name = self.charm.config.get("bucket")
+        if not bucket_name:
+            self.logger.warning("Bucket is setup by the requirer application!")
+
+        self.s3_provider_data.update({})
+
+
+if __name__ == "__main__":
+    main(ExampleProviderCharm)
+
+
+### Requirer charm
+
+The requirer charm is the charm requiring the S3 credentials.
+An example of requirer charm is the following:
+
+Example:
+```python
+
+from s3_lib import S3Requires, StorageConnectionInfoChangedEvent, StorageConnectionInfoGoneEvent
+
+class ExampleRequirerCharm(CharmBase):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+
+         bucket_name = "test-bucket"
+        # if bucket name is not provided the bucket name will be generated
+        # e.g., ('relation-{relation.id}')
+
+        self.s3_client = S3Requires(self, "s3-credentials", bucket_name)
+
+        self.framework.observe(self.s3_client.on.s3_connection_info_changed, self._on_credential_changed)
+        self.framework.observe(self.s3_client.on.s3_connection_info_gone, self._on_credential_gone)
+
+    def _on_credential_changed(self, event: StorageConnectionInfoChangedEvent):
+
+        # access single parameter credential
+        secret_key = event.secret_key
+        access_key = event.access_key
+
+    def _on_credential_gone(self, event: StorageConnectionInfoGoneEvent):
+        # credentials are removed
+        pass
+
+ if __name__ == "__main__":
+    main(ExampleRequirerCharm)
+```
 """
 
 import logging
