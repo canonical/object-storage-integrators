@@ -1,0 +1,7 @@
+summary: test_charm.py
+environment:
+  TEST_MODULE: test_charm.py
+  SUBSTRATE: microk8s
+execute: |
+  cd "$SPREAD_PATH/s3"
+  tox run -e integration -- "tests/integration/$TEST_MODULE" -x
