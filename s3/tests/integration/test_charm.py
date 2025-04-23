@@ -35,14 +35,10 @@ def test_deploy(juju: jubilant.Juju, s3_charm: Path, s3_info: dict, bucket_name:
     juju.cli("config", S3, f"credentials={secret_id}")
 
 
-def test_grant_secret_active(juju: jubilant.Juju, bucket_name: str) -> None:
+def test_grant_secret_active(juju: jubilant.Juju) -> None:
     """Test that once the charm is active once granted access to the secret."""
     juju.cli("grant-secret", SECRET_LABEL, S3)
     juju.wait(jubilant.all_active, timeout=120)
-
-    task = juju.run(f"{S3}/0", "get-s3-connection-info", wait=10)
-    assert task.return_code == 0
-    assert task.results["bucket"] == bucket_name
 
 
 def test_provider_default_bucket(

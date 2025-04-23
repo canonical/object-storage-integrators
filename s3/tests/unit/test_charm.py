@@ -5,10 +5,9 @@ import dataclasses
 import json
 from pathlib import Path
 
-import pytest
 import yaml
 from ops import ActiveStatus, BlockedStatus
-from ops.testing import ActionFailed, Context, Secret, State
+from ops.testing import Context, Secret, State
 from pytest import fixture
 
 from src.charm import S3IntegratorCharm
@@ -88,40 +87,3 @@ def test_on_start_ok(charm_configuration: dict, base_state: State) -> None:
 
     # Then
     assert state_out.unit_status == ActiveStatus()
-
-
-def test_on_action_credentials_not_set(ctx: Context[S3IntegratorCharm], base_state: State) -> None:
-    """Check that relating the charm toggle TLS mode in the databag."""
-    # Given
-    state_in = base_state
-
-    # When
-    with pytest.raises(ActionFailed) as excinfo:
-        ctx.run(ctx.on.action("get-s3-connection-info"), state_in)
-
-    # Then
-    assert excinfo.value.message == "Credentials are not set!"
-
-
-def test_on_action_get_credentials(charm_configuration: dict, base_state: State) -> None:
-    # Given
-    credentials_secret = Secret(
-        tracked_content={
-            "access-key": "accesskey",
-            "secret-key": "secretkey",
-        }
-    )
-    bucket = "bucket-name"
-    charm_configuration["options"]["bucket"]["default"] = bucket
-    charm_configuration["options"]["credentials"]["default"] = credentials_secret.id
-    ctx = Context(
-        S3IntegratorCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
-    )
-    state_in = dataclasses.replace(base_state, secrets={credentials_secret})
-
-    # When
-    ctx.run(ctx.on.action("get-s3-connection-info"), state_in)
-
-    # Then
-    assert ctx.action_results
-    assert ctx.action_results["bucket"] == bucket

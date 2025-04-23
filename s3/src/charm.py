@@ -10,7 +10,6 @@ import logging
 from ops import CharmBase, main
 
 from core.context import Context
-from events.actions import ActionEvents
 from events.general import GeneralEvents
 from events.provider import S3ProviderEvents
 
@@ -31,7 +30,6 @@ class S3IntegratorCharm(CharmBase):
         # Event Handlers
         self.general_events = GeneralEvents(self, self.context)
         self.s3_provider_events = S3ProviderEvents(self, self.context)
-        self.action_events = ActionEvents(self, self.context)
 
 
 if __name__ == "__main__":
