@@ -25,6 +25,7 @@ optional = true
 [tool.poetry.group.lint.dependencies]
 ruff = "^0.8.6"
 codespell = "^2.2.6"
+mypy = "^1.15.0"
 
 [tool.poetry.group.unit.dependencies]
 coverage = { extras = ["toml"], version = "^7.4.4" }
@@ -71,11 +72,26 @@ extend-ignore = [
   "D413",
 ]
 ignore = ["E501", "D107"]
-per-file-ignores = { "tests/*" = ["D100", "D101", "D102", "D103", "D104", "E999"] }
+per-file-ignores = { "tests/*" = ["D100", "D101", "D102", "D103", "D104", "E999"], "src/*/__init__.py" = ["D104"] }
 mccabe.max-complexity = 10
 
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
+
+[tool.mypy]
+python_version = "3.12"
+exclude = [
+  "lib",
+  "tests/integration/test-charm-s3/lib",
+  "tests/integration/test-charm-s3/src/s3_lib.py",
+]
+follow_imports = "silent"
+
+[[tool.mypy.overrides]]
+module = [
+  "charms.data_platform_libs.*",
+]
+ignore_missing_imports = true
 
 [tool.pyright]
 include = ["src"]

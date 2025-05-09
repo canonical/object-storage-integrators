@@ -4,8 +4,10 @@
 
 """Base utilities exposing common functionalities for all Events classes."""
 
+from __future__ import annotations
+
 from functools import wraps
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 from ops import EventBase, Object, StatusBase
 from ops.model import ActiveStatus, BlockedStatus
@@ -15,9 +17,14 @@ from core.domain import CharmConfig
 from utils.logging import WithLogging
 from utils.secrets import decode_secret_key
 
+if TYPE_CHECKING:
+    from charm import S3IntegratorCharm
+
 
 class BaseEventHandler(Object, WithLogging):
     """Base class for all Event Handler classes in the S3 Integrator."""
+
+    charm: S3IntegratorCharm
 
     def get_app_status(self, model, charm_config) -> StatusBase:
         """Return the status of the charm."""
@@ -47,7 +54,7 @@ class BaseEventHandler(Object, WithLogging):
 
 
 def compute_status(
-    hook: Callable[[BaseEventHandler, EventBase], None],
+    hook: Callable,
 ) -> Callable[[BaseEventHandler, EventBase], None]:
     """Decorator to automatically compute statuses at the end of the hook."""
 

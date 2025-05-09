@@ -4,8 +4,11 @@
 
 """S3 Provider related event handlers."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import ops
-from ops import CharmBase
 from ops.charm import ConfigChangedEvent, StartEvent
 
 from constants import S3_RELATION_NAME
@@ -15,11 +18,14 @@ from managers.s3 import S3Manager
 from s3_lib import S3ProviderData
 from utils.logging import WithLogging
 
+if TYPE_CHECKING:
+    from charm import S3IntegratorCharm
+
 
 class GeneralEvents(BaseEventHandler, WithLogging):
     """Class implementing S3 Integration event hooks."""
 
-    def __init__(self, charm: CharmBase, context: Context):
+    def __init__(self, charm: S3IntegratorCharm, context: Context):
         super().__init__(charm, "general")
 
         self.charm = charm

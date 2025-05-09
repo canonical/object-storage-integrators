@@ -101,6 +101,7 @@ class ExampleRequirerCharm(CharmBase):
 """
 
 import logging
+from typing import Dict, List, Optional  # using py38-style typing
 
 from charms.data_platform_libs.v0.data_interfaces import (
     EventHandlers,
@@ -142,7 +143,7 @@ class BucketEvent(RelationEvent):
     """Base class for bucket events."""
 
     @property
-    def bucket(self) -> str | None:
+    def bucket(self) -> Optional[str]:
         """Returns the bucket was requested."""
         if not self.relation.app:
             return None
@@ -186,7 +187,7 @@ class S3RequirerData(RequirerData):
 
     SECRET_FIELDS = ["access-key", "secret-key"]
 
-    def __init__(self, model, relation_name: str, bucket: str | None = None):
+    def __init__(self, model, relation_name: str, bucket: Optional[str] = None) -> None:
         super().__init__(
             model,
             relation_name,
@@ -198,6 +199,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
     """Event handlers for for requirer side of S3 relation."""
 
     on = S3RequirerEvents()  # type: ignore
+    bucket: Optional[str]
 
     def __init__(self, charm: CharmBase, relation_data: S3RequirerData):
         super().__init__(charm, relation_data)
@@ -222,12 +224,13 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
     def _on_relation_joined_event(self, event: RelationJoinedEvent) -> None:
         """Event emitted when the S3 relation is joined."""
         logger.info(f"S3 relation ({event.relation.name}) joined...")
+        # FIXME
         if self.bucket is None:
             self.bucket = f"relation-{event.relation.id}"
         event_data = {"bucket": self.bucket}
         self.relation_data.update_relation_data(event.relation.id, event_data)
 
-    def get_s3_connection_info(self) -> dict[str, str]:
+    def get_s3_connection_info(self) -> Dict[str, str]:
         """Return the S3 connection info as a dictionary."""
         for relation in self.relations:
             if relation and relation.app:
@@ -319,7 +322,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
         )
 
     @property
-    def relations(self) -> list[Relation]:
+    def relations(self) -> List[Relation]:
         """The list of Relation instances associated with this relation_name."""
         return list(self.charm.model.relations[self.relation_name])
 
@@ -331,7 +334,7 @@ class S3Requires(S3RequirerData, S3RequirerEventHandlers):
         self,
         charm: CharmBase,
         relation_name: str,
-        container: str | None = None,
+        container: Optional[str] = None,
     ):
         S3RequirerData.__init__(self, charm.model, relation_name, container)
         S3RequirerEventHandlers.__init__(self, charm, self)
