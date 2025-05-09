@@ -154,19 +154,13 @@ class BucketEvent(RelationEvent):
 class StorageConnectionInfoRequestedEvent(BucketEvent):
     """Event emitted when S3 credentials are requested on this relation."""
 
-    pass
-
 
 class StorageConnectionInfoChangedEvent(BucketEvent):
     """Event emitted when S3 credentials are changed for this relation."""
 
-    pass
-
 
 class StorageConnectionInfoGoneEvent(RelationEvent):
     """Event emitted when S3 credentials must be removed from this relation."""
-
-    pass
 
 
 class S3ProviderEvents(CharmEvents):
