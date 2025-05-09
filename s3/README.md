@@ -36,10 +36,11 @@ This is an operator charm providing an integrator for connecting to S3.
    juju add-secret mysecret access-key=<ACCESS_KEY> secret-key=<SECRET_KEY>
    juju grant-secret mysecret s3-integrator
    ```
+   The first command will return an ID like `secret:d0erdgfmp25c762i8np0`
 
-4. Configure the S3 Integrator charm credentials:
+4. Configure the S3 Integrator charm credentials with the ID above:
    ```
-   juju config s3-integrator credentials=secret-xxxxxxxxxxxxxxxxxxxx
+   juju config s3-integrator credentials=secret:d0erdgfmp25c762i8np0
    ```
 
 5. Now the charm should be in active and idle condition. To relate it with a consumer charm, simply do:
