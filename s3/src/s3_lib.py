@@ -217,7 +217,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
 
     def _on_relation_joined_event(self, event: RelationJoinedEvent) -> None:
         """Event emitted when the S3 relation is joined."""
-        logger.info(f"S3 relation ({event.relation.name}) joined...")
+        logger.debug(f"S3 relation ({event.relation.name}) joined...")
         # FIXME
         if self.bucket is None:
             self.bucket = f"relation-{event.relation.id}"
@@ -236,7 +236,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
 
     def _on_relation_changed_event(self, event: RelationChangedEvent) -> None:
         """Notify the charm about the presence of S3 credentials."""
-        logger.info(f"S3 relation ({event.relation.name}) changed...")
+        logger.debug(f"S3 relation ({event.relation.name}) changed...")
 
         diff = self._diff(event)
         if any(newval for newval in diff.added if self.relation_data._is_secret_field(newval)):
@@ -268,7 +268,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
 
         relation = self.relation_data._relation_from_secret_label(event.secret.label)
         if not relation:
-            logging.info(
+            logger.info(
                 f"Received secret {event.secret.label} but couldn't parse, seems irrelevant."
             )
             return
@@ -278,16 +278,20 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
             relation.id,
             "extra",
         ):
-            logging.info("Secret is not relevant for us.")
+            logger.info("Secret is not relevant for us.")
             return
 
         if relation.app == self.charm.app:
-            logging.info("Secret changed event ignored for Secret Owner")
+            logger.info("Secret changed event ignored for Secret Owner")
+            return
 
         remote_unit = None
         for unit in relation.units:
             if unit.app != self.charm.app:
                 remote_unit = unit
+                break
+        else:
+            return
 
         # check if the mandatory options are in the relation data
         contains_required_options = True
@@ -310,7 +314,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
 
     def _on_relation_broken_event(self, event: RelationBrokenEvent) -> None:
         """Event handler for handling relation_broken event."""
-        logger.info("S3 relation broken...")
+        logger.debug("S3 relation broken...")
         getattr(self.on, "s3_connection_info_gone").emit(
             event.relation, app=event.app, unit=event.unit
         )
