@@ -35,7 +35,8 @@ S3ConnectionInfo = TypedDict(
 SECRET_REGEX = re.compile("secret:[a-z0-9]{20}")
 # Should cover most of the naming rules
 # https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html#general-purpose-bucket-names
-BUCKET_REGEX = re.compile("(?!(^xn--|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$")
+# Also allows empty string with |^$
+BUCKET_REGEX = re.compile(r"(?!(^xn--|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$|^$")
 
 logger = logging.getLogger(__name__)
 
