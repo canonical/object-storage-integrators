@@ -154,19 +154,13 @@ class BucketEvent(RelationEvent):
 class StorageConnectionInfoRequestedEvent(BucketEvent):
     """Event emitted when S3 credentials are requested on this relation."""
 
-    pass
-
 
 class StorageConnectionInfoChangedEvent(BucketEvent):
     """Event emitted when S3 credentials are changed for this relation."""
 
-    pass
-
 
 class StorageConnectionInfoGoneEvent(RelationEvent):
     """Event emitted when S3 credentials must be removed from this relation."""
-
-    pass
 
 
 class S3ProviderEvents(CharmEvents):
@@ -187,7 +181,7 @@ class S3RequirerData(RequirerData):
 
     SECRET_FIELDS = ["access-key", "secret-key"]
 
-    def __init__(self, model, relation_name: str, bucket: Optional[str] = None) -> None:
+    def __init__(self, model, relation_name: str, bucket: str) -> None:
         super().__init__(
             model,
             relation_name,
@@ -199,7 +193,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
     """Event handlers for for requirer side of S3 relation."""
 
     on = S3RequirerEvents()  # type: ignore
-    bucket: Optional[str]
+    bucket: str
 
     def __init__(self, charm: CharmBase, relation_data: S3RequirerData):
         super().__init__(charm, relation_data)
@@ -223,10 +217,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
 
     def _on_relation_joined_event(self, event: RelationJoinedEvent) -> None:
         """Event emitted when the S3 relation is joined."""
-        logger.info(f"S3 relation ({event.relation.name}) joined...")
-        # FIXME
-        if self.bucket is None:
-            self.bucket = f"relation-{event.relation.id}"
+        logger.debug(f"S3 relation ({event.relation.name}) joined...")
         event_data = {"bucket": self.bucket}
         self.relation_data.update_relation_data(event.relation.id, event_data)
 
@@ -242,7 +233,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
 
     def _on_relation_changed_event(self, event: RelationChangedEvent) -> None:
         """Notify the charm about the presence of S3 credentials."""
-        logger.info(f"S3 relation ({event.relation.name}) changed...")
+        logger.debug(f"S3 relation ({event.relation.name}) changed...")
 
         diff = self._diff(event)
         if any(newval for newval in diff.added if self.relation_data._is_secret_field(newval)):
@@ -274,7 +265,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
 
         relation = self.relation_data._relation_from_secret_label(event.secret.label)
         if not relation:
-            logging.info(
+            logger.info(
                 f"Received secret {event.secret.label} but couldn't parse, seems irrelevant."
             )
             return
@@ -284,16 +275,20 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
             relation.id,
             "extra",
         ):
-            logging.info("Secret is not relevant for us.")
+            logger.info("Secret is not relevant for us.")
             return
 
         if relation.app == self.charm.app:
-            logging.info("Secret changed event ignored for Secret Owner")
+            logger.info("Secret changed event ignored for Secret Owner")
+            return
 
         remote_unit = None
         for unit in relation.units:
             if unit.app != self.charm.app:
                 remote_unit = unit
+                break
+        else:
+            return
 
         # check if the mandatory options are in the relation data
         contains_required_options = True
@@ -316,7 +311,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
 
     def _on_relation_broken_event(self, event: RelationBrokenEvent) -> None:
         """Event handler for handling relation_broken event."""
-        logger.info("S3 relation broken...")
+        logger.debug("S3 relation broken...")
         getattr(self.on, "s3_connection_info_gone").emit(
             event.relation, app=event.app, unit=event.unit
         )
@@ -334,9 +329,9 @@ class S3Requires(S3RequirerData, S3RequirerEventHandlers):
         self,
         charm: CharmBase,
         relation_name: str,
-        container: Optional[str] = None,
+        bucket: str = "",
     ):
-        S3RequirerData.__init__(self, charm.model, relation_name, container)
+        S3RequirerData.__init__(self, charm.model, relation_name, bucket)
         S3RequirerEventHandlers.__init__(self, charm, self)
 
 
@@ -359,11 +354,9 @@ class S3ProviderEventHandlers(EventHandlers):
     def _on_relation_changed_event(self, event: RelationChangedEvent):
         if not self.charm.unit.is_leader():
             return
-        diff = self._diff(event)
-        if "bucket" in diff.added:
-            self.on.storage_connection_info_requested.emit(
-                event.relation, app=event.app, unit=event.unit
-            )
+        self.on.storage_connection_info_requested.emit(
+            event.relation, app=event.app, unit=event.unit
+        )
 
 
 class S3Provides(S3ProviderData, S3ProviderEventHandlers):

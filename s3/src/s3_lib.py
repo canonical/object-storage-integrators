@@ -181,7 +181,7 @@ class S3RequirerData(RequirerData):
 
     SECRET_FIELDS = ["access-key", "secret-key"]
 
-    def __init__(self, model, relation_name: str, bucket: Optional[str] = None) -> None:
+    def __init__(self, model, relation_name: str, bucket: str) -> None:
         super().__init__(
             model,
             relation_name,
@@ -193,7 +193,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
     """Event handlers for for requirer side of S3 relation."""
 
     on = S3RequirerEvents()  # type: ignore
-    bucket: Optional[str]
+    bucket: str
 
     def __init__(self, charm: CharmBase, relation_data: S3RequirerData):
         super().__init__(charm, relation_data)
@@ -218,9 +218,6 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
     def _on_relation_joined_event(self, event: RelationJoinedEvent) -> None:
         """Event emitted when the S3 relation is joined."""
         logger.debug(f"S3 relation ({event.relation.name}) joined...")
-        # FIXME
-        if self.bucket is None:
-            self.bucket = f"relation-{event.relation.id}"
         event_data = {"bucket": self.bucket}
         self.relation_data.update_relation_data(event.relation.id, event_data)
 
@@ -332,9 +329,9 @@ class S3Requires(S3RequirerData, S3RequirerEventHandlers):
         self,
         charm: CharmBase,
         relation_name: str,
-        container: Optional[str] = None,
+        bucket: str = "",
     ):
-        S3RequirerData.__init__(self, charm.model, relation_name, container)
+        S3RequirerData.__init__(self, charm.model, relation_name, bucket)
         S3RequirerEventHandlers.__init__(self, charm, self)
 
 
@@ -357,11 +354,9 @@ class S3ProviderEventHandlers(EventHandlers):
     def _on_relation_changed_event(self, event: RelationChangedEvent):
         if not self.charm.unit.is_leader():
             return
-        diff = self._diff(event)
-        if "bucket" in diff.added:
-            self.on.storage_connection_info_requested.emit(
-                event.relation, app=event.app, unit=event.unit
-            )
+        self.on.storage_connection_info_requested.emit(
+            event.relation, app=event.app, unit=event.unit
+        )
 
 
 class S3Provides(S3ProviderData, S3ProviderEventHandlers):
