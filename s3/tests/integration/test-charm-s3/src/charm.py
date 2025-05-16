@@ -39,7 +39,7 @@ class ApplicationCharm(CharmBase):
         # (these events are defined in the database requires charm library).
 
         self.first_s3_client = S3Requires(self, FIRST_RELATION)
-        self.second_s3_client = S3Requires(self, SECOND_RELATION, container=BUCKET_NAME)
+        self.second_s3_client = S3Requires(self, SECOND_RELATION, bucket=BUCKET_NAME)
 
         # add relation
         self.framework.observe(
