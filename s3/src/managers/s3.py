@@ -25,6 +25,10 @@ class S3Manager(WithLogging):
                     )
                     or ""
                 )
-                self.relation_data.update_relation_data(
-                    relation.id, {"bucket": requested_bucket} | dict(s3_connection_info)
+
+                relation_data = (
+                    dict(s3_connection_info)
+                    if not requested_bucket
+                    else dict(s3_connection_info) | {"bucket": requested_bucket}
                 )
+                self.relation_data.update_relation_data(relation.id, relation_data)
