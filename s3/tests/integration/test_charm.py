@@ -58,7 +58,7 @@ def test_provider_default_bucket(
 
     task = juju.run(f"{TEST_CHARM}/0", "get-second-s3")
     assert task.return_code == 0
-    assert task.results["bucket"] == bucket_name
+    assert task.results["bucket"] == "test-bucket"  # Required by the charm
     assert task.results["secret-key"] == s3_info["secret-key"]
 
 
