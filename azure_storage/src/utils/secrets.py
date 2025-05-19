@@ -4,7 +4,6 @@
 """Utility functions related to secrets."""
 
 import logging
-from typing import Optional
 
 import ops
 import ops.charm
@@ -16,8 +15,8 @@ import ops.model
 logger = logging.getLogger(__name__)
 
 
-def decode_secret_key(model: ops.Model, secret_id: str) -> Optional[str]:
-    """Decode the secret with given secret_id and return the secret-key in plaintext value.
+def decode_secret(model: ops.Model, secret_id: str) -> dict:
+    """Decode the secret with given secret_id and return the content as dictionary.
 
     Args:
         model: juju model
@@ -30,14 +29,10 @@ def decode_secret_key(model: ops.Model, secret_id: str) -> Optional[str]:
             yet.
 
     Returns:
-        Optional[str]: The secret-key in plain text.
+        dict: The content of the secret as a dictionary.
     """
     try:
-        secret_content = model.get_secret(id=secret_id).get_content(refresh=True)
-
-        if not secret_content.get("secret-key"):
-            raise ValueError(f"The field 'secret-key' was not found in the secret '{secret_id}'.")
-        return secret_content["secret-key"]
+        return model.get_secret(id=secret_id).get_content(refresh=True)
     except ops.model.SecretNotFoundError:
         raise ops.model.SecretNotFoundError(f"The secret '{secret_id}' does not exist.")
     except ValueError as ve:

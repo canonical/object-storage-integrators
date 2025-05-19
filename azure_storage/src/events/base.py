@@ -10,9 +10,9 @@ from typing import Callable
 from ops import EventBase, Object, StatusBase
 from ops.model import ActiveStatus, BlockedStatus
 
-from constants import AZURE_MANDATORY_OPTIONS
+from constants import AZURE_MANDATORY_OPTIONS, AZURE_SERVICE_PRINCIPAL_OPTIONS
 from utils.logging import WithLogging
-from utils.secrets import decode_secret_key
+from utils.secrets import decode_secret
 
 
 class BaseEventHandler(Object, WithLogging):
@@ -20,18 +20,37 @@ class BaseEventHandler(Object, WithLogging):
 
     def get_app_status(self, model, charm_config) -> StatusBase:
         """Return the status of the charm."""
-        missing_options = []
-        for config_option in AZURE_MANDATORY_OPTIONS:
-            if not charm_config.get(config_option):
-                missing_options.append(config_option)
+        missing_options = [opt for opt in AZURE_MANDATORY_OPTIONS if not charm_config.get(opt)]
         if missing_options:
-            self.logger.warning(f"Missing parameters: {missing_options}")
-            return BlockedStatus(f"Missing parameters: {missing_options}")
+            msg = f"Missing parameters: {missing_options}"
+            self.logger.warning(msg)
+            return BlockedStatus(msg)
+
         try:
-            decode_secret_key(model, charm_config.get("credentials"))
+            secret = decode_secret(model, charm_config.get("credentials"))
+            storage_account_secret = secret.get("secret-key")
+            service_principal_secret = secret.get("client-secret")
         except Exception as e:
             self.logger.warning(f"Error in decoding secret: {e}")
             return BlockedStatus(str(e))
+
+        if storage_account_secret and service_principal_secret:
+            msg = "Both secret-key and client-secret are present in the secret."
+            self.logger.warning(msg)
+            return BlockedStatus(msg)
+        if not storage_account_secret and not service_principal_secret:
+            msg = "Neither secret-key nor client-secret are present in the secret."
+            self.logger.warning(msg)
+            return BlockedStatus(msg)
+
+        if service_principal_secret:
+            missing_sp_options = [
+                opt for opt in AZURE_SERVICE_PRINCIPAL_OPTIONS if not charm_config.get(opt)
+            ]
+            if missing_sp_options:
+                msg = f"Missing parameters: {missing_sp_options} for service principal."
+                self.logger.warning(msg)
+                return BlockedStatus(msg)
 
         return ActiveStatus()
 

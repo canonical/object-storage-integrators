@@ -10,4 +10,8 @@ AZURE_RELATION_NAME = "azure-storage-credentials"
 
 AZURE_MANDATORY_OPTIONS = ["container", "storage-account", "credentials", "connection-protocol"]
 
-KEYS_LIST = ["secret-key"]
+AZURE_SERVICE_PRINCIPAL_OPTIONS = [
+    "client-id",
+    "tenant-id",
+    "subscription-id",
+]
