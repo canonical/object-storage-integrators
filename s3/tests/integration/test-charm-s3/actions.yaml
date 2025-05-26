@@ -1,0 +1,8 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+get-first-s3:
+  description: Get first s3 connection info
+
+get-second-s3:
+  description: Get second s3 connection info
