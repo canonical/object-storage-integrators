@@ -19,9 +19,41 @@ options:
       Possible values: "wasb", "wasbs" for Azure Blob Storage and 
       "abfs", "abfss" for Azure Data Lake Storage v2.
     default: 'abfss'
+  resource-group:
+    type: string
+    description: |
+      The name of the Azure resource group where the storage account is located. 
+      This is optional and can be used to specify a different resource group.
+    default: ''
+  endpoint:
+    type: string
+    description: |
+      The endpoint URL for the Azure Storage account. This is optional and can be 
+      used to override the default endpoint URL.
+    default: ''
+  client-id:
+    type: string
+    description: |
+      The client ID of the service principal used to authenticate with Azure Storage. 
+      This is optional and can be used if using a service principal for authentication.
+    default: ''
+  tenant-id:
+    type: string
+    description: |
+      The tenant ID of the service principal used to authenticate with Azure Storage. 
+      This is optional and can be used if using a service principal for authentication.
+    default: ''
+  subscription-id:
+    type: string
+    description: |
+      The subscription ID of the service principal used to authenticate with Azure Storage. 
+      This is optional and can be used if using a service principal for authentication.
+    default: ''
   credentials:
     type: secret
     description: |
       The credentials to connect to Azure Storage account. This needs to be a Juju 
-      Secret URI pointing to a secret that contains the following keys:
-      1. secret-key: The secret key corresponding to the Azure Storage account.
+      Secret URI pointing to a secret that contains either the storage account key or client secret for a service principal.
+      - secret-key: The secret key corresponding to the Azure Storage account.
+      - client-id: The client ID of the service principal.
+      Note: Only one of these options should be provided.

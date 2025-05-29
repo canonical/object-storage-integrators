@@ -109,6 +109,8 @@ async def test_config_options(ops_test: OpsTest):
         "storage-account": "stoacc",
         "path": "/test/path_1/",
         "container": "test-container",
+        "tenant-id": "test-tenant-id",
+        "resource-group": "test-resource-group",
         "credentials": secret_uri,
     }
     # apply new configuration options
@@ -125,7 +127,11 @@ async def test_config_options(ops_test: OpsTest):
     # test the correctness of the configuration fields
     assert configured_options["storage-account"] == "stoacc"
     assert configured_options["path"] == "/test/path_1/"
+    assert configured_options["resource-group"] == "test-resource-group"
     assert configured_options["secret-key"] == "**********"
+    assert "tenant-id" not in configured_options
+    assert "client-id" not in configured_options
+    assert "subscription-id" not in configured_options
 
 
 @pytest.mark.abort_on_fail
@@ -153,6 +159,8 @@ async def test_relation_creation(ops_test: OpsTest):
     assert application_data["container"] == "test-container"
     assert application_data["storage-account"] == "stoacc"
     assert application_data["path"] == "/test/path_1/"
+    assert application_data["resource-group"] == "test-resource-group"
+
     secret_uri = application_data["secret-extra"]
     secret_data = await get_juju_secret(ops_test, secret_uri)
     assert secret_data["secret-key"] == "new-test-secret-key"
@@ -184,6 +192,7 @@ async def test_relation_creation(ops_test: OpsTest):
     assert application_data["container"] == new_container_name
     assert application_data["storage-account"] == "stoacc"
     assert application_data["path"] == "/test/path_1/"
+    assert application_data["resource-group"] == "test-resource-group"
 
     secret_uri = application_data["secret-extra"]
     secret_data = await get_juju_secret(ops_test, secret_uri)
@@ -228,6 +237,91 @@ async def test_secret_updated(ops_test: OpsTest):
     secret_uri = application_data["secret-extra"]
     secret_data = await get_juju_secret(ops_test, secret_uri)
     assert secret_data["secret-key"] == "has-been-changed"
+
+
+@pytest.mark.abort_on_fail
+async def test_both_credentials_in_secret(ops_test: OpsTest):
+    """Tests the update of service principal via Juju secret."""
+    secret_uri = await add_juju_secret(
+        ops_test,
+        charm_name=CHARM_NAME,
+        secret_label="test-secret-both-credentials",
+        data={
+            "secret-key": "test-secret-key",
+            "client-secret": "test-client-secret",
+        },
+    )
+    # apply new configuration options
+    await ops_test.model.applications[CHARM_NAME].set_config(
+        {
+            "credentials": secret_uri,
+        }
+    )
+    # wait for blocked status, since both credentials are set
+    await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="blocked", timeout=1000)
+    # unset the secret-key
+    await ops_test.model.applications[CHARM_NAME].reset_config(["credentials"])
+    await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="blocked", timeout=1000)
+
+
+@pytest.mark.abort_on_fail
+async def test_service_principal_config(ops_test: OpsTest):
+    """Tests the update of service principal via Juju secret."""
+    secret_uri = await add_juju_secret(
+        ops_test,
+        charm_name=CHARM_NAME,
+        secret_label="test-secret-service-principal",
+        data={"client-secret": "test-client-secret"},
+    )
+    configuration_parameters = {
+        "endpoint": "https://test-endpoint",
+        "client-id": "test-client-id",
+        "tenant-id": "test-tenant-id",
+        "subscription-id": "test-subscription-id",
+    }
+    # apply new configuration options
+    await ops_test.model.applications[CHARM_NAME].set_config(
+        {
+            "credentials": secret_uri,
+        }
+    )
+    # wait for blocked status, since tenant-id, client-id and subscription-id are not set
+    await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="blocked", timeout=1000)
+    # set the missing parameters
+    await ops_test.model.applications[CHARM_NAME].set_config(configuration_parameters)
+    # wait for active status
+    await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="active", timeout=1000)
+
+    # test the returns
+    azure_storage_integrator_unit = ops_test.model.applications[CHARM_NAME].units[0]
+    action = await azure_storage_integrator_unit.run_action(
+        action_name="get-azure-storage-connection-info"
+    )
+    action_result = await action.wait()
+    configured_options = action_result.results
+    # test the correctness of the configuration fields
+    assert configured_options["endpoint"] == "https://test-endpoint"
+    assert configured_options["client-id"] == "test-client-id"
+    assert configured_options["tenant-id"] == "test-tenant-id"
+    assert configured_options["subscription-id"] == "test-subscription-id"
+    assert configured_options["secret-key"] == "**********"
+
+    # test the content of the relation data bag
+    relation_data = await get_relation_data(ops_test, TEST_APP_NAME, FIRST_RELATION)
+    application_data = await get_application_data(ops_test, TEST_APP_NAME, FIRST_RELATION)
+    logger.info(relation_data)
+    logger.info(application_data)
+
+    # check correctness for some fields
+    assert "secret-extra" in application_data
+    assert "container" in application_data
+    assert application_data["endpoint"] == "https://test-endpoint"
+    assert application_data["client-id"] == "test-client-id"
+    assert application_data["tenant-id"] == "test-tenant-id"
+    assert application_data["subscription-id"] == "test-subscription-id"
+    secret_uri = application_data["secret-extra"]
+    secret_data = await get_juju_secret(ops_test, secret_uri)
+    assert secret_data["secret-key"] == "test-client-secret"
 
 
 @pytest.mark.abort_on_fail
