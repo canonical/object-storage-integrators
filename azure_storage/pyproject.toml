@@ -8,6 +8,8 @@ requires-poetry = ">=2.0.0"
 [tool.poetry.dependencies]
 python = "^3.10"
 ops = {version = ">=2.18.0", extras = ["testing"]}
+azure-storage-blob = "^12.25.1"
+azure-identity = "^1.19.0"
 
 [tool.poetry.group.charm-libs.dependencies]
 cosl = "^0.0.51"

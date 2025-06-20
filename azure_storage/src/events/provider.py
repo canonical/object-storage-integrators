@@ -64,6 +64,9 @@ class AzureStorageProviderEvents(BaseEventHandler, WithLogging):
         if not container_name:
             self.logger.warning("Container is setup by the requirer application!")
 
+        if container_name:
+            self.azure_storage_manager.create_container(self.context.azure_storage)
+
         # TODO (azure-interface): Remove this once all users have migrated to the new azure storage interface
         self.legacy_azure_storage_manager.update(self.context.azure_storage)
 
