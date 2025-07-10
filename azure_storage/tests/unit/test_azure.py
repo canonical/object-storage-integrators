@@ -2,6 +2,7 @@
 # See LICENSE file for licensing details.
 
 import unittest
+import unittest.mock
 from asyncio.log import logger
 
 from ops.model import BlockedStatus
@@ -9,6 +10,7 @@ from ops.testing import Harness
 
 from charm import AzureStorageIntegratorCharm
 from core.domain import AzureConnectionInfo
+from utils.secrets import decode_secret_key
 
 
 class TestCharm(unittest.TestCase):
@@ -27,6 +29,7 @@ class TestCharm(unittest.TestCase):
         logger.info(f"Status: {self.harness.model.unit.status}")
         self.assertTrue(isinstance(self.harness.model.unit.status, BlockedStatus))
 
+    @unittest.mock.patch("events.base.decode_secret_key_with_retry", decode_secret_key)
     def test_on_config_changed(self):
         """Checks that configuration parameters are correctly stored in the databag."""
         # trigger the leader_elected and config_changed events

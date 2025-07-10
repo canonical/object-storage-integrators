@@ -7,12 +7,19 @@
 from functools import wraps
 from typing import Callable
 
-from ops import EventBase, Object, StatusBase
+from ops import EventBase, Model, Object, StatusBase
 from ops.model import ActiveStatus, BlockedStatus
+from tenacity import RetryError, retry, stop_after_attempt, wait_fixed
 
 from constants import AZURE_MANDATORY_OPTIONS
 from utils.logging import WithLogging
 from utils.secrets import decode_secret_key
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(5))
+def decode_secret_key_with_retry(model: Model, secret_id: str):
+    """Try to decode the secret key, retry for 3 times before failing."""
+    return decode_secret_key(model, secret_id)
 
 
 class BaseEventHandler(Object, WithLogging):
@@ -28,7 +35,11 @@ class BaseEventHandler(Object, WithLogging):
             self.logger.warning(f"Missing parameters: {missing_options}")
             return BlockedStatus(f"Missing parameters: {missing_options}")
         try:
-            decode_secret_key(model, charm_config.get("credentials"))
+            decode_secret_key_with_retry(model, charm_config.get("credentials"))
+        except RetryError as re:
+            last_exc = re.last_attempt.exception()
+            self.logger.warning(f"Error in decoding secret: {last_exc}")
+            return BlockedStatus(str(last_exc))
         except Exception as e:
             self.logger.warning(f"Error in decoding secret: {e}")
             return BlockedStatus(str(e))
