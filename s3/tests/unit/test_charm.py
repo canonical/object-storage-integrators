@@ -4,6 +4,7 @@
 import dataclasses
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 from ops import ActiveStatus, BlockedStatus
@@ -11,6 +12,7 @@ from ops.testing import Context, Secret, State
 from pytest import fixture
 
 from src.charm import S3IntegratorCharm
+from src.utils.secrets import decode_secret_key
 
 CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
 ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
@@ -47,6 +49,7 @@ def test_on_start_blocked(ctx: Context[S3IntegratorCharm], base_state: State) ->
     assert "credentials" in status.message
 
 
+@patch("events.base.decode_secret_key_with_retry", decode_secret_key)
 def test_on_start_no_secret_access_blocked(charm_configuration: dict, base_state: State) -> None:
     """Check that the charm starts in blocked status if not granted secret access."""
     # Given
