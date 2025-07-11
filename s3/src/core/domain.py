@@ -7,12 +7,15 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
+import json
 import logging
 import re
 from typing import Annotated, Literal, TypedDict
 
 from charms.data_platform_libs.v0.data_models import BaseConfigModel
-from pydantic import BeforeValidator, Field
+from pydantic import BeforeValidator, Field, field_validator
 
 S3ConnectionInfo = TypedDict(
     "S3ConnectionInfo",
@@ -46,6 +49,32 @@ def nullify_empty_string(in_str: str) -> str | None:
     if not in_str:
         return None
     return in_str
+
+
+def parse_ca_chain(ca_chain_pem: str) -> list[str]:
+    """Returns list of certificates based on a PEM CA Chain file.
+
+    Args:
+        ca_chain_pem (str): String containing list of certificates.
+        This string should look like:
+            -----BEGIN CERTIFICATE-----
+            <cert 1>
+            -----END CERTIFICATE-----
+            -----BEGIN CERTIFICATE-----
+            <cert 2>
+            -----END CERTIFICATE-----
+
+    Returns:
+        list: List of certificates
+    """
+    chain_list = re.findall(
+        pattern="(?=-----BEGIN CERTIFICATE-----)(.*?)(?<=-----END CERTIFICATE-----)",
+        string=ca_chain_pem,
+        flags=re.DOTALL,
+    )
+    if not chain_list:
+        raise ValueError("No certificate found in chain file")
+    return chain_list
 
 
 class CharmConfig(BaseConfigModel):
@@ -82,3 +111,16 @@ class CharmConfig(BaseConfigModel):
         serialization_alias="delete-older-than-days",
     )
     credentials: str = Field(pattern=SECRET_REGEX, exclude=True)
+
+    @field_validator("tls_ca_chain")
+    @classmethod
+    def validate_tls_ca_chain(cls, value: str) -> str | None:
+        if value is None:
+            return None
+        try:
+            decoded_value = base64.b64decode(value).decode("utf-8")
+        except (TypeError, binascii.Error) as e:
+            raise ValueError("The given TLS CA chain is not a valid base64 encoded string")
+
+        chain_list = parse_ca_chain(decoded_value)
+        return json.dumps(chain_list)
