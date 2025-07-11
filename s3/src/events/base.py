@@ -10,9 +10,9 @@ from functools import wraps
 from typing import TYPE_CHECKING, Callable
 
 from ops import EventBase, Model, Object, StatusBase
-from ops.model import ActiveStatus, BlockedStatus
+from ops.model import ActiveStatus, BlockedStatus, ModelError
 from pydantic import ValidationError
-from tenacity import retry, stop_after_attempt, wait_fixed
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 from core.domain import CharmConfig
 from utils.logging import WithLogging
@@ -22,7 +22,12 @@ if TYPE_CHECKING:
     from charm import S3IntegratorCharm
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(5))
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(5),
+    retry=retry_if_exception_type(ModelError),
+    reraise=True,
+)
 def decode_secret_key_with_retry(model: Model, secret_id: str):
     """Try to decode the secret key, retry for 3 times before failing."""
     return decode_secret_key(model, secret_id)
