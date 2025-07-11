@@ -10,6 +10,7 @@ python = "^3.10"
 ops = ">=2.18.0"
 # TODO: Move into charm-libs groups after canonical/data-platform-libs#201 is merged
 pydantic = "^2.11.3"
+tenacity = "^9.1.2"
 
 [tool.poetry.group.charm-libs.dependencies]
 
