@@ -3,3 +3,11 @@
 
 get-s3-connection-info:
   description: Returns S3 connection parameters
+
+status-detail:
+  description: "Gets statuses of the charm"
+  params:
+    recompute:
+      type: boolean
+      default: false
+      description: a boolean indicating whether a unit should recompute all statuses.

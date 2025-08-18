@@ -7,12 +7,16 @@
 
 import logging
 
+from data_platform_helpers.advanced_statuses.components import ComponentStatuses
+from data_platform_helpers.advanced_statuses.models import StatusObject, StatusObjectList
+from data_platform_helpers.advanced_statuses.protocol import ManagerStatusProtocol
 from ops import CharmBase, main
 
 from core.context import Context
 from events.actions import ActionEvents
 from events.general import GeneralEvents
 from events.provider import S3ProviderEvents
+from data_platform_helpers.advanced_statuses.handler import StatusHandler
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +36,9 @@ class S3IntegratorCharm(CharmBase):
         self.general_events = GeneralEvents(self, self.context)
         self.s3_provider_events = S3ProviderEvents(self, self.context)
         self.action_events = ActionEvents(self, self.context)
+        self.status = StatusHandler(  # priority order
+            self, self.general_events
+        )
 
 
 if __name__ == "__main__":

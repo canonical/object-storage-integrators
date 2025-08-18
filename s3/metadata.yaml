@@ -25,6 +25,10 @@ maintainers:
 assumes:
   - juju >= 3.4.0
 
+peers:
+  status-peers:
+    interface: status-peers
+
 provides:
   s3-credentials:
     interface: s3

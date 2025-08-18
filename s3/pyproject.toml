@@ -9,6 +9,7 @@ requires-poetry = ">=2.0.0"
 python = "^3.10"
 ops = ">=2.18.0"
 pydantic = "^2.11.3"
+data-platform-helpers = {git = "https://github.com/canonical/data-platform-helpers", rev = "feat/advanced-status-handler"}
 
 [tool.poetry.group.charm-libs.dependencies]
 
