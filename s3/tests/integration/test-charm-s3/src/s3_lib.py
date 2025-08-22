@@ -193,7 +193,6 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
     """Event handlers for for requirer side of S3 relation."""
 
     on = S3RequirerEvents()  # type: ignore
-    bucket: str
 
     def __init__(self, charm: CharmBase, relation_data: S3RequirerData):
         super().__init__(charm, relation_data)
@@ -218,7 +217,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
     def _on_relation_joined_event(self, event: RelationJoinedEvent) -> None:
         """Event emitted when the S3 relation is joined."""
         logger.debug(f"S3 relation ({event.relation.name}) joined...")
-        event_data = {"bucket": self.bucket}
+        event_data = {"bucket": self.relation_data.bucket}
         self.relation_data.update_relation_data(event.relation.id, event_data)
 
     def get_s3_connection_info(self) -> Dict[str, str]:

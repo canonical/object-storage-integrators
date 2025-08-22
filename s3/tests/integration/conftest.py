@@ -10,8 +10,10 @@ from pathlib import Path
 
 import jubilant
 import pytest
+from helpers import create_bucket, delete_bucket
 
 logger = logging.getLogger(__name__)
+logging.getLogger("jubilant.wait").setLevel(logging.WARNING)
 
 
 @pytest.fixture
@@ -89,4 +91,13 @@ def s3_info() -> dict[str, str]:
 
 @pytest.fixture(scope="module")
 def bucket_name() -> str:
-    return f"bucket-{''.join(random.sample(string.ascii_lowercase, 6))}"
+    return f"s3-integrator-{''.join(random.sample(string.ascii_lowercase, 6))}"
+
+
+@pytest.fixture(scope="module")
+def pre_created_bucket(s3_info, bucket_name):
+    bucket = create_bucket(s3_info, bucket_name)
+    assert bucket is not None
+    yield bucket.name
+    deleted = delete_bucket(s3_info, bucket_name)
+    assert deleted

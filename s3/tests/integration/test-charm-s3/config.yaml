@@ -1,0 +1,8 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+options:
+  bucket:
+    type: string
+    description: The name of the bucket to be requested in the relation
+    default: ""

@@ -28,3 +28,7 @@ assumes:
 provides:
   s3-credentials:
     interface: s3
+
+peers:
+  status-peers:
+    interface: status_peers
