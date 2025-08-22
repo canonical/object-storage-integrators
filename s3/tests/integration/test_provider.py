@@ -3,11 +3,15 @@
 # Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import base64
+import json
 import logging
+import re
 from pathlib import Path
 
 import jubilant
 import pytest
+from conftest import S3ConnectionInfo
 from helpers import delete_bucket, get_bucket
 
 S3 = "s3"
@@ -48,12 +52,31 @@ def relation_bucket_name_2(s3_info):
     delete_bucket(s3_info=s3_info, bucket_name=bucket_name)
 
 
-def test_deploy(juju: jubilant.Juju, s3_charm: Path, s3_info: dict) -> None:
+def b64_to_ca_chain_json_dumps(ca_chain: str) -> str:
+    """Validate the `tls-ca-chain` config option."""
+    if not ca_chain:
+        return ""
+    decoded_value = base64.b64decode(ca_chain).decode("utf-8")
+    chain_list = re.findall(
+        pattern="(?=-----BEGIN CERTIFICATE-----)(.*?)(?<=-----END CERTIFICATE-----)",
+        string=decoded_value,
+        flags=re.DOTALL,
+    )
+    if not chain_list:
+        raise ValueError("No certificate found in chain file")
+    return json.dumps(chain_list)
+
+
+def test_deploy(juju: jubilant.Juju, s3_charm: Path, s3_info: S3ConnectionInfo) -> None:
     """Test deploying the charm with minimal setup, without specifying config bucket."""
     logger.info("Deploying S3 charm with configured credentials...")
-    juju.deploy(s3_charm, app=S3, config={"endpoint": s3_info["endpoint"]})
+    juju.deploy(
+        s3_charm,
+        app=S3,
+        config={"endpoint": s3_info.endpoint, "tls-ca-chain": s3_info.tls_ca_chain},
+    )
     secret_uri = juju.add_secret(
-        SECRET_LABEL, {"access-key": s3_info["access-key"], "secret-key": s3_info["secret-key"]}
+        SECRET_LABEL, {"access-key": s3_info.access_key, "secret-key": s3_info.secret_key}
     )
     juju.cli("grant-secret", SECRET_LABEL, S3)
     juju.config(S3, {"credentials": secret_uri})
@@ -74,7 +97,7 @@ def test_deploy_consumer1(juju: jubilant.Juju, test_charm: Path) -> None:
     assert "Waiting for relation" in status.apps[CONSUMER1].app_status.message
 
 
-def test_integrate_s3_and_consumer1(juju: jubilant.Juju, s3_info) -> None:
+def test_integrate_s3_and_consumer1(juju: jubilant.Juju, s3_info: S3ConnectionInfo) -> None:
     """Integrate S3 charm with consumer charm, without consumer requesting specific bucket."""
     juju.integrate(S3, CONSUMER1)
     juju.wait(
@@ -83,13 +106,16 @@ def test_integrate_s3_and_consumer1(juju: jubilant.Juju, s3_info) -> None:
     result = juju.run(f"{CONSUMER1}/0", "get-s3-connection-info").results
     # In this case, the consumer should be provided with the connection info without a specific bucket
     assert result == {
-        "access-key": s3_info["access-key"],
-        "secret-key": s3_info["secret-key"],
-        "endpoint": s3_info["endpoint"],
+        "access-key": s3_info.access_key,
+        "secret-key": s3_info.secret_key,
+        "endpoint": s3_info.endpoint,
+        "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain),
     }
 
 
-def test_add_bucket_config_option(juju: jubilant.Juju, s3_info, config_bucket_name_1) -> None:
+def test_add_bucket_config_option(
+    juju: jubilant.Juju, s3_info: S3ConnectionInfo, config_bucket_name_1: str
+) -> None:
     """Test provider data shared to consumer charm when bucket option is configured on S3 charm."""
     assert not get_bucket(s3_info=s3_info, bucket_name=config_bucket_name_1)
     juju.config(S3, {"bucket": config_bucket_name_1})
@@ -99,17 +125,18 @@ def test_add_bucket_config_option(juju: jubilant.Juju, s3_info, config_bucket_na
     result = juju.run(f"{CONSUMER1}/0", "get-s3-connection-info").results
     # The consumer should be provided with the connection info, including the bucket from the S3 charm config
     assert result == {
-        "access-key": s3_info["access-key"],
-        "secret-key": s3_info["secret-key"],
-        "endpoint": s3_info["endpoint"],
+        "access-key": s3_info.access_key,
+        "secret-key": s3_info.secret_key,
+        "endpoint": s3_info.endpoint,
         "bucket": config_bucket_name_1,
+        "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain),
     }
     # The bucket should also have been created by the S3 charm
     assert get_bucket(s3_info=s3_info, bucket_name=config_bucket_name_1)
 
 
 def test_requirer_detects_change_in_bucket_config(
-    juju: jubilant.Juju, s3_info, config_bucket_name_2
+    juju: jubilant.Juju, s3_info: S3ConnectionInfo, config_bucket_name_2: str
 ) -> None:
     """Test if the bucket information is propagated to the consumer charm when 'bucket' config is changed in S3 charm."""
     assert not get_bucket(s3_info=s3_info, bucket_name=config_bucket_name_2)
@@ -120,10 +147,11 @@ def test_requirer_detects_change_in_bucket_config(
     result = juju.run(f"{CONSUMER1}/0", "get-s3-connection-info").results
     # The consumer should now be provided with the connection info including the new bucket
     assert result == {
-        "access-key": s3_info["access-key"],
-        "secret-key": s3_info["secret-key"],
-        "endpoint": s3_info["endpoint"],
+        "access-key": s3_info.access_key,
+        "secret-key": s3_info.secret_key,
+        "endpoint": s3_info.endpoint,
         "bucket": config_bucket_name_2,
+        "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain),
     }
     # The new bucket should also have been created by the S3 charm
     assert get_bucket(s3_info=s3_info, bucket_name=config_bucket_name_2)
@@ -152,7 +180,7 @@ def test_requirer_asks_for_invalid_bucket(juju: jubilant.Juju, s3_info) -> None:
 
 
 def test_consumer1_asks_for_valid_bucket(
-    juju: jubilant.Juju, s3_info, relation_bucket_name_1
+    juju: jubilant.Juju, s3_info: S3ConnectionInfo, relation_bucket_name_1: str
 ) -> None:
     """Test S3 charm behavior when a consumer charm related to it asks for a valid bucket."""
     juju.config(CONSUMER1, {"bucket": relation_bucket_name_1})
@@ -163,10 +191,11 @@ def test_consumer1_asks_for_valid_bucket(
     # and therefore, it should be shared to the consumer instead of the bucket in config
     result = juju.run(f"{CONSUMER1}/0", "get-s3-connection-info").results
     assert result == {
-        "access-key": s3_info["access-key"],
-        "secret-key": s3_info["secret-key"],
-        "endpoint": s3_info["endpoint"],
+        "access-key": s3_info.access_key,
+        "secret-key": s3_info.secret_key,
+        "endpoint": s3_info.endpoint,
         "bucket": relation_bucket_name_1,
+        "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain),
     }
 
     # The bucket asked by the consumer should have been created in the S3 cloud
@@ -186,7 +215,10 @@ def test_deploy_consumer2(juju: jubilant.Juju, test_charm: Path) -> None:
 
 
 def test_integrate_s3_and_consumer2_without_bucket_request(
-    juju: jubilant.Juju, s3_info, config_bucket_name_2, relation_bucket_name_1
+    juju: jubilant.Juju,
+    s3_info: S3ConnectionInfo,
+    config_bucket_name_2: str,
+    relation_bucket_name_1: str,
 ) -> None:
     """Integrate the new consumer charm with the same S3 charm, where the new consumer charm does not ask for bucket."""
     juju.integrate(S3, CONSUMER2)
@@ -197,26 +229,31 @@ def test_integrate_s3_and_consumer2_without_bucket_request(
     # The consumer2 charm should be provided with the bucket in config, because it did not ask for a specific bucket
     result = juju.run(f"{CONSUMER2}/0", "get-s3-connection-info").results
     assert result == {
-        "access-key": s3_info["access-key"],
-        "secret-key": s3_info["secret-key"],
-        "endpoint": s3_info["endpoint"],
+        "access-key": s3_info.access_key,
+        "secret-key": s3_info.secret_key,
+        "endpoint": s3_info.endpoint,
         "bucket": config_bucket_name_2,
+        "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain),
     }
     assert get_bucket(s3_info=s3_info, bucket_name=config_bucket_name_2)
 
     # However, the consumer1 charm should be unaffected by this -- it will still keep on seeing the bucket requested by it
     result = juju.run(f"{CONSUMER1}/0", "get-s3-connection-info").results
     assert result == {
-        "access-key": s3_info["access-key"],
-        "secret-key": s3_info["secret-key"],
-        "endpoint": s3_info["endpoint"],
+        "access-key": s3_info.access_key,
+        "secret-key": s3_info.secret_key,
+        "endpoint": s3_info.endpoint,
         "bucket": relation_bucket_name_1,
+        "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain),
     }
     assert get_bucket(s3_info=s3_info, bucket_name=relation_bucket_name_1)
 
 
 def test_consumer2_asks_for_valid_bucket(
-    juju: jubilant.Juju, s3_info, relation_bucket_name_1, relation_bucket_name_2
+    juju: jubilant.Juju,
+    s3_info: S3ConnectionInfo,
+    relation_bucket_name_1: str,
+    relation_bucket_name_2: str,
 ) -> None:
     """Test the S3 charm behavior when consumer2 starts asking for a custom bucket."""
     juju.config(CONSUMER2, {"bucket": relation_bucket_name_2})
@@ -227,10 +264,11 @@ def test_consumer2_asks_for_valid_bucket(
     # The bucket asked by consumer2 over the relation should take priority over the one in config
     result = juju.run(f"{CONSUMER2}/0", "get-s3-connection-info").results
     assert result == {
-        "access-key": s3_info["access-key"],
-        "secret-key": s3_info["secret-key"],
-        "endpoint": s3_info["endpoint"],
+        "access-key": s3_info.access_key,
+        "secret-key": s3_info.secret_key,
+        "endpoint": s3_info.endpoint,
         "bucket": relation_bucket_name_2,
+        "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain),
     }
 
     # The bucket asked by consumner2 should have been created in the S3 cloud
@@ -239,15 +277,16 @@ def test_consumer2_asks_for_valid_bucket(
     # However, the consumer1 charm should be unaffected by this -- it will still keep on seeing the bucket requested by it
     result = juju.run(f"{CONSUMER1}/0", "get-s3-connection-info").results
     assert result == {
-        "access-key": s3_info["access-key"],
-        "secret-key": s3_info["secret-key"],
-        "endpoint": s3_info["endpoint"],
+        "access-key": s3_info.access_key,
+        "secret-key": s3_info.secret_key,
+        "endpoint": s3_info.endpoint,
         "bucket": relation_bucket_name_1,
+        "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain),
     }
     assert get_bucket(s3_info=s3_info, bucket_name=relation_bucket_name_1)
 
 
-def test_both_consumers_ask_valid_buckets_but_keys_are_invalid(juju: jubilant.Juju, s3_info):
+def test_both_consumers_ask_valid_buckets_but_keys_are_invalid(juju: jubilant.Juju):
     """Test the S3 charm behavior when multiple consumers are related to it, all of them asking for buckets, but keys are invalid."""
     juju.cli("update-secret", SECRET_LABEL, "access-key=foo", "secret-key=bar")
     juju.config(CONSUMER1, {"bucket": "consumer1-bucket"})

@@ -5,8 +5,19 @@
 
 """The S3 Manager module that contains manager class and utilities specific to S3 cloud."""
 
+import json
+import os
+import tempfile
+from contextlib import contextmanager
+
 import boto3
-from botocore.exceptions import ClientError, ConnectTimeoutError, ParamValidationError, SSLError
+from botocore.exceptions import (
+    ClientError,
+    ConnectTimeoutError,
+    EndpointConnectionError,
+    ParamValidationError,
+    SSLError,
+)
 
 from core.domain import S3ConnectionInfo
 from utils.logging import WithLogging
@@ -24,50 +35,81 @@ class S3Manager(WithLogging):
     def __init__(self, conn_info: S3ConnectionInfo):
         self.conn_info = conn_info
 
-    @property
-    def resource(self):
-        """Return a boto3 S3 resource using current connection info."""
+    @contextmanager
+    def s3_resource(self):
+        """Yield a boto3 S3 resource, handling TLS CA chain cleanup safely."""
+        ca_file = None
         extra_args = {}
+
+        # Handle TLS CA chain if provided (base64-encoded string)
         if self.conn_info.get("tls-ca-chain"):
+            ca_chain = json.loads(self.conn_info["tls-ca-chain"])
+            ca_chain_pem = "\n".join(ca_chain)
+            tmp = tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".pem")
+            tmp.write(ca_chain_pem)
+            tmp.flush()
+            tmp.close()
+            ca_file = tmp.name
+
             extra_args["use_ssl"] = True
-            extra_args["verify"] = self.conn_info["tls-ca-chain"]
+            extra_args["verify"] = ca_file
+        if self.conn_info.get("region"):
+            extra_args["region_name"] = self.conn_info.get("region")
 
         session = boto3.Session(
             aws_access_key_id=self.conn_info.get("access-key"),
             aws_secret_access_key=self.conn_info.get("secret-key"),
         )
-        return session.resource(
+        resource = session.resource(
             "s3",
-            region_name=self.conn_info.get("region"),
             endpoint_url=self.conn_info.get("endpoint"),
             **extra_args,
         )
 
+        try:
+            yield resource
+        finally:
+            if ca_file and os.path.exists(ca_file):
+                os.remove(ca_file)
+
     def get_bucket(self, bucket_name):
         """Fetch the bucket with given name from S3 cloud."""
-        resource = self.resource
-        bucket = resource.Bucket(bucket_name)
-        try:
-            resource.meta.client.head_bucket(Bucket=bucket_name)
-            return bucket
-        except (ClientError, SSLError, ConnectTimeoutError, ParamValidationError) as e:
-            self.logger.error(f"The bucket '{bucket_name}' can't be fetched; Response: {e}")
-            return None
+        with self.s3_resource() as resource:
+            bucket = resource.Bucket(bucket_name)
+            try:
+                resource.meta.client.head_bucket(Bucket=bucket_name)
+                return bucket
+            except (
+                ClientError,
+                SSLError,
+                ConnectTimeoutError,
+                ParamValidationError,
+                EndpointConnectionError,
+            ) as e:
+                self.logger.error(f"The bucket '{bucket_name}' can't be fetched; Response: {e}")
+                return None
 
     def create_bucket(self, bucket_name):
         """Create a bucket with given name in the S3 cloud."""
-        bucket = self.resource.Bucket(bucket_name)
-        create_args = {}
-        region = self.conn_info.get("region")
-        if region and region != "us-east-1":
-            create_args = {
-                "CreateBucketConfiguration": {"LocationConstraint": self.conn_info["region"]}
-            }
-        try:
-            bucket.create(**create_args)
-            return bucket
-        except (SSLError, ConnectTimeoutError, ClientError, ParamValidationError) as e:
-            self.logger.error(f"Could not create the bucket '{bucket_name}'; Response: {e}")
-            raise S3BucketError(
-                f"Could not create bucket '{bucket_name}' using provided configuration"
-            )
+        with self.s3_resource() as resource:
+            bucket = resource.Bucket(bucket_name)
+            create_args = {}
+            region = self.conn_info.get("region")
+            if region and region != "us-east-1":
+                create_args = {
+                    "CreateBucketConfiguration": {"LocationConstraint": self.conn_info["region"]}
+                }
+            try:
+                bucket.create(**create_args)
+                return bucket
+            except (
+                SSLError,
+                ConnectTimeoutError,
+                ClientError,
+                ParamValidationError,
+                EndpointConnectionError,
+            ) as e:
+                self.logger.error(f"Could not create the bucket '{bucket_name}'; Response: {e}")
+                raise S3BucketError(
+                    f"Could not create bucket '{bucket_name}' using provided configuration"
+                )
