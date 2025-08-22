@@ -52,7 +52,7 @@ jobs:
           tox run -e lint
 
   unit-test-azure-storage:
-    name: Run Unit tests: azure-storage-integrator
+    name: Unit Test azure-storage-integrator
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -69,7 +69,7 @@ jobs:
 
 
   unit-test-s3:
-    name: Run Unit tests: s3-integrator
+    name: Unit Test s3-integrator
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
