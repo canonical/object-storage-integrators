@@ -37,8 +37,7 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
         super().__init__(charm, self.name)
 
         self.charm = charm
-        self.context = context
-        self.state = self.context
+        self.state = context
         self.s3_provider_data = S3ProviderData(self.charm.model, S3_RELATION_NAME)
         self.s3_provider = S3ProviderEventHandlers(self.charm, self.s3_provider_data)
         self.framework.observe(
@@ -103,24 +102,24 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
                     component_name=self.name,
                 )
             else:
-                self.context.statuses.add(status=status, scope=scope, component=self.name)
+                self.state.statuses.add(status=status, scope=scope, component=self.name)
 
     def _clear_status(self) -> None:
         for scope in ("app", "unit"):
-            self.context.statuses.clear(scope=scope, component=self.name)
+            self.state.statuses.clear(scope=scope, component=self.name)
 
     def reconcile_buckets(self) -> None:
         """Reconcile creation of buckets and providing them to clients."""
         if not self.charm.unit.is_leader():
             return
 
-        if not self.context.s3:
+        if not self.state.s3:
             return
 
         self._clear_status()
-        s3_manager = S3Manager(self.context.s3)
+        s3_manager = S3Manager(self.state.s3)
 
-        config_bucket = self.context.s3.get("bucket")
+        config_bucket = self.state.s3.get("bucket")
         missing_buckets = []
 
         config_bucket_available = False
@@ -134,7 +133,7 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
         relation_bucket_requests = self.get_requested_relation_buckets()
         for relation_id, bucket_name in relation_bucket_requests.items():
             if not bucket_name:
-                connection_info = self.context.s3
+                connection_info = self.state.s3
                 if config_bucket_available:
                     connection_info = connection_info | cast(
                         S3ConnectionInfo, {"bucket": config_bucket}
@@ -148,7 +147,7 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
                 missing_buckets.append(bucket_name)
                 continue
 
-            connection_info = self.context.s3 | {"bucket": bucket_name}
+            connection_info = self.state.s3 | {"bucket": bucket_name}
             self.s3_provider_data.update_relation_data(relation_id, connection_info)
 
         if missing_buckets:
@@ -159,10 +158,10 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
     def get_statuses(self, scope: Scope, recompute: bool = False) -> list[StatusObject]:
         """Return the list of statuses for this component."""
         if not recompute:
-            return self.context.statuses.get(scope=scope, component=self.name)
+            return self.state.statuses.get(scope=scope, component=self.name)
 
         status_list: list[StatusObject] = []
-        if not self.context.s3:
+        if not self.state.s3:
             return status_list
 
         requested_buckets = [
@@ -171,11 +170,11 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
             if bucket_name
         ]
 
-        config_bucket = self.context.s3.get("bucket")
+        config_bucket = self.state.s3.get("bucket")
         if config_bucket and config_bucket not in requested_buckets:
             requested_buckets.insert(0, config_bucket)
 
-        s3_manager = S3Manager(self.context.s3)
+        s3_manager = S3Manager(self.state.s3)
         missing_buckets = [
             bucket_name
             for bucket_name in requested_buckets

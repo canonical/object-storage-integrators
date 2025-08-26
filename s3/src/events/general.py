@@ -41,8 +41,7 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol):
         super().__init__(charm, self.name)
 
         self.charm = charm
-        self.context = context
-        self.state = self.context
+        self.state = context
 
         self.s3_provider_data = S3ProviderData(self.charm.model, S3_RELATION_NAME)
 
