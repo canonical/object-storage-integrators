@@ -57,7 +57,7 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol):
 
     def _on_update_status(self, event: ops.UpdateStatusEvent):
         """Handle the update status event."""
-        self.charm.s3_provider_events.recoincile_buckets()
+        self.charm.s3_provider_events.reconcile_buckets()
 
     def _on_config_changed(self, event: ConfigChangedEvent) -> None:  # noqa: C901
         """Event handler for configuration changed events."""
@@ -66,7 +66,7 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol):
             return
 
         self.logger.debug(f"Config changed... Current configuration: {self.charm.config}")
-        self.charm.s3_provider_events.recoincile_buckets()
+        self.charm.s3_provider_events.reconcile_buckets()
 
     def _on_secret_changed(self, event: ops.SecretChangedEvent):
         """Handle the secret changed event.
@@ -86,7 +86,7 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol):
         if self.charm.config.get("credentials") != secret.id:
             return
 
-        self.charm.s3_provider_events.recoincile_buckets()
+        self.charm.s3_provider_events.reconcile_buckets()
 
     def get_statuses(self, scope: Scope, recompute: bool = False) -> list[StatusObject]:
         """Return the list of statuses for this component."""

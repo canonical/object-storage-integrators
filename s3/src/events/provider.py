@@ -54,7 +54,7 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
         if not self.charm.unit.is_leader():
             return
 
-        self.recoincile_buckets()
+        self.reconcile_buckets()
 
     def _on_s3_relation_broken(self, event: StorageConnectionInfoGoneEvent) -> None:
         """Handle the `relation-borken` event for S3 relation."""
@@ -62,7 +62,7 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
         if not self.charm.unit.is_leader():
             return
 
-        self.recoincile_buckets()
+        self.reconcile_buckets()
 
     def get_requested_relation_buckets(self) -> dict[str, str]:
         """Return a list of requested buckets from the client relations."""
@@ -112,7 +112,7 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
         for scope in ("app", "unit"):
             self.context.statuses.clear(scope=scope, component=self.name)
 
-    def recoincile_buckets(self):
+    def reconcile_buckets(self):
         """Reconcile creation of buckets and providing them to clients."""
         if not self.charm.unit.is_leader():
             return
