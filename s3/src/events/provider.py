@@ -168,7 +168,7 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
 
         requested_buckets = [
             bucket_name
-            for _, bucket_name in self.get_requested_relation_buckets().items()
+            for bucket_name in self.get_requested_relation_buckets().values()
             if bucket_name
         ]
 
