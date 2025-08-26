@@ -10,7 +10,7 @@ import os
 import tempfile
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 import boto3
 from boto3.session import Session
@@ -21,10 +21,15 @@ from botocore.exceptions import (
     ParamValidationError,
     SSLError,
 )
-from types_boto3_s3.service_resource import Bucket, S3ServiceResource
 
 from core.domain import S3ConnectionInfo
 from utils.logging import WithLogging
+
+if TYPE_CHECKING:
+    from types_boto3_s3.service_resource import Bucket, S3ServiceResource
+else:
+    S3ServiceResource = Any
+    Bucket = Any
 
 
 class S3BucketError(Exception):
