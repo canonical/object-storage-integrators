@@ -89,14 +89,10 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
                 status=BucketStatuses.creating_bucket(bucket_name=bucket_name),
                 is_running_status=True,
             )
-            s3_manager.create_bucket(bucket_name=bucket_name)
+            s3_manager.create_bucket(bucket_name=bucket_name, wait_until_exists=True)
+            return True
         except S3BucketError:
             return False
-
-        if s3_manager.get_bucket(bucket_name=bucket_name):
-            return True
-
-        return False
 
     def _add_status(self, status: StatusObject, is_running_status: bool = False) -> None:
         for scope in ("app", "unit"):

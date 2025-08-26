@@ -100,7 +100,7 @@ class S3Manager(WithLogging):
                 self.logger.error(f"The bucket '{bucket_name}' can't be fetched; Response: {e}")
                 return None
 
-    def create_bucket(self, bucket_name: str) -> Bucket:
+    def create_bucket(self, bucket_name: str, wait_until_exists: bool = True) -> Bucket:
         """Create a bucket with given name in the S3 cloud."""
         with self.s3_resource() as resource:
             bucket: Bucket = resource.Bucket(bucket_name)
@@ -112,6 +112,8 @@ class S3Manager(WithLogging):
                 }
             try:
                 bucket.create(**create_args)  # type: ignore
+                if wait_until_exists:
+                    bucket.wait_until_exists()
                 return bucket
             except (
                 SSLError,

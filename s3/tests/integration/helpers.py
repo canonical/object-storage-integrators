@@ -79,6 +79,7 @@ def create_bucket(s3_info: S3ConnectionInfo, bucket_name: str):
             create_args = {"CreateBucketConfiguration": {"LocationConstraint": region}}
         try:
             bucket.create(**create_args)
+            bucket.wait_until_exists()
             logger.info(f"Bucket '{bucket_name}' created successfully")
             return bucket
         except (SSLError, ConnectTimeoutError, ClientError, ParamValidationError) as e:
