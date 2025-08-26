@@ -55,7 +55,7 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol):
         """Handle the charm startup event."""
         pass
 
-    def _on_update_status(self, event: ops.UpdateStatusEvent):
+    def _on_update_status(self, event: ops.UpdateStatusEvent) -> None:
         """Handle the update status event."""
         self.charm.s3_provider_events.reconcile_buckets()
 
@@ -68,7 +68,7 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol):
         self.logger.debug(f"Config changed... Current configuration: {self.charm.config}")
         self.charm.s3_provider_events.reconcile_buckets()
 
-    def _on_secret_changed(self, event: ops.SecretChangedEvent):
+    def _on_secret_changed(self, event: ops.SecretChangedEvent) -> None:
         """Handle the secret changed event.
 
         When a secret is changed, it is first checked that whether this particular secret

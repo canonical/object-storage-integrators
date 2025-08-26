@@ -8,9 +8,12 @@
 import json
 import os
 import tempfile
+from collections.abc import Generator
 from contextlib import contextmanager
+from typing import Optional, cast
 
 import boto3
+from boto3.session import Session
 from botocore.exceptions import (
     ClientError,
     ConnectTimeoutError,
@@ -18,6 +21,7 @@ from botocore.exceptions import (
     ParamValidationError,
     SSLError,
 )
+from types_boto3_s3.service_resource import Bucket, S3ServiceResource
 
 from core.domain import S3ConnectionInfo
 from utils.logging import WithLogging
@@ -32,19 +36,18 @@ class S3BucketError(Exception):
 class S3Manager(WithLogging):
     """Manager class for S3 cloud related functions."""
 
-    def __init__(self, conn_info: S3ConnectionInfo):
-        self.conn_info = conn_info
+    def __init__(self, conn_info: S3ConnectionInfo) -> None:
+        self.conn_info: S3ConnectionInfo = conn_info
 
     @contextmanager
-    def s3_resource(self):
+    def s3_resource(self) -> Generator[S3ServiceResource, None, None]:
         """Yield a boto3 S3 resource, handling TLS CA chain cleanup safely."""
-        ca_file = None
-        extra_args = {}
+        ca_file: Optional[str] = None
+        extra_args: dict[str, object] = {}
 
-        # Handle TLS CA chain if provided (base64-encoded string)
         if self.conn_info.get("tls-ca-chain"):
-            ca_chain = json.loads(self.conn_info["tls-ca-chain"])
-            ca_chain_pem = "\n".join(ca_chain)
+            ca_chain: list[str] = json.loads(self.conn_info["tls-ca-chain"])
+            ca_chain_pem: str = "\n".join(ca_chain)
             tmp = tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".pem")
             tmp.write(ca_chain_pem)
             tmp.flush()
@@ -56,14 +59,17 @@ class S3Manager(WithLogging):
         if self.conn_info.get("region"):
             extra_args["region_name"] = self.conn_info.get("region")
 
-        session = boto3.Session(
+        session: Session = boto3.Session(
             aws_access_key_id=self.conn_info.get("access-key"),
             aws_secret_access_key=self.conn_info.get("secret-key"),
         )
-        resource = session.resource(
-            "s3",
-            endpoint_url=self.conn_info.get("endpoint"),
-            **extra_args,
+        resource = cast(
+            S3ServiceResource,
+            session.resource(
+                service_name="s3",
+                endpoint_url=self.conn_info.get("endpoint"),
+                **extra_args,
+            ),  # type: ignore
         )
 
         try:
@@ -72,10 +78,10 @@ class S3Manager(WithLogging):
             if ca_file and os.path.exists(ca_file):
                 os.remove(ca_file)
 
-    def get_bucket(self, bucket_name):
+    def get_bucket(self, bucket_name: str) -> Bucket | None:
         """Fetch the bucket with given name from S3 cloud."""
         with self.s3_resource() as resource:
-            bucket = resource.Bucket(bucket_name)
+            bucket: Bucket = resource.Bucket(bucket_name)
             try:
                 resource.meta.client.head_bucket(Bucket=bucket_name)
                 return bucket
@@ -89,10 +95,10 @@ class S3Manager(WithLogging):
                 self.logger.error(f"The bucket '{bucket_name}' can't be fetched; Response: {e}")
                 return None
 
-    def create_bucket(self, bucket_name):
+    def create_bucket(self, bucket_name: str) -> Bucket:
         """Create a bucket with given name in the S3 cloud."""
         with self.s3_resource() as resource:
-            bucket = resource.Bucket(bucket_name)
+            bucket: Bucket = resource.Bucket(bucket_name)
             create_args = {}
             region = self.conn_info.get("region")
             if region and region != "us-east-1":
@@ -100,7 +106,7 @@ class S3Manager(WithLogging):
                     "CreateBucketConfiguration": {"LocationConstraint": self.conn_info["region"]}
                 }
             try:
-                bucket.create(**create_args)
+                bucket.create(**create_args)  # type: ignore
                 return bucket
             except (
                 SSLError,

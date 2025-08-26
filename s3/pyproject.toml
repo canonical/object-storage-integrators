@@ -29,6 +29,7 @@ optional = true
 ruff = "^0.8.6"
 codespell = "^2.2.6"
 mypy = "^1.15.0"
+types-boto3 = { extras = ["s3"], version = "^1.40.17" }
 
 [tool.poetry.group.unit.dependencies]
 coverage = { extras = ["toml"], version = "^7.4.4" }

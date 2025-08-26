@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from data_platform_helpers.advanced_statuses.models import StatusObject
 from data_platform_helpers.advanced_statuses.protocol import ManagerStatusProtocol
@@ -14,6 +14,7 @@ from data_platform_helpers.advanced_statuses.types import Scope
 
 from constants import S3_RELATION_NAME
 from core.context import Context
+from core.domain import S3ConnectionInfo
 from events.base import BaseEventHandler
 from events.statuses import BucketStatuses, CharmStatuses
 from managers.s3 import S3BucketError, S3Manager
@@ -112,7 +113,7 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
         for scope in ("app", "unit"):
             self.context.statuses.clear(scope=scope, component=self.name)
 
-    def reconcile_buckets(self):
+    def reconcile_buckets(self) -> None:
         """Reconcile creation of buckets and providing them to clients."""
         if not self.charm.unit.is_leader():
             return
@@ -139,7 +140,9 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
             if not bucket_name:
                 connection_info = self.context.s3
                 if config_bucket_available:
-                    connection_info = connection_info | {"bucket": config_bucket}
+                    connection_info = connection_info | cast(
+                        S3ConnectionInfo, {"bucket": config_bucket}
+                    )
                 self.s3_provider_data.update_relation_data(relation_id, connection_info)
                 continue
             relation_bucket_available = self.ensure_bucket(
