@@ -28,7 +28,7 @@ def test_provider_data_no_config_bucket_and_no_bucket_requests(
     base_state: State,
     valid_ca_chain: bytes,
 ) -> None:
-    """Check that the charm starts in blocked status if not granted secret access."""
+    """Check the char behavior when bucket is not set in config and no bucket is requested by consumer."""
     # Given
     credentials_secret = Secret(
         tracked_content={"access-key": "my-access-key", "secret-key": "my-secret-key"}
@@ -84,7 +84,7 @@ def test_provider_when_ensure_bucket_unsuccessful(
     base_state: State,
     valid_ca_chain: bytes,
 ) -> None:
-    """Check that the charm starts in blocked status if not granted secret access."""
+    """Check charm behavior when the ensure_bucket operation by s3-integrator is unsuccessful."""
     # Given
     credentials_secret = Secret(
         tracked_content={"access-key": "my-access-key", "secret-key": "my-secret-key"}
@@ -138,7 +138,7 @@ def test_provider_relation_bucket_takes_priority_over_config_bucket(
     base_state: State,
     valid_ca_chain: bytes,
 ) -> None:
-    """Check that the charm starts in blocked status if not granted secret access."""
+    """Check that bucket requested over the relation takes priority over the one in config."""
     # Given
     credentials_secret = Secret(
         tracked_content={"access-key": "my-access-key", "secret-key": "my-secret-key"}
