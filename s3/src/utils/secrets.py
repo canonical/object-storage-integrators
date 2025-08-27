@@ -83,7 +83,7 @@ def decode_secret_key(model: Model, secret_id: str) -> tuple[str, str]:
 
         if missing_fields:
             raise SecretFieldMissingError(
-                f"The field 'access-key' was not found in the secret '{secret_id}'.",
+                f"Some required fields are missing in the secret '{secret_id}'.",
                 secret_id=secret_id,
                 missing_fields=missing_fields,
             )
