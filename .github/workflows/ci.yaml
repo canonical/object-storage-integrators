@@ -19,26 +19,13 @@ on:
         value: ${{ jobs.build.outputs.artifact-prefix }}
 
 jobs:
-  lint-azure-storage:
-    name: Lint azure-storage-integrator
+  lint:
+    name: Lint ${{ matrix.backend }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Install tox & poetry
-        run: |
-          pipx install tox
-          pipx install poetry
-      - name: Run linters
-        run: |
-          cd azure_storage
-          tox run -e lint
-
-  lint-s3:
-    name: Lint s3-integrator
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    strategy: 
+      matrix:
+        backend: ["s3", "azure_storage"]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -48,13 +35,16 @@ jobs:
           pipx install poetry
       - name: Run linters
         run: |
-          cd s3
+          cd ${{ matrix.backend }}
           tox run -e lint
 
-  unit-test-azure-storage:
-    name: Unit Test azure-storage-integrator
+  unit-test:
+    name: Unit Test ${{ matrix.backend }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    strategy: 
+      matrix:
+        backend: ["s3", "azure_storage"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,24 +54,7 @@ jobs:
           pipx install poetry
       - name: Run tests
         run: |
-          cd azure_storage
-          tox run -e unit
-
-
-  unit-test-s3:
-    name: Unit Test s3-integrator
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Install tox & poetry
-        run: |
-          pipx install tox
-          pipx install poetry
-      - name: Run tests
-        run: |
-          cd s3
+          cd ${{ matrix.backend }}
           tox run -e unit
 
   build:
@@ -101,10 +74,8 @@ jobs:
   integration-test:
     name: Integration test charm
     needs:
-      - lint-s3
-      - lint-azure-storage
-      - unit-test-s3
-      - unit-test-azure-storage
+      - lint
+      - unit-test
       - build
     uses: ./.github/workflows/integration_test.yaml
     with:
