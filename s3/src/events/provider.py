@@ -66,17 +66,12 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
 
     def get_requested_relation_buckets(self) -> dict[str, str]:
         """Return a list of requested buckets from the client relations."""
-        bucket_requests = {}
-        if len(self.s3_provider_data.relations) > 0:
-            for relation in self.s3_provider_data.relations:
-                requested_bucket = (
-                    self.s3_provider_data.fetch_relation_field(
-                        relation_id=relation.id, field="bucket"
-                    )
-                    or ""
-                )
-                bucket_requests[relation.id] = requested_bucket
-        return bucket_requests
+        return {
+            rel_id: data.get("bucket", "")
+            for rel_id, data in self.s3_provider_data.fetch_relation_data(
+                fields=["bucket"]
+            ).items()
+        }
 
     def ensure_bucket(self, s3_manager: S3Manager, bucket_name: str) -> bool:
         """Try to fetch the bucket, and if not found, try to create and and verify it got created."""
@@ -121,7 +116,6 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
 
         config_bucket = self.state.s3.get("bucket")
         missing_buckets = []
-
         config_bucket_available = False
         if config_bucket:
             config_bucket_available = self.ensure_bucket(
