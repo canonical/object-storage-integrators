@@ -95,8 +95,6 @@ follow_imports = "silent"
 module = [
   "charms.data_platform_libs.*",
   "data_platform_helpers.*",
-  "boto3.*",
-  "botocore.*",
 ]
 ignore_missing_imports = true
 
