@@ -5,12 +5,14 @@
 
 """The S3 Manager module that contains manager class and utilities specific to S3 cloud."""
 
+from __future__ import annotations
+
 import json
 import os
 import tempfile
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import boto3
 from boto3.session import Session
@@ -29,7 +31,6 @@ if TYPE_CHECKING:
     from types_boto3_s3.service_resource import Bucket, S3ServiceResource
 else:
     S3ServiceResource = Any
-    Bucket = Any
 
 
 class S3BucketError(Exception):
@@ -47,7 +48,7 @@ class S3Manager(WithLogging):
     @contextmanager
     def s3_resource(self) -> Generator[S3ServiceResource, None, None]:
         """Yield a boto3 S3 resource, handling TLS CA chain cleanup safely."""
-        ca_file: Optional[str] = None
+        ca_file: str | None = None
         extra_args: dict[str, object] = {}
 
         if self.conn_info.get("tls-ca-chain"):

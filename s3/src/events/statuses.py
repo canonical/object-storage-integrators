@@ -23,13 +23,21 @@ class ConfigStatuses(Enum):
     def missing_config_parameters(fields: list[str]) -> StatusObject:
         """Some of the mandatory config values are missing."""
         fields_str = ", ".join(f"'{field}'" for field in fields)
-        return StatusObject(status="blocked", message=f"Missing config(s): {fields_str}")
+        return StatusObject(
+            status="blocked",
+            message=f"Missing config(s): {fields_str}",
+            action=f"Set config(s): {fields_str}",
+        )
 
     @staticmethod
     def invalid_config_parameters(fields: list[str]) -> StatusObject:
         """Some of the config values are invalid."""
         fields_str = ", ".join(f"'{field}'" for field in fields)
-        return StatusObject(status="blocked", message=f"Invalid config(s): {fields_str}")
+        return StatusObject(
+            status="blocked",
+            message=f"Invalid config(s): {fields_str}",
+            action=f"Fix invalid config(s): {fields_str}",
+        )
 
     @staticmethod
     def secret_does_not_exist(secret_id: str) -> StatusObject:
@@ -37,6 +45,7 @@ class ConfigStatuses(Enum):
         return StatusObject(
             status="blocked",
             message=f"The secret '{secret_id}' does not exist",
+            action=f"Make sure the secret {secret_id} exists in this Juju model",
         )
 
     @staticmethod
@@ -46,6 +55,7 @@ class ConfigStatuses(Enum):
         return StatusObject(
             status="blocked",
             message=f"The secret '{secret_id}' is missing mandatory field(s): {fields_str}",
+            action="Add the missing fields to the secret with: juju update-secret secret_id field=value",
         )
 
     @staticmethod
@@ -61,7 +71,9 @@ class ConfigStatuses(Enum):
     def secret_cannot_be_decoded(secret_id: str) -> StatusObject:
         """The secret cannot be decoded."""
         return StatusObject(
-            status="blocked", message=f"The secret '{secret_id}' could not be decoded"
+            status="blocked",
+            message=f"The secret '{secret_id}' could not be decoded",
+            action="Check Juju logs for more detail",
         )
 
 
@@ -73,7 +85,9 @@ class BucketStatuses(Enum):
         """The bucet is not available for use."""
         buckets_str = ", ".join(f"'{bucket_name}'" for bucket_name in bucket_names)
         return StatusObject(
-            status="blocked", message=f"Could not fetch or create bucket(s): {buckets_str}"
+            status="blocked",
+            message=f"Could not fetch or create bucket(s): {buckets_str}",
+            action="Make sure the bucket name and S3 credentials are valid.",
         )
 
     @staticmethod

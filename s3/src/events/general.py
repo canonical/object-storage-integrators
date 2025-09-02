@@ -104,8 +104,7 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol):
             if invalid:
                 status_list.append(ConfigStatuses.invalid_config_parameters(fields=invalid))
 
-        credentials = charm_config.get("credentials", "")
-        if not credentials:
+        if not (credentials := charm_config.get("credentials", "")):
             return status_list
 
         try:
