@@ -115,11 +115,12 @@ class CharmConfig(BaseConfigModel):
     @field_validator("tls_ca_chain")
     @classmethod
     def validate_tls_ca_chain(cls, value: str) -> str | None:
+        """Validate the `tls-ca-chain` config option."""
         if value is None:
             return None
         try:
             decoded_value = base64.b64decode(value).decode("utf-8")
-        except (TypeError, binascii.Error) as e:
+        except (TypeError, binascii.Error):
             raise ValueError("The given TLS CA chain is not a valid base64 encoded string")
 
         chain_list = parse_ca_chain(decoded_value)

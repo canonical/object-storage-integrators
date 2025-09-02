@@ -9,7 +9,5 @@ summary: |
   only for testing of the libs in this repository.
 
 requires:
-  first-s3-credentials:
-    interface: s3
-  second-s3-credentials:
+  s3-credentials:
     interface: s3

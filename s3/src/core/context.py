@@ -5,21 +5,28 @@
 
 """Charm Context definition and parsing logic."""
 
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
-from ops import ConfigData, Model
+from data_platform_helpers.advanced_statuses.protocol import StatusesState, StatusesStateProtocol
+from ops import Object
 
+from constants import STATUS_PEERS_RELATION_NAME
 from core.domain import CharmConfig, S3ConnectionInfo
 from utils.logging import WithLogging
 from utils.secrets import decode_secret_key
 
+if TYPE_CHECKING:
+    from charm import S3IntegratorCharm
 
-class Context(WithLogging):
+
+class Context(Object, WithLogging, StatusesStateProtocol):
     """Properties and relations of the charm."""
 
-    def __init__(self, model: Model, config: ConfigData):
-        self.model = model
-        self.charm_config = config
+    def __init__(self, charm: "S3IntegratorCharm"):
+        super().__init__(charm, "charm_context")
+        self.charm = charm
+        self.charm_config = charm.config
+        self.statuses = StatusesState(self, STATUS_PEERS_RELATION_NAME)
 
     @property
     def s3(self) -> S3ConnectionInfo | None:
@@ -27,9 +34,9 @@ class Context(WithLogging):
         try:
             validated_config = CharmConfig(**self.charm_config)  # type: ignore
             credentials = validated_config.credentials
-            access_key, secret_key = decode_secret_key(self.model, credentials)
+            access_key, secret_key = decode_secret_key(self.charm.model, credentials)
         except Exception as exc:
-            self.logger.exception(exc)
+            self.logger.error(exc)
             return None
 
         s3 = cast(

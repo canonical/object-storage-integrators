@@ -12,19 +12,14 @@ the s3 requires-provides relation.
 
 import logging
 
-from s3_lib import S3Requires, StorageConnectionInfoChangedEvent, StorageConnectionInfoGoneEvent
+from s3_lib import S3Requires, StorageConnectionInfoChangedEvent, StorageConnectionInfoGoneEvent, S3RequirerData, S3RequirerEventHandlers
 from ops.charm import CharmBase, RelationJoinedEvent
 from ops import ActionEvent, main
 from ops.model import ActiveStatus, WaitingStatus
 
 logger = logging.getLogger(__name__)
 
-PEER = "application-peers"
-
-FIRST_RELATION = "first-s3-credentials"
-SECOND_RELATION = "second-s3-credentials"
-BUCKET_NAME = "test-bucket"
-
+S3_RELATION_NAME = "s3-credentials"
 
 class ApplicationCharm(CharmBase):
     """Application charm that relates to S3 integrator."""
@@ -34,83 +29,63 @@ class ApplicationCharm(CharmBase):
 
         # Default charm events.
         self.framework.observe(self.on.start, self._on_start)
+        self.framework.observe(self.on.config_changed, self._on_config_changed)
 
         # Events related to the requested database
         # (these events are defined in the database requires charm library).
-
-        self.first_s3_client = S3Requires(self, FIRST_RELATION)
-        self.second_s3_client = S3Requires(self, SECOND_RELATION, bucket=BUCKET_NAME)
+        bucket = self.config.get("bucket", "")
+        self.requirer_data = S3RequirerData(self.model, S3_RELATION_NAME, bucket=bucket)
+        self.requirer_events = S3RequirerEventHandlers(self, self.requirer_data)
 
         # add relation
         self.framework.observe(
-            self.first_s3_client.on.s3_connection_info_changed,
-            self._on_first_storage_connection_info_changed,
+            self.requirer_events.on.s3_connection_info_changed,
+            self._on_storage_connection_info_changed,
         )
         self.framework.observe(
-            self.second_s3_client.on.s3_connection_info_changed,
-            self._on_second_storage_connection_info_changed,
+            self.on[S3_RELATION_NAME].relation_joined, self._on_relation_joined
         )
 
         self.framework.observe(
-            self.on[FIRST_RELATION].relation_joined, self._on_first_relation_joined
-        )
-        self.framework.observe(
-            self.on[SECOND_RELATION].relation_joined, self._on_second_relation_joined
+            self.requirer_events.on.s3_connection_info_gone,
+            self._on_storage_connection_info_gone,
         )
 
-        self.framework.observe(
-            self.first_s3_client.on.s3_connection_info_gone,
-            self._on_first_storage_connection_info_gone,
-        )
-        self.framework.observe(
-            self.second_s3_client.on.s3_connection_info_gone,
-            self._on_second_storage_connection_info_gone,
-        )
         self.framework.observe(self.on.update_status, self._on_update_status)
-        self.framework.observe(self.on.get_first_s3_action, self._on_get_first_s3_action)
-        self.framework.observe(self.on.get_second_s3_action, self._on_get_second_s3_action)
+        self.framework.observe(self.on.get_s3_connection_info_action, self._on_get_s3_connection_info_action)
+
 
     def _on_start(self, _) -> None:
         """Only sets an waiting status."""
-        self.unit.status = WaitingStatus("Waiting for relation")
+        if self.model.get_relation(S3_RELATION_NAME):
+            self.unit.status = ActiveStatus()
+        else:
+            self.unit.status = WaitingStatus("Waiting for relation")
 
-    def _on_first_relation_joined(self, _: RelationJoinedEvent):
+    def _on_config_changed(self, _) -> None:
+        bucket = self.config.get("bucket", "")
+        if (rel := self.model.get_relation(S3_RELATION_NAME)):
+            self.requirer_data.update_relation_data(rel.id, {"bucket": bucket})
+
+    def _on_relation_joined(self, _: RelationJoinedEvent):
         """On s3 credential relation joined."""
-        logger.info("Relation_1 joined...")
+        logger.info("S3 relation joined...")
         self.unit.status = ActiveStatus()
 
-    def _on_second_relation_joined(self, _: RelationJoinedEvent):
-        """On s3 credential relation joined."""
-        logger.info("Relation_2 joined...")
-        self.unit.status = ActiveStatus()
+    def _on_storage_connection_info_changed(self, e: StorageConnectionInfoChangedEvent):
+        credentials = self.requirer_events.get_s3_connection_info()
+        logger.info(f"S3 credentials changed. New credentials: {credentials}")
 
-    def _on_first_storage_connection_info_changed(self, e: StorageConnectionInfoChangedEvent):
-        credentials = self.first_s3_client.get_s3_connection_info()
-        logger.info(f"Relation_1 credentials changed. New credentials: {credentials}")
-
-    def _on_second_storage_connection_info_changed(self, e: StorageConnectionInfoChangedEvent):
-        credentials = self.second_s3_client.get_s3_connection_info()
-        logger.info(f"Relation_2 credentials changed. New credentials: {credentials}")
-
-    def _on_first_storage_connection_info_gone(self, _: StorageConnectionInfoGoneEvent):
-        logger.info("Relation_1 credentials gone...")
+    def _on_storage_connection_info_gone(self, _: StorageConnectionInfoGoneEvent):
+        logger.info("S3 credentials gone...")
         self.unit.status = WaitingStatus("Waiting for relation")
 
-    def _on_second_storage_connection_info_gone(self, _: StorageConnectionInfoGoneEvent):
-        logger.info("Relation_2 credentials gone...")
-        self.unit.status = WaitingStatus("Waiting for relation")
-
-    def _on_get_first_s3_action(self, event: ActionEvent) -> None:
-        event.set_results(self.first_s3_client.get_s3_connection_info())
-
-    def _on_get_second_s3_action(self, event: ActionEvent) -> None:
-        event.set_results(self.second_s3_client.get_s3_connection_info())
+    def _on_get_s3_connection_info_action(self, event: ActionEvent) -> None:
+        event.set_results(self.requirer_events.get_s3_connection_info())
 
     def _on_update_status(self, _):
-        first_info = self.first_s3_client.get_s3_connection_info()
-        logger.info(f"First s3 client info: {first_info}")
-        second_info = self.second_s3_client.get_s3_connection_info()
-        logger.info(f"Second s3 client info: {second_info}")
+        s3_info = self.requirer_events.get_s3_connection_info()
+        logger.info(f"S3 client info: {s3_info}")
 
 
 if __name__ == "__main__":
