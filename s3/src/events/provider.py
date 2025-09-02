@@ -57,7 +57,7 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
         self.reconcile_buckets()
 
     def _on_s3_relation_broken(self, event: StorageConnectionInfoGoneEvent) -> None:
-        """Handle the `relation-borken` event for S3 relation."""
+        """Handle the `relation-broken` event for S3 relation."""
         self.logger.info("On s3 relation broken")
         if not self.charm.unit.is_leader():
             return
