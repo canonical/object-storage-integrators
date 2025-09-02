@@ -5,9 +5,10 @@
 
 import json
 import logging
-from typing import Dict, Optional
+from typing import Dict
 
 import yaml
+from juju.action import Action
 from juju.unit import Unit
 from pytest_operator.plugin import OpsTest
 
@@ -44,24 +45,24 @@ def is_relation_broken(ops_test: OpsTest, endpoint_one: str, endpoint_two: str) 
     return False
 
 
-async def run_command_on_unit(unit: Unit, command: str) -> Optional[str]:
-    """Run a command in one Juju unit.
+async def run_charm_action(unit: Unit, charm_action: str, **params) -> dict:
+    """Assert that the action is run successfully and returns the results.
 
     Args:
-        unit: the Juju unit instance.
-        command: the command to run.
+        unit: The unit to run the action on.
+        charm_action: The action to run.
+        params: The parameters to pass to the action.
+
+    Raises:
+        AssertionError if the action did not complete successfully.
 
     Returns:
-        command execution output or none if the command produces no output.
+        The results of the action.
     """
-    # workaround for https://github.com/juju/python-libjuju/issues/707
-    action = await unit.run(command)
-    result = await action.wait()
-    code = str(result.results.get("Code") or result.results.get("return-code"))
-    stdout = result.results.get("Stdout") or result.results.get("stdout")
-    stderr = result.results.get("Stderr") or result.results.get("stderr")
-    assert code == "0", f"{command} failed ({code}): {stderr or stdout}"
-    return stdout
+    action: Action = await unit.run_action(charm_action, **params)
+    action = await action.wait()
+    assert action.status == "completed", f"Action {charm_action} failed: {action.results}"
+    return action.results
 
 
 async def get_relation_data(
@@ -116,13 +117,6 @@ async def get_application_data(
     relation_data = await get_relation_data(ops_test, application_name, relation_name)
     application_data = relation_data[0]["application-data"]
     return application_data
-
-
-def get_certificate_from_file(filename: str) -> str:
-    """Returns the certificate as a string."""
-    with open(filename, "r") as file:
-        certificate = file.read()
-    return certificate
 
 
 async def get_juju_secret(ops_test: OpsTest, secret_uri: str) -> Dict[str, str]:

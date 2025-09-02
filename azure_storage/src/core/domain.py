@@ -16,11 +16,15 @@ class AzureConnectionInfo:
     container: str
     storage_account: str
     secret_key: str
+    endpoint: str = None
+    resource_group: str = None
     path: str = None
 
     @property
-    def endpoint(self):
+    def derived_endpoint(self):
         """The endpoint constructed from the other parameters."""
+        if self.endpoint:
+            return self.endpoint
         if self.connection_protocol.lower() in ("wasb", "wasbs"):
             return f"{self.connection_protocol}://{self.container}@{self.storage_account}.blob.core.windows.net/"
         elif self.connection_protocol.lower() in ("abfs", "abfss"):
@@ -34,8 +38,10 @@ class AzureConnectionInfo:
             "container": self.container,
             "storage-account": self.storage_account,
             "secret-key": self.secret_key,
-            "endpoint": self.endpoint,
+            "endpoint": self.derived_endpoint,
         }
         if self.path:
             data["path"] = self.path
+        if self.resource_group:
+            data["resource-group"] = self.resource_group
         return data

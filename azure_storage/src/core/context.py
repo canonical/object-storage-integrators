@@ -40,6 +40,8 @@ class Context(WithLogging):
             connection_protocol=self.charm_config.get("connection-protocol"),
             container=self.charm_config.get("container"),
             storage_account=self.charm_config.get("storage-account"),
+            endpoint=self.charm_config.get("endpoint"),
+            resource_group=self.charm_config.get("resource-group"),
             secret_key=secret_key,
             path=self.charm_config.get("path"),
         )
