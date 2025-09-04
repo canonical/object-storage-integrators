@@ -50,6 +50,18 @@ def test_charm() -> Path:
     return path
 
 
+@pytest.fixture
+def test_charm_s3_v0() -> Path:
+    if not (
+        path := next(
+            iter((Path.cwd() / "tests/integration/test-charm-s3-v0").glob("*.charm")), None
+        )
+    ):
+        raise FileNotFoundError("Could not find packed test charm.")
+
+    return path
+
+
 @pytest.fixture(scope="module")
 def juju(request: pytest.FixtureRequest):
     keep_models = bool(request.config.getoption("--keep-models"))

@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from data_platform_helpers.advanced_statuses.models import StatusObject
 from data_platform_helpers.advanced_statuses.protocol import ManagerStatusProtocol
@@ -14,7 +14,6 @@ from data_platform_helpers.advanced_statuses.types import Scope
 
 from constants import S3_RELATION_NAME
 from core.context import Context
-from core.domain import S3ConnectionInfo
 from events.base import BaseEventHandler
 from events.statuses import BucketStatuses, CharmStatuses
 from managers.s3 import S3BucketError, S3Manager
@@ -114,25 +113,26 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
         self._clear_status()
         s3_manager = S3Manager(self.state.s3)
 
-        config_bucket = self.state.s3.get("bucket")
+        config_bucket_value = self.state.s3.get("bucket", "") or ""
         missing_buckets = []
         config_bucket_available = False
-        if config_bucket:
+
+        if config_bucket_value:
             config_bucket_available = self.ensure_bucket(
-                s3_manager=s3_manager, bucket_name=config_bucket
+                s3_manager=s3_manager, bucket_name=config_bucket_value
             )
             if not config_bucket_available:
-                missing_buckets.append(config_bucket)
+                missing_buckets.append(config_bucket_value)
+
+        # Connection data from config can be shared only if either config bucket
+        # is available for use, or is not set to a value at all.
+        is_config_data_shareable = config_bucket_available or not config_bucket_value
 
         relation_bucket_requests = self.get_requested_relation_buckets()
         for relation_id, bucket_name in relation_bucket_requests.items():
             if not bucket_name:
-                connection_info = self.state.s3
-                if config_bucket_available:
-                    connection_info = connection_info | cast(
-                        S3ConnectionInfo, {"bucket": config_bucket}
-                    )
-                self.s3_provider_data.update_relation_data(relation_id, connection_info)
+                if is_config_data_shareable:
+                    self.s3_provider_data.update_relation_data(relation_id, self.state.s3)
                 continue
             relation_bucket_available = self.ensure_bucket(
                 s3_manager=s3_manager, bucket_name=bucket_name

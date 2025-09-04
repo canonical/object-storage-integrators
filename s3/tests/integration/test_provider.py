@@ -17,6 +17,7 @@ from helpers import delete_bucket, get_bucket
 S3 = "s3"
 CONSUMER1 = "consumer1"
 CONSUMER2 = "consumer2"
+CONSUMER3 = "consumer3"
 SECRET_LABEL = "s3-creds-secret-provider"
 INVALID_BUCKET = "random?invali!dname"
 
@@ -307,3 +308,37 @@ def test_both_consumers_ask_valid_buckets_but_keys_are_invalid(juju: jubilant.Ju
         phrase in status.apps[S3].units[f"{S3}/0"].workload_status.message
         for phrase in ["Could not fetch or create bucket", "consumer1-bucket", "consumer2-bucket"]
     )
+
+
+def test_deploy_consumer3_with_s3_lib_v0(juju: jubilant.Juju, test_charm_s3_v0):
+    """Deploy a consumer / requirer charm that uses S3 v0 (LIBAPI=0)."""
+    logger.info(f"Deploying consumer charm {CONSUMER3}...")
+    juju.deploy(test_charm_s3_v0, app=CONSUMER3)
+    status = juju.wait(
+        lambda status: jubilant.all_waiting(status, CONSUMER3)
+        and jubilant.all_agents_idle(status, CONSUMER3),
+        delay=5,
+    )
+    assert "Waiting for relation" in status.apps[CONSUMER3].app_status.message
+
+
+def test_integrate_s3_and_consumer3(
+    juju: jubilant.Juju, s3_info: S3ConnectionInfo, config_bucket_name_2
+) -> None:
+    """Integrate S3 charm with consumer3 charm (which uses s3 LIBAPI=0), to test compatibility."""
+    juju.integrate(S3, CONSUMER3)
+    juju.wait(
+        lambda status: jubilant.all_active(status) and jubilant.all_agents_idle(status), delay=5
+    )
+    result = juju.run(f"{CONSUMER3}/0", "get-s3-connection-info").results
+
+    # In this case, the consumer should be provided with the connection info with bucket from config option
+    # This is because the s3 LIBAPI=0 sets `bucket=relation-xxx` automatically which should be ignored by s3 LIBAPI=1
+    assert result == {
+        "bucket": config_bucket_name_2,
+        "access-key": s3_info.access_key,
+        "secret-key": s3_info.secret_key,
+        "endpoint": s3_info.endpoint,
+        "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain).replace('"', "'"),
+    }
+    assert get_bucket(s3_info=s3_info, bucket_name=config_bucket_name_2)
