@@ -155,7 +155,7 @@ async def test_config_endpoint_option(ops_test: OpsTest):
     configured_options = await run_charm_action(
         azure_storage_integrator_unit, "get-azure-storage-connection-info"
     )
-    assert configured_options["endpoint"] == "https://stoacc.blob.core.windows.net/test-container/"
+    assert configured_options["endpoint"] == "https://stoacc.blob.core.windows.net/test-container"
 
     # custom endpoint
     await ops_test.model.applications[CHARM_NAME].set_config(
