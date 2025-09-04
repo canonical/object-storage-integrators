@@ -149,6 +149,14 @@ async def test_config_endpoint_option(ops_test: OpsTest):
     )
     assert configured_options["endpoint"] == "wasbs://test-container@stoacc.blob.core.windows.net/"
 
+    # https protocol
+    await ops_test.model.applications[CHARM_NAME].set_config({"connection-protocol": "https"})
+    await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="active", timeout=1000)
+    configured_options = await run_charm_action(
+        azure_storage_integrator_unit, "get-azure-storage-connection-info"
+    )
+    assert configured_options["endpoint"] == "https://stoacc.blob.core.windows.net/test-container/"
+
     # custom endpoint
     await ops_test.model.applications[CHARM_NAME].set_config(
         {"endpoint": "https://custom.endpoint.com"}

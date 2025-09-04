@@ -28,8 +28,9 @@ options:
     type: string
     description: |
       The storage protocol to use when connecting to Azure storage. 
-      Possible values: "wasb", "wasbs" for Azure Blob Storage and 
-      "abfs", "abfss" for Azure Data Lake Storage v2.
+      Possible values: "wasb", "wasbs" for Azure Blob Storage, 
+      "abfs", "abfss" for Azure Data Lake Storage Gen2 and 
+      "http", "https" for Azure Blob/Files REST API access.
     default: 'abfss'
   credentials:
     type: secret

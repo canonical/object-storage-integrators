@@ -29,6 +29,8 @@ class AzureConnectionInfo:
             return f"{self.connection_protocol}://{self.container}@{self.storage_account}.blob.core.windows.net/"
         elif self.connection_protocol.lower() in ("abfs", "abfss"):
             return f"{self.connection_protocol}://{self.container}@{self.storage_account}.dfs.core.windows.net/"
+        elif self.connection_protocol.lower() in ("http", "https"):
+            return f"{self.connection_protocol}://{self.storage_account}.blob.core.windows.net/{self.container}/"
         return ""
 
     def to_dict(self) -> dict:
