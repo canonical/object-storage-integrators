@@ -6,7 +6,7 @@ name: Release to Charmhub
 on:
   push:
     branches:
-      - main
+      - release-s3
 
 jobs:
   lib-check:
@@ -39,14 +39,16 @@ jobs:
     strategy:
       matrix:
         charm:
-          - path: azure_storage/
-            channel: latest/edge
+          # - path: azure_storage/
+          #   track: latest
+          - path: s3/
+            track: 2
     needs:
       - lib-check
       - ci-tests
-    uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@v29.0.0
+    uses: canonical/data-platform-workflows/.github/workflows/release_charm_edge.yaml@v35.0.2
     with:
-      channel: ${{ matrix.charm.channel }}
+      track: ${{ matrix.charm.track }}
       artifact-prefix: ${{ needs.ci-tests.outputs.artifact-prefix }}
       path-to-charm-directory: ${{ matrix.charm.path }}
     secrets:
