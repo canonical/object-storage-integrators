@@ -15,10 +15,16 @@ options:
   connection-protocol:
     type: string  
     description: |
-      The storage protocol to use when connecting to Azure storage. 
-      Possible values: "wasb", "wasbs" for Azure Blob Storage and 
-      "abfs", "abfss" for Azure Data Lake Storage v2.
-    default: 'abfss'
+      The storage protocol to use when connecting to Azure storage. This will be used
+      by the charm in addition to the container and storage-account to generate an endpoint.
+      Possible values are:
+      "https" -- for HTTPS endpoint
+      "http"  -- insecure alternative of "https"
+      "wasbs" -- for Windows Azure Storage Blob driver endpoint for Apache Hadoop
+      "wasb"  -- insecure alternative of "wasbs"
+      "abfss" -- for Azure Blob Filesystem driver for Apache Hadoop
+      "abfs"  -- insecure alternative of "abfss"
+    default: 'https'
   credentials:
     type: secret
     description: |
