@@ -18,7 +18,8 @@ options:
     type: string
     description: |
       The endpoint URL for the Azure Storage account. This is optional and can be 
-      used to override the default endpoint URL.
+      used to override the default endpoint URL, that would be generated based 
+      on the provided connection-protocol, container and storage-account.
   path:
     type: string
     description: The path inside the bucket/container to store objects.
