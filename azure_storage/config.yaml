@@ -8,16 +8,29 @@ options:
   storage-account:
     type: string
     description: The name of the Azure storage account.
+  resource-group:
+    type: string
+    description: |
+      The name of the Azure resource group where the storage account is located. 
+      This is optional and can be used to specify a different resource group.
+    default: ''
+  endpoint:
+    type: string
+    description: |
+      The endpoint URL for the Azure Storage account. This is optional and can be 
+      used to override the default endpoint URL, that would be generated based 
+      on the provided connection-protocol, container and storage-account.
   path:
     type: string
     description: The path inside the bucket/container to store objects.
     default: ''
   connection-protocol:
-    type: string  
+    type: string
     description: |
       The storage protocol to use when connecting to Azure storage. 
-      Possible values: "wasb", "wasbs" for Azure Blob Storage and 
-      "abfs", "abfss" for Azure Data Lake Storage v2.
+      Possible values: "wasb", "wasbs" for Azure Blob Storage, 
+      "abfs", "abfss" for Azure Data Lake Storage Gen2 and 
+      "http", "https" for Azure Blob/Files REST API access.
     default: 'abfss'
   credentials:
     type: secret

@@ -17,6 +17,7 @@ from .helpers import (
     get_relation_data,
     is_relation_broken,
     is_relation_joined,
+    run_charm_action,
     update_juju_secret,
 )
 
@@ -110,6 +111,7 @@ async def test_config_options(ops_test: OpsTest):
         "path": "/test/path_1/",
         "container": "test-container",
         "credentials": secret_uri,
+        "resource-group": "test-resource-group",
     }
     # apply new configuration options
     await ops_test.model.applications[CHARM_NAME].set_config(configuration_parameters)
@@ -117,15 +119,53 @@ async def test_config_options(ops_test: OpsTest):
     await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="active", timeout=1000)
     # test the returns
     azure_storage_integrator_unit = ops_test.model.applications[CHARM_NAME].units[0]
-    action = await azure_storage_integrator_unit.run_action(
-        action_name="get-azure-storage-connection-info"
+    configured_options = await run_charm_action(
+        azure_storage_integrator_unit, "get-azure-storage-connection-info"
     )
-    action_result = await action.wait()
-    configured_options = action_result.results
     # test the correctness of the configuration fields
     assert configured_options["storage-account"] == "stoacc"
     assert configured_options["path"] == "/test/path_1/"
     assert configured_options["secret-key"] == "**********"
+    assert configured_options["resource-group"] == "test-resource-group"
+
+
+@pytest.mark.abort_on_fail
+async def test_config_endpoint_option(ops_test: OpsTest):
+    azure_storage_integrator_unit = ops_test.model.applications[CHARM_NAME].units[0]
+
+    # abfs protocol
+    await ops_test.model.applications[CHARM_NAME].set_config({"connection-protocol": "abfss"})
+    await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="active", timeout=1000)
+    configured_options = await run_charm_action(
+        azure_storage_integrator_unit, "get-azure-storage-connection-info"
+    )
+    assert configured_options["endpoint"] == "abfss://test-container@stoacc.dfs.core.windows.net/"
+
+    # wasbs protocol
+    await ops_test.model.applications[CHARM_NAME].set_config({"connection-protocol": "wasbs"})
+    await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="active", timeout=1000)
+    configured_options = await run_charm_action(
+        azure_storage_integrator_unit, "get-azure-storage-connection-info"
+    )
+    assert configured_options["endpoint"] == "wasbs://test-container@stoacc.blob.core.windows.net/"
+
+    # https protocol
+    await ops_test.model.applications[CHARM_NAME].set_config({"connection-protocol": "https"})
+    await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="active", timeout=1000)
+    configured_options = await run_charm_action(
+        azure_storage_integrator_unit, "get-azure-storage-connection-info"
+    )
+    assert configured_options["endpoint"] == "https://stoacc.blob.core.windows.net/test-container"
+
+    # custom endpoint
+    await ops_test.model.applications[CHARM_NAME].set_config(
+        {"endpoint": "https://custom.endpoint.com"}
+    )
+    await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="active", timeout=1000)
+    configured_options = await run_charm_action(
+        azure_storage_integrator_unit, "get-azure-storage-connection-info"
+    )
+    assert configured_options["endpoint"] == "https://custom.endpoint.com"
 
 
 @pytest.mark.abort_on_fail
@@ -153,6 +193,7 @@ async def test_relation_creation(ops_test: OpsTest):
     assert application_data["container"] == "test-container"
     assert application_data["storage-account"] == "stoacc"
     assert application_data["path"] == "/test/path_1/"
+    assert application_data["resource-group"] == "test-resource-group"
     secret_uri = application_data["secret-extra"]
     secret_data = await get_juju_secret(ops_test, secret_uri)
     assert secret_data["secret-key"] == "new-test-secret-key"
@@ -184,6 +225,7 @@ async def test_relation_creation(ops_test: OpsTest):
     assert application_data["container"] == new_container_name
     assert application_data["storage-account"] == "stoacc"
     assert application_data["path"] == "/test/path_1/"
+    assert application_data["resource-group"] == "test-resource-group"
 
     secret_uri = application_data["secret-extra"]
     secret_data = await get_juju_secret(ops_test, secret_uri)
@@ -203,11 +245,9 @@ async def test_secret_updated(ops_test: OpsTest):
     await ops_test.model.wait_for_idle(apps=[CHARM_NAME], status="active", timeout=1000)
     # test the returns
     azure_storage_integrator_unit = ops_test.model.applications[CHARM_NAME].units[0]
-    action = await azure_storage_integrator_unit.run_action(
-        action_name="get-azure-storage-connection-info"
+    configured_options = await run_charm_action(
+        azure_storage_integrator_unit, "get-azure-storage-connection-info"
     )
-    action_result = await action.wait()
-    configured_options = action_result.results
     # test the correctness of the configuration fields
     assert configured_options["storage-account"] == "stoacc"
     assert configured_options["path"] == "/test/path_1/"
