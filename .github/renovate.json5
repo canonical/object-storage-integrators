@@ -7,10 +7,10 @@
     "theoctober19th",
     "mvlassis"
   ],
-  "schedule": ["0 3 * * 5"],
+  "schedule": ["* 3 * * 5"],
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["0 3 * * 5"]
+    "schedule": ["* 3 * * 5"]
   },
   "ignoreDeps": ["ubuntu"]
 }
