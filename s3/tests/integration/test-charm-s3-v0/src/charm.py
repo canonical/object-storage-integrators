@@ -12,16 +12,19 @@ the s3 requires-provides relation.
 
 import logging
 
-from s3_lib import (
-    StorageConnectionInfoChangedEvent, StorageConnectionInfoGoneEvent, S3RequirerData, S3RequirerEventHandlers
+from charms.data_platform_libs.v0.s3 import (
+    CredentialsChangedEvent,
+    CredentialsGoneEvent,
+    S3Requirer,
 )
-from ops.charm import CharmBase, RelationJoinedEvent
 from ops import ActionEvent, main
+from ops.charm import CharmBase, RelationJoinedEvent
 from ops.model import ActiveStatus, WaitingStatus
 
 logger = logging.getLogger(__name__)
 
 S3_RELATION_NAME = "s3-credentials"
+
 
 class ApplicationCharm(CharmBase):
     """Application charm that relates to S3 integrator."""
@@ -31,31 +34,27 @@ class ApplicationCharm(CharmBase):
 
         # Default charm events.
         self.framework.observe(self.on.start, self._on_start)
-        self.framework.observe(self.on.config_changed, self._on_config_changed)
 
         # Events related to the requested database
         # (these events are defined in the database requires charm library).
-        bucket = self.config.get("bucket", "")
-        self.requirer_data = S3RequirerData(self.model, S3_RELATION_NAME, bucket=bucket)
-        self.requirer_events = S3RequirerEventHandlers(self, self.requirer_data)
+        self.s3_requirer = S3Requirer(self, S3_RELATION_NAME)
 
         # add relation
         self.framework.observe(
-            self.requirer_events.on.s3_connection_info_changed,
+            self.s3_requirer.on.credentials_changed,
             self._on_storage_connection_info_changed,
         )
-        self.framework.observe(
-            self.on[S3_RELATION_NAME].relation_joined, self._on_relation_joined
-        )
+        self.framework.observe(self.on[S3_RELATION_NAME].relation_joined, self._on_relation_joined)
 
         self.framework.observe(
-            self.requirer_events.on.s3_connection_info_gone,
+            self.s3_requirer.on.credentials_gone,
             self._on_storage_connection_info_gone,
         )
 
         self.framework.observe(self.on.update_status, self._on_update_status)
-        self.framework.observe(self.on.get_s3_connection_info_action, self._on_get_s3_connection_info_action)
-
+        self.framework.observe(
+            self.on.get_s3_connection_info_action, self._on_get_s3_connection_info_action
+        )
 
     def _on_start(self, _) -> None:
         """Only sets an waiting status."""
@@ -64,29 +63,24 @@ class ApplicationCharm(CharmBase):
         else:
             self.unit.status = WaitingStatus("Waiting for relation")
 
-    def _on_config_changed(self, _) -> None:
-        bucket = self.config.get("bucket", "")
-        if (rel := self.model.get_relation(S3_RELATION_NAME)):
-            self.requirer_data.update_relation_data(rel.id, {"bucket": bucket})
-
     def _on_relation_joined(self, _: RelationJoinedEvent):
         """On s3 credential relation joined."""
         logger.info("S3 relation joined...")
         self.unit.status = ActiveStatus()
 
-    def _on_storage_connection_info_changed(self, e: StorageConnectionInfoChangedEvent):
-        credentials = self.requirer_events.get_s3_connection_info()
+    def _on_storage_connection_info_changed(self, e: CredentialsChangedEvent):
+        credentials = self.s3_requirer.get_s3_connection_info()
         logger.info(f"S3 credentials changed. New credentials: {credentials}")
 
-    def _on_storage_connection_info_gone(self, _: StorageConnectionInfoGoneEvent):
+    def _on_storage_connection_info_gone(self, _: CredentialsGoneEvent):
         logger.info("S3 credentials gone...")
         self.unit.status = WaitingStatus("Waiting for relation")
 
     def _on_get_s3_connection_info_action(self, event: ActionEvent) -> None:
-        event.set_results(self.requirer_events.get_s3_connection_info())
+        event.set_results(self.s3_requirer.get_s3_connection_info())
 
     def _on_update_status(self, _):
-        s3_info = self.requirer_events.get_s3_connection_info()
+        s3_info = self.s3_requirer.get_s3_connection_info()
         logger.info(f"S3 client info: {s3_info}")
 
 

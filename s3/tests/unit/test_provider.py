@@ -58,7 +58,7 @@ def test_provider_data_no_config_bucket_and_no_bucket_requests(
     relations = list(state_out.relations)
     s3_provider_relation = Relation(
         endpoint="s3-credentials",
-        remote_app_data={},  # No bucket request from requirer
+        remote_app_data={"requested-secrets": '["foobar"]'},  # No bucket request from requirer
     )
     relations.append(s3_provider_relation)
 
@@ -115,7 +115,8 @@ def test_provider_when_ensure_bucket_unsuccessful(
 
     relations = list(state_out.relations)
     s3_provider_relation = Relation(
-        endpoint="s3-credentials", remote_app_data={"bucket": "relation-bucket"}
+        endpoint="s3-credentials",
+        remote_app_data={"bucket": "relation-bucket", "requested-secrets": '["foobar"]'},
     )
     relations.append(s3_provider_relation)
 
@@ -162,7 +163,8 @@ def test_provider_relation_bucket_takes_priority_over_config_bucket(
     assert isinstance(state_out.unit_status, ActiveStatus)
 
     s3_provider_relation = Relation(
-        endpoint="s3-credentials", remote_app_data={"bucket": "relation-bucket"}
+        endpoint="s3-credentials",
+        remote_app_data={"bucket": "relation-bucket", "requested-secrets": '["foobar"]'},
     )
 
     # Given

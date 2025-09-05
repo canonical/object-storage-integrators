@@ -1,6 +1,6 @@
-summary: test_config.py
+summary: test_provider.py
 environment:
-  TEST_MODULE: test_config.py
+  TEST_MODULE: test_provider.py
   SUBSTRATE: vm
 execute: |
   cd "$SPREAD_PATH/s3"

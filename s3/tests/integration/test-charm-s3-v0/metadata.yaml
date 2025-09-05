@@ -1,0 +1,13 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+name: test-charm-s3-v0
+description: |
+  Data platform libs application charm used in integration tests.
+summary: |
+  Data platform libs application meant to be used
+  only for testing of the libs in this repository.
+
+requires:
+  s3-credentials:
+    interface: s3
