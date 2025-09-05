@@ -6,7 +6,7 @@ name: Release to Charmhub
 on:
   push:
     branches:
-      - release-s3
+      - main
 
 jobs:
   lib-check:
