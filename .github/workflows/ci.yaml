@@ -66,7 +66,7 @@ jobs:
           - s3/
           - s3/tests/integration/test-charm-s3
     name: Build charm | ${{ matrix.path }}
-    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v29.0.0
+    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v35.0.2
     with:
       path-to-charm-directory: ${{ matrix.path }}
       cache: false
