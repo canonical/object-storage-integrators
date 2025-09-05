@@ -57,7 +57,7 @@ def test_charm_s3_v0() -> Path:
             iter((Path.cwd() / "tests/integration/test-charm-s3-v0").glob("*.charm")), None
         )
     ):
-        raise FileNotFoundError("Could not find packed test charm.")
+        raise FileNotFoundError("Could not find packed test charm (with S3 lib v0).")
 
     return path
 

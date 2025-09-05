@@ -341,7 +341,12 @@ class S3ProviderData(ProviderData):
     def __init__(self, model: Model, relation_name: str) -> None:
         super().__init__(model, relation_name)
 
-    def fetch_relation_data(self, relation_ids=None, fields=None, relation_name=None):
+    def fetch_relation_data(
+        self,
+        relation_ids: list[int] | None = None,
+        fields: list[str] | None = None,
+        relation_name: str | None = None,
+    ):
         """Override the behavior of `fetch_relation_data` to remove `bucket` field if request is from LIBAPI=0.
 
         This is required because LIBAPI=0 requirer automatically sets a bucket name as `relation-id-xxx` which used

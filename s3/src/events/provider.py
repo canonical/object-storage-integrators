@@ -113,7 +113,7 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
         self._clear_status()
         s3_manager = S3Manager(self.state.s3)
 
-        config_bucket_value = self.state.s3.get("bucket", "") or ""
+        config_bucket_value = self.state.s3.get("bucket", "")
         missing_buckets = []
         config_bucket_available = False
 
