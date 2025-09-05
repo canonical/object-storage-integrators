@@ -39,8 +39,8 @@ jobs:
     strategy:
       matrix:
         charm:
-          # - path: azure_storage/
-          #   track: latest
+          - path: azure_storage/
+            track: latest
           - path: s3/
             track: 2
     needs:
