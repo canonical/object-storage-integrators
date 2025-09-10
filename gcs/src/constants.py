@@ -7,6 +7,6 @@ GCS_RELATION_NAME = "gcs-credentials"
 
 GCS_MANDATORY_OPTIONS = ["bucket", "credentials"]
 
-KEYS_LIST = ["service-account-json-secret"]
+KEYS_LIST = ["sa-key"]
 OPTIONAL_OVERRIDE = "bucket"
 CREDENTIAL_FIELD = "credentials"
