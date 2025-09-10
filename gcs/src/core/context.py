@@ -9,7 +9,7 @@ from typing import Optional
 
 from ops import ConfigData, Model
 from ops.model import SecretNotFoundError, ModelError
-from constants import GSC_MANDATORY_OPTIONS
+from constants import GCS_MANDATORY_OPTIONS
 from core.domain import GcsConnectionInfo
 from utils.logging import WithLogging
 from utils.secrets import decode_secret_key, normalize
