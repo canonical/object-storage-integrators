@@ -1,0 +1,19 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+options:
+  bucket:
+    type: string
+    description: Target GCS bucket for snapshots/backups (3–63 chars, lowercase letters, digits, hyphens).
+  storage-class:
+    type: string
+    description: Optional GCS storage class (STANDARD|NEARLINE|COLDLINE|ARCHIVE).
+  path:
+    type: string
+    description: Optional object prefix (<=1024 bytes, no NULL bytes).
+    default: ""
+  credentials:
+    type: secret
+    description: |
+      A Juju Secret (URI or label) with a GCP service-account JSON key:
+      1. service-account-json-key: The secret key corresponding to the GCP IAM service account JSON key.
