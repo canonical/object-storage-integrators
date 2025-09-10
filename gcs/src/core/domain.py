@@ -13,7 +13,7 @@ class GcsConnectionInfo:
     """Google Cloud Storage connection parameters."""
 
     bucket: str
-    service_account_json_key: str
+    sa_key: str
     storage_class: str
     path: str = None
 
@@ -21,7 +21,7 @@ class GcsConnectionInfo:
         """Return the GCS connection parameters as a dictionary."""
         data = {
             "bucket": self.bucket,
-            "service_account_json_secret": self.service_account_json_key,
+            "service_account_json_secret": self.sa_key,
         }
         if self.storage_class:
             data["storage-class"] = self.storage_class
