@@ -6,6 +6,8 @@
 """A charm for integrating Google Cloud storage to a charmed application."""
 
 import logging
+from typing import Optional
+
 import ops
 from ops.model import BlockedStatus, ActiveStatus
 
@@ -27,18 +29,14 @@ class GCStorageIntegratorCharm(ops.charm.CharmBase):
         self.framework.observe(self.on.update_status, self._sync_state)
         self.framework.observe(self.on.config_changed, self._sync_state)
 
-        self._charm_config: CharmConfig | None = None
-        self.context: Context | None = None
-
-        self.provider = GCStorageProviderEvents(self, lambda: self.context)
+        self._charm_config = self.get_charm_config()
+        self.context = Context(self.model, self._charm_config)
+        self.provider = GCStorageProviderEvents(self, self.context)
 
     def _sync_state(self, _=None):
         """Ensure the charm's state matches the desired config."""
-        try:
-            # Basic/offline validation
-            cfg = CharmConfig.from_charm(self)
-        except CharmConfigInvalidError as e:
-            self.unit.status = BlockedStatus(e.msg)
+        cfg = self.get_charm_config()
+        if not cfg:
             return
 
         missing = [k for k in GCS_MANDATORY_OPTIONS
@@ -56,8 +54,17 @@ class GCStorageIntegratorCharm(ops.charm.CharmBase):
             return
 
         self._charm_config = cfg
-        self.context = Context(model=self.model, config=cfg)
+        self.context = Context(self.model, cfg)
+        self.provider = GCStorageProviderEvents(self, self.context)
         self.unit.status = ActiveStatus("ready")
+
+    def get_charm_config(self) -> Optional["CharmConfig"]:
+        try:
+            cfg = CharmConfig.from_charm(self)
+            return cfg
+        except CharmConfigInvalidError as e:
+            self.unit.status = BlockedStatus(e.msg)
+            return None
 
 
 

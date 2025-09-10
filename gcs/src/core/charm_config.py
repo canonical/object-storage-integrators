@@ -10,15 +10,16 @@ from dataclasses import dataclass
 from typing import Optional
 
 import ops
-from utils.secrets import decode_secret_key, normalize
 from ops.model import SecretNotFoundError, ModelError
+
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError
 from pydantic.functional_validators import field_validator
 import requests
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
 from google.cloud import storage
-from ops.model import SecretNotFoundError
+
+from utils.secrets import decode_secret_key, normalize
 
 
 logger = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ class GCSConfig(BaseModel):
 
     Args:
         bucket (StrictStr): Target GCS bucket. Syntax checks: (3–63, lowercase, digits, hyphens).
-        service_account_json_secret (StrictStr): Juju Secret (id or label) that contains a
+        sa_key (StrictStr): Juju Secret (id or label) that contains a
             service-account JSON (validated online).
         storage_class (StrictStr): Optional storage class (STANDARD|NEARLINE|COLDLINE|ARCHIVE).
         path (StrictStr): Optional object prefix <=1024 bytes UTF-8, no NULL, no leading slash (/).
@@ -57,7 +58,7 @@ class GCSConfig(BaseModel):
 
     model_config = ConfigDict(alias_generator=to_kebab)
     bucket: StrictStr = Field(..., description="Target GCS bucket (3–63, lowercase/digits/hyphens)")
-    service_account_json_secret: StrictStr = Field(
+    sa_key: StrictStr = Field(
         ..., description="Juju secret id/label holding service-account JSON"
     )
     storage_class: Optional[StrictStr] = Field(
@@ -105,7 +106,7 @@ class CharmConfig:
     """Runtime view of validated GCS configuration including advanced validation."""
 
     bucket: str
-    service_account_json_secret: str
+    sa_key: str
     storage_class: str
     path: str
 
@@ -133,7 +134,7 @@ class CharmConfig:
 
         return cls(
             bucket=cfg.bucket,
-            service_account_json_secret=cfg.service_account_json_secret,
+            sa_key=cfg.sa_key,
             storage_class=cfg.storage_class,
             path=cfg.path,
         )
@@ -147,7 +148,7 @@ class CharmConfig:
             (ok, message): True if both checks pass, else False and a reason.
         """
         try:
-            info = _load_sa_json(charm, self.service_account_json_secret)
+            info = _load_sa_json(charm, self.sa_key)
         except SecretNotFoundError:
             return False, "waiting for secret grant: service-account-json-secret"
         except Exception as e:
@@ -175,7 +176,7 @@ class CharmConfig:
             )
             ro_creds.refresh(Request())
             client = storage.Client(project=info.get("project_id"), credentials=ro_creds)
-            client.get_bucket(self.bucket)  # raises if no access or not found
+            client.get_bucket(self.bucket)
         except Exception as e:
             return False, f"bucket validation failed: {e}"
 

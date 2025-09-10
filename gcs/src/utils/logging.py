@@ -4,7 +4,6 @@
 
 """Utilities for logging."""
 
-import os
 from logging import Logger, getLogger
 from typing import Any, Callable, Literal, TypedDict, Union
 

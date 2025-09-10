@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def decode_secret_key(model: ops.Model, secret_id: str) -> Optional[str]:
-    """Decode the secret with given secret_id and return the secret-key in plaintext value.
+    """Decode the secret with given secret_id and return the sa-key in plaintext value.
 
     Args:
         model: juju model
@@ -35,9 +35,9 @@ def decode_secret_key(model: ops.Model, secret_id: str) -> Optional[str]:
     try:
         secret_content = model.get_secret(id=secret_id).get_content(refresh=True)
 
-        if not secret_content.get("secret-key"):
-            raise ValueError(f"The field 'secret-key' was not found in the secret '{secret_id}'.")
-        return secret_content["secret-key"]
+        if not secret_content.get("sa-key"):
+            raise ValueError(f"The field 'sa-key' was not found in the secret '{secret_id}'.")
+        return secret_content["sa-key"]
     except ops.model.SecretNotFoundError:
         raise ops.model.SecretNotFoundError(f"The secret '{secret_id}' does not exist.")
     except ValueError as ve:

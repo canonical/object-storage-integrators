@@ -13,7 +13,7 @@ from constants import GCS_MANDATORY_OPTIONS
 from core.domain import GcsConnectionInfo
 from utils.logging import WithLogging
 from utils.secrets import decode_secret_key, normalize
-from charm_config import CharmConfig
+from core.charm_config import CharmConfig
 
 
 class Context(WithLogging):
@@ -31,7 +31,7 @@ class Context(WithLogging):
             return None
 
         try:
-            sa_json = decode_secret_key(self.model, normalize(cfg.service_account_json_secret))
+            sa_json = decode_secret_key(self.model, normalize(cfg.sa_key))
         except (SecretNotFoundError, ModelError) as e:
             self.logger.info("GCS service-account secret not available yet: %s", e)
             return None
@@ -41,7 +41,7 @@ class Context(WithLogging):
 
         return GcsConnectionInfo(
             bucket=cfg.bucket,
-            service_account_json_key_secret=sa_json,
+            sa_key=sa_json,
             storage_class=cfg.storage_class or None,
             path=cfg.path or "",
         )
