@@ -49,5 +49,5 @@ def decode_secret_key(model: ops.Model, secret_id: str) -> Optional[str]:
             )
         raise
 
-def normalize(secret: str) -> str:
-    return secret.split("secret:", 1)[-1] if secret.startswith("secret:") else secret
+def normalize(secret_uri: str) -> str:
+    return secret_uri.split("secret:", 1)[1].strip()
