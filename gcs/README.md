@@ -16,12 +16,12 @@ This is an operator charm providing an integrator for connecting to Google Cloud
 
 2. Configure the GC Storage Integrator charm as:
     ```
-    juju config gcs-integrator bucket=aabb
+    juju config gcs-integrator bucket=foo
     ```
 
-3. Add a new secret to Juju, and grant it's permissions to gcs-integrator:
+3. Add a new secret to Juju, and grant it's permissions to gcs-integrator using a valid service account JSON file.
     ```
-    juju add-secret mysecret service-account-json-key=changeme
+    juju add-secret mysecret sa-key=$(cat service_account.json)"
     juju grant-secret mysecret gcs-integrator
     ```
 
