@@ -58,7 +58,7 @@ class GCSConfig(BaseModel):
 
     model_config = ConfigDict(alias_generator=to_kebab)
     bucket: StrictStr = Field(..., description="Target GCS bucket (3–63, lowercase/digits/hyphens)")
-    sa_key: StrictStr = Field(
+    credentials: StrictStr = Field(
         ..., description="Juju secret id/label holding service-account JSON"
     )
     storage_class: Optional[StrictStr] = Field(
@@ -104,40 +104,45 @@ class GCSConfig(BaseModel):
 @dataclass
 class CharmConfig:
     """Runtime view of validated GCS configuration including advanced validation."""
-
     bucket: str
-    sa_key: str
+    credentials: str
     storage_class: str
     path: str
+
+
+    def __init__(self, *, gcs_config: GCSConfig):
+        """Initialize a new instance of the CharmConfig class.
+
+        Args:
+            gcs_config: GCS Integrator configuration.
+        """
+        self.bucket = gcs_config.bucket
+        self.credentials = gcs_config.credentials
+        self.storage_class = gcs_config.storage_class
+        self.path = gcs_config.path
 
     @classmethod
     def from_charm(cls, charm: ops.CharmBase) -> "CharmConfig":
         """Build from charm.config, raising aggregated errors on invalid offline config."""
         try:
-            cfg = GCSConfig(**dict(charm.config.items()))  # type: ignore[arg-type]
+            return cls(gcs_config=GCSConfig(**dict(charm.config.items()))) # type: ignore[arg-type]
         except ValidationError as exc:
-            fields: list[str] = []
+            err_fields: list[str] = []
             for err in exc.errors():
                 loc = err.get("loc")
                 if loc:
                     # collect field names from location
-                    fields.extend(map(str, loc))
+                    err_fields.extend(map(str, loc))
                 else:
                     # details can be put in the ctx
                     ctx = err.get("ctx") or {}
                     if "error" in ctx:
-                        fields.extend(str(ctx["error"]).split())
-            fields = sorted(set(fields))
+                        err_fields.extend(str(ctx["error"]).split())
+            err_fields.sort()
+            err_field_str = ", ".join(f"'{f}'" for f in err_fields)
             raise CharmConfigInvalidError(
-                f"The following configurations are not valid: [{', '.join(f'\"{f}\"' for f in fields)}]"
+                f"The following configurations are not valid: [{err_field_str}]"
             ) from exc
-
-        return cls(
-            bucket=cfg.bucket,
-            sa_key=cfg.sa_key,
-            storage_class=cfg.storage_class,
-            path=cfg.path,
-        )
 
     def online_validate(self, charm: ops.CharmBase) -> tuple[bool, str]:
         """Run online checks:
@@ -148,7 +153,7 @@ class CharmConfig:
             (ok, message): True if both checks pass, else False and a reason.
         """
         try:
-            info = _load_sa_json(charm, self.sa_key)
+            info = _load_sa_json(charm, self.credentials)
         except SecretNotFoundError:
             return False, "waiting for secret grant: service-account-json-secret"
         except Exception as e:
@@ -182,13 +187,12 @@ class CharmConfig:
 
         return True, "gcs config valid"
 
-
-def _load_sa_json(charm: ops.CharmBase, ref: str) -> dict:
-    """Return parsed service-account JSON from a Juju secret ref (id or URI)."""
-    sid = normalize(ref)
+def _load_sa_json(charm: ops.CharmBase, secret_uri: str) -> dict:
+    """Return parsed service-account JSON from a Juju secret URI."""
+    secret_id = normalize(secret_uri)
     try:
         # this gives a raw plaintext string
-        raw = decode_secret_key(charm.model, sid)
+        raw = decode_secret_key(charm.model, secret_id)
     except SecretNotFoundError as e:
         raise SecretNotFoundError(f"GCS service-account secret not found: {e}") from e
     except ModelError as e:
@@ -197,5 +201,3 @@ def _load_sa_json(charm: ops.CharmBase, ref: str) -> dict:
         return json.loads(raw)
     except json.JSONDecodeError as e:
         raise ValueError(f"GCS service-account secret content is not valid JSON: {e}") from e
-
-
