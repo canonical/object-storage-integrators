@@ -21,17 +21,16 @@ class Context(WithLogging):
 
     def __init__(self, model: Model, config: CharmConfig):
         self.model = model
-        self.config = config
+        self.charm_config = config
 
     @property
     def gc_storage(self) -> Optional[GcsConnectionInfo]:
         """Return information related to GC Storage connection parameters."""
-        cfg = self.config
-        if cfg is None:
+        if not (self.charm_config.bucket and self.charm_config.credentials):
             return None
 
         try:
-            sa_json = decode_secret_key(self.model, normalize(cfg.sa_key))
+            sa_json = decode_secret_key(self.model, normalize(self.charm_config.credentials))
         except (SecretNotFoundError, ModelError) as e:
             self.logger.info("GCS service-account secret not available yet: %s", e)
             return None
@@ -40,8 +39,8 @@ class Context(WithLogging):
             return None
 
         return GcsConnectionInfo(
-            bucket=cfg.bucket,
+            bucket=self.charm_config.bucket,
             sa_key=sa_json,
-            storage_class=cfg.storage_class or None,
-            path=cfg.path or "",
+            storage_class=self.charm_config.storage_class or None,
+            path=self.charm_config.path or "",
         )
