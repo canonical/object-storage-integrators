@@ -3,7 +3,7 @@
 # See LICENSE file for licensing details.
 
 import logging
-from typing import Dict, List, Optional, NamedTuple
+from typing import Dict, List, Optional, NamedTuple, Iterable
 from charms.data_platform_libs.v0.data_interfaces import (
     EventHandlers,
     ProviderData,
@@ -48,19 +48,16 @@ class StorageContract(NamedTuple):
         secret_fields: Keys in the provider's databag that represent Juju secret
             references (URIs, labels, or IDs). The library will automatically
             register and track these secrets for the requirer.
-        requirer_override_field: Optional key that the requirer may write into
-            its own application databag to signal an override (for example,
-            a preferred container/bucket name). Providers can check this
-            and adapt the payload accordingly. Defaults to None.
-        requirer_override_value: Optional value to write for the
-            requirer_override_field when the relation is joined. If None,
-            nothing will be written. Defaults to None.
+        requirer_overrides: Optional mapping of key/value overrides that the
+            requirer may write into its own application databag to signal
+            preferences (for example, a preferred container/bucket name,
+            region, or storage class). Providers can check these and adapt
+            the payload accordingly. Defaults to None
     """
 
     required_info: List[str]
     secret_fields: List[str]
-    requirer_override_field: Optional[str] = None
-    requirer_override_value: Optional[str] = None
+    requirer_overrides: Optional[Dict[str, str]] = None
 
 
 class ObjectStorageEvent(RelationEvent):
@@ -157,13 +154,36 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         if any(new_val for new_val in diff.added if self.relation_data._is_secret_field(new_val)):
             self.relation_data._register_secrets_to_relation(event.relation, diff.added)
 
+    def write_overrides(
+        self,
+        overrides: Dict[str, str],
+        relation_id: Optional[int] = None,
+    ) -> None:
+        """Write/merge override keys into the requirer app-databag."""
+        if not overrides:
+            return
+        if not self.charm.unit.is_leader():
+            return
+
+        target_relations = (
+            [self._relation_by_id(relation_id)] if relation_id is not None else self.relations
+        )
+        for rel in filter(None, target_relations):
+            current = dict(rel.data[self.local_app])
+            current.update({k: v for k, v in overrides.items() if v is not None})
+            rel.data[self.local_app].update(current)
+
+    def _relation_by_id(self, relation_id: int):
+        for r in self.relations:
+            if r.id == relation_id:
+                return r
+        return None
+
     def _on_relation_joined_event(self, event: RelationJoinedEvent) -> None:
-        """Requirer signals readiness by writing the requirer_override_field (if defined)."""
+        """Requirer signals readiness by writing the requirer_overrides (if defined)."""
         logger.info(f"Storage relation ({event.relation.name}) joined...")
-        if self.contract.requirer_override_field and self.contract.requirer_override_value:
-            self.relation_data.update_relation_data(
-                event.relation.id, {self.contract.requirer_override_field: self.contract.requirer_override_value}
-            )
+        if self.contract.requirer_overrides:
+            self.write_overrides(self.contract.requirer_overrides, relation_id=event.relation.id)
 
     def _on_relation_changed_event(self, event: RelationChangedEvent) -> None:
         """Notify the charm about the presence of Storage credentials."""
