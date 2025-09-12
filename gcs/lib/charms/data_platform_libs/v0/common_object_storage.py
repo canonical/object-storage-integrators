@@ -152,8 +152,21 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
 
     def _register_new_secrets(self, event: RelationChangedEvent):
         diff = self._diff(event)
-        if any(new_val for new_val in diff.added if self.relation_data._is_secret_field(new_val)):
-            self.relation_data._register_secrets_to_relation(event.relation, diff.added)
+        # Normalize keys
+        added_keys = set(diff.added) if isinstance(diff.added, (set, list, tuple)) else set(
+            getattr(diff.added, "keys", lambda: [])())
+        changed_keys = set(diff.changed.keys()) if hasattr(diff, "changed") and isinstance(diff.changed,
+                                                                                           dict) else set()
+        candidate_keys = added_keys | changed_keys
+        if not candidate_keys:
+            return
+
+        # Get keys which are declared as secret in the contract
+        secret_keys = [k for k in candidate_keys if self.relation_data._is_secret_field(k)]
+        if not secret_keys:
+            return
+
+        self.relation_data._register_secrets_to_relation(event.relation, secret_keys)
 
     def write_overrides(
         self,
