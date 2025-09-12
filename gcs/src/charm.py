@@ -28,8 +28,8 @@ class GCStorageIntegratorCharm(ops.charm.CharmBase):
         self.framework.observe(self.on.update_status, self._sync_state)
         self.framework.observe(self.on.config_changed, self._sync_state)
 
-        self._charm_config = None
-        self.context = None
+        self._charm_config = self.get_charm_config()
+        self.context = Context(self.model, self._charm_config)
         self.provider = GCStorageProviderEvents(self)
 
     def _sync_state(self, _=None):
@@ -53,8 +53,7 @@ class GCStorageIntegratorCharm(ops.charm.CharmBase):
 
     def get_charm_config(self) -> Optional[CharmConfig]:
         try:
-            cfg = CharmConfig.from_charm(self)
-            return cfg
+            return CharmConfig.from_charm(self)
         except CharmConfigInvalidError as e:
             self.unit.status = BlockedStatus(e.msg)
             return None
