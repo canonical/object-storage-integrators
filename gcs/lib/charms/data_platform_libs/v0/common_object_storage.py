@@ -22,6 +22,7 @@ from ops.charm import (
 )
 from ops.framework import EventSource, ObjectEvents
 from ops.model import Relation
+from ops.model import Secret, SecretNotFoundError
 
 # The unique Charmhub library identifier, never change it
 # # TODO: a new library ID should be generated
@@ -187,7 +188,7 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
 
     def _on_relation_changed_event(self, event: RelationChangedEvent) -> None:
         """Notify the charm about the presence of Storage credentials."""
-        logger.info(f"Storage relation ({event.relation.name}) changed...")
+        logger.info("Storage relation (%s) changed", event.relation.name)
         self._register_new_secrets(event)
 
         info = self.relation_data.fetch_relation_data([event.relation.id]).get(event.relation.id, {})
@@ -212,6 +213,10 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
             return
         relation = self.relation_data._relation_from_secret_label(event.secret.label)
         if not relation:
+            logger.info(
+                "Received secret-changed for label %s, but no matching relation was found; ignoring.",
+                event.secret.label,
+            )
             return
         if self._all_required_present(relation):
             getattr(self.on, "storage_connection_info_changed").emit(
@@ -260,26 +265,25 @@ class StorageProviderEventHandlers(EventHandlers):
         super().__init__(charm, relation_data, unique_key)
         self.relation_data = relation_data
         self.contract = contract
+        self.framework.observe(
+            self.charm.on[self.relation_data.relation_name].relation_joined,
+            self._on_relation_joined_event,
+        )
+        self.framework.observe(
+            self.charm.on[self.relation_data.relation_name].relation_changed,
+            self._on_relation_changed_event,
+        )
+
+    def _on_relation_joined_event(self, event: RelationJoinedEvent):
+        if not self.charm.unit.is_leader():
+            return
+        self.on.storage_connection_info_requested.emit(event.relation, app=event.app, unit=event.unit)
 
     def _on_relation_changed_event(self, event: RelationChangedEvent):
         if not self.charm.unit.is_leader():
             return
 
-        diff = self._diff(event)
-
-        if diff.added or diff.changed:
-            credentials = self.relation_data.fetch_relation_data([event.relation.id])[event.relation.id]
-
-            # Emit only if all required fields are present
-            if all(opt in credentials for opt in self.contract.required_info):
-                self.on.storage_connection_info_requested.emit(
-                    event.relation, app=event.app, unit=event.unit
-                )
-            else:
-                logger.debug(
-                    f"Missing required options: "
-                    f"{[opt for opt in self.contract.required_info if opt not in credentials]}"
-                )
+        self.on.storage_connection_info_requested.emit(event.relation, app=event.app, unit=event.unit)
 
 class StorageProvides(StorageProviderData, StorageProviderEventHandlers):
     """The provider side of the Storage relation."""

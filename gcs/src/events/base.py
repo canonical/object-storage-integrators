@@ -11,7 +11,7 @@ from ops import EventBase, Model, Object, StatusBase
 from ops.model import ActiveStatus, BlockedStatus, ModelError
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
-from constants import GCS_MANDATORY_OPTIONS
+from constants import CREDENTIAL_FIELD
 from utils.logging import WithLogging
 from utils.secrets import decode_secret_key
 
@@ -33,7 +33,7 @@ class BaseEventHandler(Object, WithLogging):
     def get_app_status(self, model, charm_config) -> StatusBase:
         """Return the status of the charm."""
         missing_options = []
-        for config_option in GCS_MANDATORY_OPTIONS:
+        for config_option in ["bucket", CREDENTIAL_FIELD]:
             if not charm_config.get(config_option):
                 missing_options.append(config_option)
         if missing_options:

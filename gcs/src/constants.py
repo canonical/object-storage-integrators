@@ -5,7 +5,7 @@
 
 GCS_RELATION_NAME = "gcs-credentials"
 
-GCS_MANDATORY_OPTIONS = ["bucket", "credentials"]
+GCS_MANDATORY_OPTIONS = ["bucket", "sa-key"]
 
 KEYS_LIST = ["sa-key"]
 OPTIONAL_OVERRIDE = "bucket"

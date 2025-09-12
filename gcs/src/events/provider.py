@@ -75,24 +75,23 @@ class GCStorageProviderEvents(BaseEventHandler, WithLogging):
 
     def _merge_requirer_override(self, relation, payload: Dict[str, str]) -> Dict[str, str]:
         """Optionally merge a single override key from the requirer (bucket)."""
-        if not payload or not relation.app:
+        if not payload or not relation or not relation.app or not OPTIONAL_OVERRIDE:
             return payload
-        if not OPTIONAL_OVERRIDE:
-            return payload
-
         req_data = dict(relation.data.get(relation.app, {}))
         override_value = req_data.get(OPTIONAL_OVERRIDE)
         if override_value:
+            payload = payload.copy()
             payload[OPTIONAL_OVERRIDE] = override_value
         return payload
 
     def _publish_all(self) -> None:
         """Publish to all current relations."""
-        for relation in self.gcs_provides.relations:
-            payload = self._build_payload_for_relation(relation)
-            payload = self._merge_requirer_override(relation, payload)
-            if payload:
-                self.gcs_provides.publish_payload(relation, payload)
+        base = self._build_payload()
+        if not base:
+            return
+        for rel in self.gcs_provides.relations:
+            payload = self._merge_requirer_override(rel, base)
+            self.gcs_provides.publish_payload(rel, payload)
 
     @compute_status
     def _on_config_changed(self, event: ConfigChangedEvent) -> None:  # noqa: C901
@@ -106,7 +105,6 @@ class GCStorageProviderEvents(BaseEventHandler, WithLogging):
     @compute_status
     def _on_secret_changed(self, event: ops.SecretChangedEvent):
         """Rebuild and republish the changed secret."""
-
         if not self.charm.unit.is_leader():
             return
 
@@ -124,9 +122,7 @@ class GCStorageProviderEvents(BaseEventHandler, WithLogging):
         """Publish data to the relation as the requirer signaled its readiness."""
         if not self.charm.unit.is_leader():
             return
-
-        payload = self._build_payload()
-        payload = self._merge_requirer_override(event.relation, payload)
+        payload = self._merge_requirer_override(event.relation, self._build_payload())
         if not payload:
             self.logger.warning("No GCS payload available yet, not publishing.")
             return

@@ -21,7 +21,7 @@ This is an operator charm providing an integrator for connecting to Google Cloud
 
 3. Add a new secret to Juju, and grant it's permissions to gcs-integrator using a valid service account JSON file.
     ```
-    juju add-secret mysecret sa-key=$(cat service_account.json)"
+    juju add-secret mysecret sa-key="$(cat service_account.json)"
     juju grant-secret mysecret gcs-integrator
     ```
 
