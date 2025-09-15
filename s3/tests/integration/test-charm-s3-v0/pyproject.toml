@@ -10,3 +10,4 @@ python = "^3.10"
 ops = ">=3.2.0"
 
 [tool.poetry.group.charm-libs.dependencies]
+ops = ">=3.2.0"
