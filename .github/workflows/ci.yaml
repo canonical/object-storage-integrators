@@ -65,6 +65,7 @@ jobs:
           - azure_storage/tests/integration/test-charm-azure
           - s3/
           - s3/tests/integration/test-charm-s3
+          - s3/tests/integration/test-charm-s3-v0
     name: Build charm | ${{ matrix.path }}
     uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v35.0.2
     with:

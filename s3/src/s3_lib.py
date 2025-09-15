@@ -104,6 +104,7 @@ import logging
 from typing import Dict, List, Optional  # using py38-style typing
 
 from charms.data_platform_libs.v0.data_interfaces import (
+    REQ_SECRET_FIELDS,
     EventHandlers,
     ProviderData,
     RequirerData,
@@ -339,6 +340,38 @@ class S3ProviderData(ProviderData):
 
     def __init__(self, model: Model, relation_name: str) -> None:
         super().__init__(model, relation_name)
+
+    def fetch_relation_data(
+        self,
+        relation_ids: list[int] | None = None,
+        fields: list[str] | None = None,
+        relation_name: str | None = None,
+    ):
+        """Override the behavior of `fetch_relation_data` to remove `bucket` field if request is from LIBAPI=0.
+
+        This is required because LIBAPI=0 requirer automatically sets a bucket name as `relation-id-xxx` which used
+        to be ignored by LIBAPI=1 provider when providing S3 credentials. The same behavior is expected from LIBAPI=1,
+        if the request is from s3 lib with LIBAPI=0.
+        """
+        secret_fields = super().fetch_relation_data(
+            relation_ids, [REQ_SECRET_FIELDS], relation_name
+        )
+        return_data = {}
+        for relation_id, relation_data in (
+            super()
+            .fetch_relation_data(
+                relation_ids=relation_ids, fields=fields, relation_name=relation_name
+            )
+            .items()
+        ):
+            return_data[relation_id] = relation_data
+            if not secret_fields.get(relation_id, {}).get(REQ_SECRET_FIELDS):
+                # This means the request is coming from S3 LIBAPI=0
+                logger.info(
+                    "The requirer is using s3 lib LIBAPI=0, thus discarding the 'bucket' parameter."
+                )
+                return_data[relation_id].pop("bucket", None)
+        return return_data
 
 
 class S3ProviderEventHandlers(EventHandlers):

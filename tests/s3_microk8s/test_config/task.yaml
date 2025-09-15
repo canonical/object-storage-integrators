@@ -1,6 +1,6 @@
-summary: test_provider.py
+summary: test_config.py
 environment:
-  TEST_MODULE: test_provider.py
+  TEST_MODULE: test_config.py
   SUBSTRATE: microk8s
 execute: |
   cd "$SPREAD_PATH/s3"
