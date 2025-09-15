@@ -150,6 +150,13 @@ class BucketEvent(RelationEvent):
 
         return self.relation.data[self.relation.app].get("bucket", "")
 
+    @property
+    def path(self) -> Optional[str]:
+        """Returns the path that was requested."""
+        if not self.relation.app:
+            return None
+
+        return self.relation.data[self.relation.app].get("path", "")
 
 class StorageConnectionInfoRequestedEvent(BucketEvent):
     """Event emitted when S3 credentials are requested on this relation."""
@@ -181,12 +188,13 @@ class S3RequirerData(RequirerData):
 
     SECRET_FIELDS = ["access-key", "secret-key"]
 
-    def __init__(self, model, relation_name: str, bucket: str) -> None:
+    def __init__(self, model, relation_name: str, bucket: str, path: str) -> None:
         super().__init__(
             model,
             relation_name,
         )
         self.bucket = bucket
+        self.path = path
 
 
 class S3RequirerEventHandlers(RequirerEventHandlers):
@@ -217,7 +225,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
     def _on_relation_joined_event(self, event: RelationJoinedEvent) -> None:
         """Event emitted when the S3 relation is joined."""
         logger.debug(f"S3 relation ({event.relation.name}) joined...")
-        event_data = {"bucket": self.relation_data.bucket}
+        event_data = {"bucket": self.relation_data.bucket, "path": self.relation_data.path}
         self.relation_data.update_relation_data(event.relation.id, event_data)
 
     def get_s3_connection_info(self) -> Dict[str, str]:
@@ -329,8 +337,9 @@ class S3Requires(S3RequirerData, S3RequirerEventHandlers):
         charm: CharmBase,
         relation_name: str,
         bucket: str = "",
+        path: str = "",
     ):
-        S3RequirerData.__init__(self, charm.model, relation_name, bucket)
+        S3RequirerData.__init__(self, charm.model, relation_name, bucket, path)
         S3RequirerEventHandlers.__init__(self, charm, self)
 
 

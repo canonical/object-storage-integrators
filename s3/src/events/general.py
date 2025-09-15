@@ -43,8 +43,6 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol):
         self.charm = charm
         self.state = context
 
-        self.s3_provider_data = S3ProviderData(self.charm.model, S3_RELATION_NAME)
-
         self.framework.observe(self.charm.on.start, self._on_start)
         self.framework.observe(self.charm.on.update_status, self._on_update_status)
         self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
