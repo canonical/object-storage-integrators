@@ -16,4 +16,4 @@ options:
     type: secret
     description: |
       A Juju Secret URI (a format of secret:xxxx) with a GCP service-account JSON key:
-      1. sa-key: The secret key corresponding to the GCP IAM service account JSON key.
+      1. secret-key: The secret key corresponding to the GCP IAM service account JSON key.

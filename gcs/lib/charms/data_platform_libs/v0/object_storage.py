@@ -3,7 +3,8 @@
 # See LICENSE file for licensing details.
 
 import logging
-from typing import Dict, List, Optional, NamedTuple, Iterable
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, ClassVar
 from charms.data_platform_libs.v0.data_interfaces import (
     EventHandlers,
     ProviderData,
@@ -39,7 +40,8 @@ LIBPATCH = 1
 logger = logging.getLogger(__name__)
 
 
-class StorageContract(NamedTuple):
+@dataclass(frozen=True)
+class StorageContract:
     """Contract describing what the requirer and provider exchange in the Storage relation.
 
     Args:
@@ -49,16 +51,55 @@ class StorageContract(NamedTuple):
         secret_fields: Keys in the provider's databag that represent Juju secret
             references (URIs, labels, or IDs). The library will automatically
             register and track these secrets for the requirer.
-        requirer_overrides: Optional mapping of key/value overrides that the
-            requirer may write into its own application databag to signal
-            preferences (for example, a preferred container/bucket name,
-            region, or storage class). Providers can check these and adapt
-            the payload accordingly. Defaults to None
+        **overrides: Optional keyword-value overrides that the
+            requirer may set to signal preferences (for example, a preferred
+            container/bucket name, region, or storage class).
     """
 
     required_info: List[str]
+    optional_info: List[str]
     secret_fields: List[str]
-    requirer_overrides: Optional[Dict[str, str]] = None
+    overrides: Dict[str, str] = field(default_factory=dict)
+
+    def __init__(self, required_info: List[str], optional_info: List[str], secret_fields: List[str], **overrides: str) -> None:
+        object.__setattr__(self, "required_info", required_info)
+        object.__setattr__(self, "optional_info", optional_info)
+        object.__setattr__(self, "secret_fields", secret_fields)
+        object.__setattr__(self, "overrides", overrides)
+
+
+@dataclass(frozen=True)
+class GcsProviderContract(StorageContract):
+    """GCS-specific contract for Provider side)."""
+    def __init__(self, **overrides: str):
+        required_info = [
+            "bucket",
+        ]
+        optional_info = [
+            "storage-class",
+            "path",
+        ]
+        secret_fields = [
+            "secret-key"
+        ]
+        super().__init__(required_info=required_info, optional_info=optional_info, secret_fields=secret_fields, **overrides)
+
+
+@dataclass(frozen=True)
+class GcsRequirerContract(StorageContract):
+    """GCS-specific contract for the Requirer side)."""
+    def __init__(self, **overrides: str):
+        required_info = [
+            "bucket",
+        ]
+        optional_info = [
+            "storage-class",
+            "path",
+        ]
+        secret_fields = [
+            "secret-key"
+        ]
+        super().__init__(required_info=required_info, optional_info=optional_info, secret_fields=secret_fields, **overrides)
 
 
 class ObjectStorageEvent(RelationEvent):
@@ -102,6 +143,7 @@ class StorageRequirerEvents(CharmEvents):
 
 
 class StorageRequirerData(RequirerData):
+    SECRET_FIELDS: ClassVar[List[str]] = []
 
     def __init__(self, model, relation_name: str,  contract: StorageContract):
         super().__init__(
@@ -110,6 +152,7 @@ class StorageRequirerData(RequirerData):
         )
         self.contract = contract
         self._secret_fields = list(contract.secret_fields or [])
+        type(self).SECRET_FIELDS = list(self._secret_fields)
 
     @property
     def secret_fields(self) -> List[str]:
@@ -196,8 +239,8 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
     def _on_relation_joined_event(self, event: RelationJoinedEvent) -> None:
         """Requirer signals readiness by writing the requirer_overrides (if defined)."""
         logger.info(f"Storage relation ({event.relation.name}) joined...")
-        if self.contract.requirer_overrides:
-            self.write_overrides(self.contract.requirer_overrides, relation_id=event.relation.id)
+        if self.contract.overrides:
+            self.write_overrides(self.contract.overrides, relation_id=event.relation.id)
 
     def _on_relation_changed_event(self, event: RelationChangedEvent) -> None:
         """Notify the charm about the presence of Storage credentials."""
@@ -205,7 +248,7 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         self._register_new_secrets(event)
 
         info = self.relation_data.fetch_relation_data([event.relation.id]).get(event.relation.id, {})
-        required = set(self.contract.required_info)
+        required = set(self.contract.required_info + self.contract.secret_fields)
         present = set(info.keys())
         missing = sorted(required - present)
 
@@ -263,7 +306,6 @@ class StorageProviderData(ProviderData):
     def publish_payload(self, relation: Relation, payload: Dict[str, str]) -> None:
         self._update_relation_data(relation, payload)
 
-
 class StorageProviderEventHandlers(EventHandlers):
     """The event handlers related to provider side of Storage relation."""
     on = StorageProviderEvents()
@@ -279,18 +321,9 @@ class StorageProviderEventHandlers(EventHandlers):
         self.relation_data = relation_data
         self.contract = contract
         self.framework.observe(
-            self.charm.on[self.relation_data.relation_name].relation_joined,
-            self._on_relation_joined_event,
-        )
-        self.framework.observe(
             self.charm.on[self.relation_data.relation_name].relation_changed,
             self._on_relation_changed_event,
         )
-
-    def _on_relation_joined_event(self, event: RelationJoinedEvent):
-        if not self.charm.unit.is_leader():
-            return
-        self.on.storage_connection_info_requested.emit(event.relation, app=event.app, unit=event.unit)
 
     def _on_relation_changed_event(self, event: RelationChangedEvent):
         if not self.charm.unit.is_leader():

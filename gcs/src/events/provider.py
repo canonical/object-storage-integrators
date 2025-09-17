@@ -3,128 +3,150 @@
 # See LICENSE file for licensing details.
 
 """Google Cloud Storage Provider related event handlers."""
+import logging
 from typing import Dict, Optional
 
 import ops
-from charms.data_platform_libs.v0.common_object_storage import (
-    StorageProvides,
-    StorageContract,
+from charms.data_platform_libs.v0.object_storage import (
+    StorageProviderData,
+    StorageProviderEventHandlers,
+    GcsProviderContract,
     StorageConnectionInfoRequestedEvent,
 )
-from ops import CharmBase
+from ops import CharmBase, ActiveStatus, MaintenanceStatus
 from ops.charm import ConfigChangedEvent, StartEvent
 
 from constants import (
     GCS_RELATION_NAME,
-    KEYS_LIST,
-    GCS_MANDATORY_OPTIONS,
     OPTIONAL_OVERRIDE,
     CREDENTIAL_FIELD,
 )
 from core.context import Context
 from events.base import BaseEventHandler, compute_status
 from utils.logging import WithLogging
-from utils.secrets import normalize
+from utils.secrets import normalize, decode_secret_key
+from managers.gc_storage import GCStorageManager
 
-
-GCS_CONTRACT = StorageContract(
-    required_info=GCS_MANDATORY_OPTIONS,
-    secret_fields=KEYS_LIST,
-)
+logger = logging.getLogger(__name__)
 
 class GCStorageProviderEvents(BaseEventHandler, WithLogging):
     """Class implementing GCS Integration event hooks."""
 
     def __init__(self, charm: CharmBase):
-        super().__init__(charm, "general")
+        super().__init__(charm, "gc-storage-provider")
         self.charm = charm
-        self.gcs_provides = StorageProvides(self.charm, GCS_RELATION_NAME, GCS_CONTRACT)
+        self.contract = GcsProviderContract(**{OPTIONAL_OVERRIDE: ""})
+        self.gcs_provider_data = StorageProviderData(self.charm.model, GCS_RELATION_NAME, self.contract)
+        self.gcs_provider = StorageProviderEventHandlers(
+            self.charm, self.gcs_provider_data, self.contract
+        )
+
+        self.gc_storage_manager = GCStorageManager(self.gcs_provider_data)
 
         self.framework.observe(
-            self.gcs_provides.on.storage_connection_info_requested,
+            self.gcs_provider.on.storage_connection_info_requested,
             self._on_storage_connection_info_requested,
         )
-        self.framework.observe(self.charm.on.start, self._on_start)
-        self.framework.observe(self.charm.on.update_status, self._on_update_status)
         self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
-        self.framework.observe(self.charm.on.secret_changed, self._on_secret_changed)
+        self.framework.observe(self.charm.on.leader_elected, self._on_leader_elected)
+        self.framework.observe(self.charm.on.start, self._on_start)
 
     def _ctx(self) -> Optional[Context]:
         return getattr(self.charm, "context", None)
-
-    @compute_status
-    def _on_start(self, _: StartEvent) -> None:
-        """Handle the charm startup event."""
-        pass
-
-    @compute_status
-    def _on_update_status(self, event: ops.UpdateStatusEvent):
-        """Handle the update status event."""
-        pass
 
     def _build_payload(self) -> Dict[str, str]:
         """
         Build the provider payload (non-secret + secret fields).
         Expectation: context.gc_storage returns an object with .to_dict()
-        mapping keys precisely to the contract (bucket, sa-key, storage-class, path).
+        mapping keys precisely to the contract (bucket, secret-key, storage-class, path).
         """
-        context = self._ctx()
-        if not context or not context.gc_storage:
-            return {}
-        return {k: v for k, v in context.gc_storage.to_dict().items() if v is not None}
+        ctx = self._ctx()
+        gc = getattr(ctx, "gc_storage", None) if ctx else None
+        logger.info("gc_store: %s", gc)
+
+        if gc:
+            raw = gc.to_dict()
+        else:
+            cfg = self.charm.model.config
+            cred = cfg.get("credentials")
+            sid = normalize(cred)
+            plaintext_secret = decode_secret_key(self.charm.model, sid)
+            raw = {
+                "bucket": cfg.get("bucket"),
+                "storage-class": cfg.get("storage-class") or "STANDARD",
+                "path": cfg.get("path") or "",
+                "secret-key": plaintext_secret,
+            }
+
+        compact = {k: v for k, v in (raw or {}).items() if v not in (None, "")}
+        return self._filter_to_contract(compact)
+
+
+    def _filter_to_contract(self, payload: Dict[str, str]) -> Dict[str, str]:
+        allowed = set(self.contract.required_info) | set(self.contract.optional_info) | set(self.contract.secret_fields)
+        return {k: v for k, v in payload.items() if k in allowed}
 
     def _merge_requirer_override(self, relation, payload: Dict[str, str]) -> Dict[str, str]:
-        """Optionally merge a single override key from the requirer (bucket)."""
-        if not payload or not relation or not relation.app or not OPTIONAL_OVERRIDE:
+        """Optionally override keys from the requirer (bucket)."""
+        if not payload or not relation or not relation.app:
             return payload
-        req_data = dict(relation.data.get(relation.app, {}))
-        override_value = req_data.get(OPTIONAL_OVERRIDE)
-        if override_value:
-            payload = payload.copy()
-            payload[OPTIONAL_OVERRIDE] = override_value
-        return payload
+        allowed = set(self.contract.overrides.keys())
+        if not allowed:
+            return payload
 
-    def _publish_all(self) -> None:
-        """Publish to all current relations."""
-        base = self._build_payload()
-        if not base:
-            return
-        for rel in self.gcs_provides.relations:
-            payload = self._merge_requirer_override(rel, base)
-            self.gcs_provides.publish_payload(rel, payload)
+        remote = relation.data.get(relation.app, {})
+        merged = dict(payload)
+        for key in allowed:
+            if key in remote and remote[key]:
+                merged[key] = remote[key]
+                logger.info("Applied requirer override %r=%r", key, remote[key])
+        return merged
 
-    @compute_status
-    def _on_config_changed(self, event: ConfigChangedEvent) -> None:  # noqa: C901
-        """Recompute and republish to all relations."""
-        if not self.charm.unit.is_leader():
-            return
-
-        self.logger.debug(f"Config changed. Current configuration: {self.charm.config}")
-        self._publish_all()
-
-    @compute_status
-    def _on_secret_changed(self, event: ops.SecretChangedEvent):
-        """Rebuild and republish the changed secret."""
-        if not self.charm.unit.is_leader():
-            return
-
-        configured = self.charm.config.get(CREDENTIAL_FIELD)
-        if not configured:
-            return
-
-        cfg_norm = normalize(configured)
-        if event.secret.id == cfg_norm:
-            self._publish_all()
-
-    def _on_storage_connection_info_requested(
-        self, event: StorageConnectionInfoRequestedEvent
-    ):
-        """Publish data to the relation as the requirer signaled its readiness."""
-        if not self.charm.unit.is_leader():
-            return
-        payload = self._merge_requirer_override(event.relation, self._build_payload())
+    def _validate_payload(self, payload: Dict[str, str]) -> Optional[str]:
+        """Return an error message if payload is incomplete, else None."""
         if not payload:
-            self.logger.warning("No GCS payload available yet, not publishing.")
+            return "empty payload"
+        if "bucket" not in payload or not payload.get("bucket"):
+            return "missing required 'bucket'"
+        return None
+
+    def _publish_to_relation(self, relation) -> None:
+        base = self._build_payload()
+        logger.info("base_payload %s", base)
+
+        payload = self._merge_requirer_override(relation, base)
+        if err := self._validate_payload(payload):
+            logger.warning("No GCS payload available yet (%s), not publishing.", err)
+            self.charm.unit.status = MaintenanceStatus(f"waiting for GCS config: {err}")
             return
-        if event.relation.name == GCS_RELATION_NAME:
-            self.gcs_provides.publish_payload(event.relation, payload)
+
+        # Library creates/updates a provider-owned Secret for CREDENTIAL_FIELD,
+        # grants it to the relation, and writes back only the reference + non-secret keys.
+        self.gcs_provider_data.publish_payload(relation, payload)
+        self.charm.unit.status = ActiveStatus("published GCS credentials")
+        logger.info("Published GCS payload to relation %s", relation.id)
+
+    def _publish_to_all_relations(self) -> None:
+        for rel in self.charm.model.relations.get(GCS_RELATION_NAME, []):
+            self._publish_to_relation(rel)
+
+    def _on_storage_connection_info_requested(self, event: StorageConnectionInfoRequestedEvent):
+        self.logger.info("On storage-connection-info-requested")
+        if not self.charm.unit.is_leader():
+            return
+        self._publish_to_relation(event.relation)
+
+    def _on_config_changed(self, _: ConfigChangedEvent):
+        if not self.charm.unit.is_leader():
+            return
+        self._publish_to_all_relations()
+
+    def _on_leader_elected(self, _):
+        if not self.charm.unit.is_leader():
+            return
+        self._publish_to_all_relations()
+
+    def _on_start(self, _: StartEvent):
+        if not self.charm.unit.is_leader():
+            return
+        self._publish_to_all_relations()

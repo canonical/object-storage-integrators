@@ -10,7 +10,6 @@ from typing import Callable
 from ops import EventBase, Model, Object, StatusBase
 from ops.model import ActiveStatus, BlockedStatus, ModelError
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
-
 from constants import CREDENTIAL_FIELD
 from utils.logging import WithLogging
 from utils.secrets import decode_secret_key
@@ -33,9 +32,10 @@ class BaseEventHandler(Object, WithLogging):
     def get_app_status(self, model, charm_config) -> StatusBase:
         """Return the status of the charm."""
         missing_options = []
-        for config_option in ["bucket", CREDENTIAL_FIELD]:
-            if not charm_config.get(config_option):
-                missing_options.append(config_option)
+        if not charm_config.get("bucket"):
+            missing_options.append("bucket")
+        if not charm_config.get("credentials"):
+            missing_options.append("credentials")
         if missing_options:
             self.logger.warning(f"Missing parameters: {missing_options}")
             return BlockedStatus(f"Missing parameters: {missing_options}")
