@@ -10,10 +10,10 @@ from typing import Optional
 
 import ops
 from ops.model import BlockedStatus, ActiveStatus
-
-from core.context import Context
 from core.charm_config import CharmConfig, CharmConfigInvalidError
 from events.provider import GCStorageProviderEvents
+from events.general import GeneralEvents
+from core.context import Context
 
 logger = logging.getLogger(__name__)
 
@@ -27,18 +27,15 @@ class GCStorageIntegratorCharm(ops.charm.CharmBase):
         self.framework.observe(self.on.start, self._sync_state)
         self.framework.observe(self.on.update_status, self._sync_state)
         self.framework.observe(self.on.config_changed, self._sync_state)
-
-        self._charm_config = self.get_charm_config()
-        self.context = Context(self.model, self._charm_config)
         self.provider = GCStorageProviderEvents(self)
+        self.general_events = GeneralEvents(self)
 
     def _sync_state(self, _=None):
         """Ensure the charm's state matches the desired config."""
         cfg = self.get_charm_config()
+        self.context = Context(self.model, cfg) if cfg else None
         if not cfg:
             return
-
-        # Online checks
         ok, message = cfg.online_validate(self)
         if not ok:
             if "waiting for" in message or "permission" in message.lower():
@@ -47,8 +44,6 @@ class GCStorageIntegratorCharm(ops.charm.CharmBase):
                 self.unit.status = BlockedStatus(message)
             return
 
-        self._charm_config = cfg
-        self.context = Context(self.model, cfg)
         self.unit.status = ActiveStatus("ready")
 
     def get_charm_config(self) -> Optional[CharmConfig]:
