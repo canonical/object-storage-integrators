@@ -1,4 +1,4 @@
-# Object-Storage-integrator
+# GCS-integrator
 [![Charmhub](https://charmhub.io/gcs-integrator/badge.svg)](https://charmhub.io/gcs-integrator)
 [![Release](https://github.com/canonical/object-storage-integrators/actions/workflows/release.yaml/badge.svg)](https://github.com/canonical/object-storage-integrators/actions/workflows/release.yaml)
 [![Tests](https://github.com/canonical/object-storage-integrators/actions/workflows/ci.yaml/badge.svg)](https://github.com/canonical/object-storage-integrators/actions/workflows/ci.yaml)
@@ -21,7 +21,7 @@ This is an operator charm providing an integrator for connecting to Google Cloud
 
 3. Add a new secret to Juju, and grant it's permissions to gcs-integrator using a valid service account JSON file.
     ```
-    juju add-secret mysecret sa-key="$(cat service_account.json)"
+    juju add-secret mysecret secret-key="$(cat service_account.json)"
     juju grant-secret mysecret gcs-integrator
     ```
 

@@ -50,7 +50,7 @@ class GCSConfig(BaseModel):
 
     Args:
         bucket (StrictStr): Target GCS bucket. Syntax checks: (3–63, lowercase, digits, hyphens).
-        sa_key (StrictStr): Juju Secret (id or label) that contains a
+        secret_key (StrictStr): Juju Secret (id or label) that contains a
             service-account JSON (validated online).
         storage_class (StrictStr): Optional storage class (STANDARD|NEARLINE|COLDLINE|ARCHIVE).
         path (StrictStr): Optional object prefix <=1024 bytes UTF-8, no NULL, no leading slash (/).
@@ -153,7 +153,8 @@ class CharmConfig:
             (ok, message): True if both checks pass, else False and a reason.
         """
         try:
-            info = _load_sa_json(charm, self.credentials)
+            secret_id = normalize(self.credentials)
+            sa_json = decode_secret_key(charm.model, secret_id)
         except SecretNotFoundError:
             return False, "waiting for secret grant: service-account-json-secret"
         except Exception as e:
@@ -162,7 +163,7 @@ class CharmConfig:
         # Token Validation (WhoAmI)
         try:
             creds = service_account.Credentials.from_service_account_info(
-                info, scopes=["https://www.googleapis.com/auth/cloud-platform"]
+                sa_json, scopes=["https://www.googleapis.com/auth/cloud-platform"]
             )
             creds.refresh(Request())
             r = requests.get(
@@ -186,18 +187,3 @@ class CharmConfig:
             return False, f"bucket validation failed: {e}"
 
         return True, "gcs config valid"
-
-def _load_sa_json(charm: ops.CharmBase, secret_uri: str) -> dict:
-    """Return parsed service-account JSON from a Juju secret URI."""
-    secret_id = normalize(secret_uri)
-    try:
-        # this gives a raw plaintext string
-        raw = decode_secret_key(charm.model, secret_id)
-    except SecretNotFoundError as e:
-        raise SecretNotFoundError(f"GCS service-account secret not found: {e}") from e
-    except ModelError as e:
-        raise ModelError(f"GCS service-account secret not accessible: {e}") from e
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"GCS service-account secret content is not valid JSON: {e}") from e
