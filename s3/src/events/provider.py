@@ -157,7 +157,6 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
     def _handle_status(self, missing_buckets: list[str], invalid_buckets: list[str]):
         """Internal method that handles the status for missing or invalid buckets."""
         if missing_buckets:
-            print(missing_buckets)
             self._add_status(BucketStatuses.bucket_unavailable(bucket_names=missing_buckets))
         if invalid_buckets:
             self._add_status(BucketStatuses.bucket_name_invalid(bucket_names=invalid_buckets))
