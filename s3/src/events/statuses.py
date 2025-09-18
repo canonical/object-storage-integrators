@@ -82,12 +82,22 @@ class BucketStatuses(Enum):
 
     @staticmethod
     def bucket_unavailable(bucket_names: list[str]) -> StatusObject:
-        """The bucet is not available for use."""
+        """The bucket is not available for use."""
         buckets_str = ", ".join(f"'{bucket_name}'" for bucket_name in bucket_names)
         return StatusObject(
             status="blocked",
             message=f"Could not fetch or create bucket(s): {buckets_str}",
             action="Make sure the bucket name and S3 credentials are valid.",
+        )
+
+    @staticmethod
+    def bucket_name_invalid(bucket_names: list[str]) -> StatusObject:
+        """The bucket name is not valid."""
+        buckets_str = ", ".join(f"'{bucket_name}'" for bucket_name in bucket_names)
+        return StatusObject(
+            status="blocked",
+            message=f"Invalid name for bucket(s): {buckets_str}",
+            action="Make sure the bucket name is valid.",
         )
 
     @staticmethod

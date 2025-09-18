@@ -159,6 +159,7 @@ class BucketEvent(RelationEvent):
 
         return self.relation.data[self.relation.app].get("path", "")
 
+
 class StorageConnectionInfoRequestedEvent(BucketEvent):
     """Event emitted when S3 credentials are requested on this relation."""
 
