@@ -133,7 +133,7 @@ def test_provider_when_ensure_bucket_unsuccessful(
 
 @patch("utils.secrets.decode_secret_key_with_retry", decode_secret_key)
 @patch("managers.s3.S3Manager.get_bucket", return_value=True)
-def test_provider_relation_bucket_takes_priority_over_config_bucket(
+def test_provider_config_bucket_takes_priority_over_relation_bucket(
     mock_get_bucket,
     charm_configuration: dict,
     base_state: State,
@@ -144,7 +144,7 @@ def test_provider_relation_bucket_takes_priority_over_config_bucket(
     credentials_secret = Secret(
         tracked_content={"access-key": "my-access-key", "secret-key": "my-secret-key"}
     )
-    charm_configuration["options"]["bucket"]["default"] = "config-name"
+    charm_configuration["options"]["bucket"]["default"] = "config-bucket"
     charm_configuration["options"]["credentials"]["default"] = credentials_secret.id
 
     # This CA chain is valid
@@ -175,7 +175,7 @@ def test_provider_relation_bucket_takes_priority_over_config_bucket(
 
     # Then
     provider_data = state_out.get_relation(s3_provider_relation.id).local_app_data
-    assert provider_data["bucket"] == "relation-bucket"
+    assert provider_data["bucket"] == "config-bucket"
     assert provider_data["access-key"] == "my-access-key"
     assert provider_data["secret-key"] == "my-secret-key"
     assert provider_data["tls-ca-chain"] == json.dumps(parse_ca_chain(valid_ca_chain.decode()))

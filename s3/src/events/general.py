@@ -15,12 +15,10 @@ from data_platform_helpers.advanced_statuses.types import Scope
 from ops.charm import ConfigChangedEvent, StartEvent
 from pydantic import ValidationError
 
-from constants import S3_RELATION_NAME
 from core.context import Context
 from core.domain import CharmConfig
 from events.base import BaseEventHandler
 from events.statuses import CharmStatuses, ConfigStatuses
-from s3_lib import S3ProviderData
 from utils.secrets import (
     SecretDecodeError,
     SecretDoesNotExistError,
@@ -42,8 +40,6 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol):
 
         self.charm = charm
         self.state = context
-
-        self.s3_provider_data = S3ProviderData(self.charm.model, S3_RELATION_NAME)
 
         self.framework.observe(self.charm.on.start, self._on_start)
         self.framework.observe(self.charm.on.update_status, self._on_update_status)

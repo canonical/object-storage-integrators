@@ -114,6 +114,47 @@ def test_integrate_s3_and_consumer1(juju: jubilant.Juju, s3_info: S3ConnectionIn
     }
 
 
+def test_requirer_asks_for_invalid_bucket(juju: jubilant.Juju, s3_info) -> None:
+    """Test S3 charm behavior when a consumer charm related to it asks for an invalid bucket."""
+    juju.config(CONSUMER1, {"bucket": INVALID_BUCKET})
+    status = juju.wait(
+        lambda status: jubilant.all_blocked(status, S3) and jubilant.all_agents_idle(status),
+        delay=5,
+    )
+    # The S3 charm goes to the blocked state with appropriate message
+    assert "Invalid name for bucket" in status.apps[S3].app_status.message
+    assert "Invalid name for bucket" in status.apps[S3].units[f"{S3}/0"].workload_status.message
+
+    # The invalid bucket is not created in the S3 cloud
+    assert not get_bucket(s3_info=s3_info, bucket_name=INVALID_BUCKET)
+
+    # The invalid bucket is therefore not shared by S3 charm to the consumer
+    result = juju.run(f"{CONSUMER1}/0", "get-s3-connection-info").results
+    assert result.get("bucket") != INVALID_BUCKET
+
+
+def test_consumer1_asks_for_valid_bucket(
+    juju: jubilant.Juju, s3_info: S3ConnectionInfo, relation_bucket_name_1: str
+) -> None:
+    """Test S3 charm behavior when a consumer charm related to it asks for a valid bucket."""
+    juju.config(CONSUMER1, {"bucket": relation_bucket_name_1})
+    juju.wait(
+        lambda status: jubilant.all_active(status) and jubilant.all_agents_idle(status), delay=5
+    )
+    # The bucket should be created by s3-integrator and shared to the related app
+    result = juju.run(f"{CONSUMER1}/0", "get-s3-connection-info").results
+    assert result == {
+        "access-key": s3_info.access_key,
+        "secret-key": s3_info.secret_key,
+        "endpoint": s3_info.endpoint,
+        "bucket": relation_bucket_name_1,
+        "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain),
+    }
+
+    # The bucket asked by the consumer should have been created in the S3 cloud
+    assert get_bucket(s3_info=s3_info, bucket_name=relation_bucket_name_1)
+
+
 def test_add_bucket_config_option(
     juju: jubilant.Juju, s3_info: S3ConnectionInfo, config_bucket_name_1: str
 ) -> None:
@@ -124,7 +165,9 @@ def test_add_bucket_config_option(
         lambda status: jubilant.all_active(status) and jubilant.all_agents_idle(status), delay=5
     )
     result = juju.run(f"{CONSUMER1}/0", "get-s3-connection-info").results
+
     # The consumer should be provided with the connection info, including the bucket from the S3 charm config
+    # because the bucket in s3-provider config wins the priority over bucket requested by requirer
     assert result == {
         "access-key": s3_info.access_key,
         "secret-key": s3_info.secret_key,
@@ -156,51 +199,6 @@ def test_requirer_detects_change_in_bucket_config(
     }
     # The new bucket should also have been created by the S3 charm
     assert get_bucket(s3_info=s3_info, bucket_name=config_bucket_name_2)
-
-
-def test_requirer_asks_for_invalid_bucket(juju: jubilant.Juju, s3_info) -> None:
-    """Test S3 charm behavior when a consumer charm related to it asks for an invalid bucket."""
-    juju.config(CONSUMER1, {"bucket": INVALID_BUCKET})
-    status = juju.wait(
-        lambda status: jubilant.all_blocked(status, S3) and jubilant.all_agents_idle(status),
-        delay=5,
-    )
-    # The S3 charm goes to the blocked state with appropriate message
-    assert "Could not fetch or create bucket" in status.apps[S3].app_status.message
-    assert (
-        "Could not fetch or create bucket"
-        in status.apps[S3].units[f"{S3}/0"].workload_status.message
-    )
-
-    # The invalid bucket is not created in the S3 cloud
-    assert not get_bucket(s3_info=s3_info, bucket_name=INVALID_BUCKET)
-
-    # The invalid bucket is therefore not shared by S3 charm to the consumer
-    result = juju.run(f"{CONSUMER1}/0", "get-s3-connection-info").results
-    assert result.get("bucket") != INVALID_BUCKET
-
-
-def test_consumer1_asks_for_valid_bucket(
-    juju: jubilant.Juju, s3_info: S3ConnectionInfo, relation_bucket_name_1: str
-) -> None:
-    """Test S3 charm behavior when a consumer charm related to it asks for a valid bucket."""
-    juju.config(CONSUMER1, {"bucket": relation_bucket_name_1})
-    juju.wait(
-        lambda status: jubilant.all_active(status) and jubilant.all_agents_idle(status), delay=5
-    )
-    # The bucket from the relation should now take priority over the one in config
-    # and therefore, it should be shared to the consumer instead of the bucket in config
-    result = juju.run(f"{CONSUMER1}/0", "get-s3-connection-info").results
-    assert result == {
-        "access-key": s3_info.access_key,
-        "secret-key": s3_info.secret_key,
-        "endpoint": s3_info.endpoint,
-        "bucket": relation_bucket_name_1,
-        "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain),
-    }
-
-    # The bucket asked by the consumer should have been created in the S3 cloud
-    assert get_bucket(s3_info=s3_info, bucket_name=relation_bucket_name_1)
 
 
 def test_deploy_consumer2(juju: jubilant.Juju, test_charm: Path) -> None:
@@ -238,13 +236,13 @@ def test_integrate_s3_and_consumer2_without_bucket_request(
     }
     assert get_bucket(s3_info=s3_info, bucket_name=config_bucket_name_2)
 
-    # However, the consumer1 charm should be unaffected by this -- it will still keep on seeing the bucket requested by it
+    # The consumer2 charm should be provided with the bucket in config, because bucket in config wins over priority
     result = juju.run(f"{CONSUMER1}/0", "get-s3-connection-info").results
     assert result == {
         "access-key": s3_info.access_key,
         "secret-key": s3_info.secret_key,
         "endpoint": s3_info.endpoint,
-        "bucket": relation_bucket_name_1,
+        "bucket": config_bucket_name_2,
         "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain),
     }
     assert get_bucket(s3_info=s3_info, bucket_name=relation_bucket_name_1)
@@ -253,7 +251,7 @@ def test_integrate_s3_and_consumer2_without_bucket_request(
 def test_consumer2_asks_for_valid_bucket(
     juju: jubilant.Juju,
     s3_info: S3ConnectionInfo,
-    relation_bucket_name_1: str,
+    config_bucket_name_2: str,
     relation_bucket_name_2: str,
 ) -> None:
     """Test the S3 charm behavior when consumer2 starts asking for a custom bucket."""
@@ -262,29 +260,31 @@ def test_consumer2_asks_for_valid_bucket(
         lambda status: jubilant.all_active(status) and jubilant.all_agents_idle(status), delay=5
     )
 
-    # The bucket asked by consumer2 over the relation should take priority over the one in config
+    # The bucket asked by consumer2 over the relation is suppressed, because the bucket in s3-integrator config
+    # wins the race of priority over the one asked by consumer2
     result = juju.run(f"{CONSUMER2}/0", "get-s3-connection-info").results
     assert result == {
         "access-key": s3_info.access_key,
         "secret-key": s3_info.secret_key,
         "endpoint": s3_info.endpoint,
-        "bucket": relation_bucket_name_2,
+        "bucket": config_bucket_name_2,
         "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain),
     }
 
-    # The bucket asked by consumner2 should have been created in the S3 cloud
-    assert get_bucket(s3_info=s3_info, bucket_name=relation_bucket_name_2)
+    # The bucket asked by consumer2 should not have been created in the S3 cloud
+    assert not get_bucket(s3_info=s3_info, bucket_name=relation_bucket_name_2)
 
-    # However, the consumer1 charm should be unaffected by this -- it will still keep on seeing the bucket requested by it
+    # However, the consumer1 charm should be unaffected by this -- it will still keep on receiving the
+    # bucket provided as config option in the s3-integrator charm
     result = juju.run(f"{CONSUMER1}/0", "get-s3-connection-info").results
     assert result == {
         "access-key": s3_info.access_key,
         "secret-key": s3_info.secret_key,
         "endpoint": s3_info.endpoint,
-        "bucket": relation_bucket_name_1,
+        "bucket": config_bucket_name_2,
         "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain),
     }
-    assert get_bucket(s3_info=s3_info, bucket_name=relation_bucket_name_1)
+    assert get_bucket(s3_info=s3_info, bucket_name=config_bucket_name_2)
 
 
 def test_deploy_consumer3_with_s3_lib_v0(juju: jubilant.Juju, test_charm_s3_v0):
@@ -321,8 +321,8 @@ def test_integrate_s3_and_consumer3_with_s3_lib_v0(
     assert get_bucket(s3_info=s3_info, bucket_name=config_bucket_name_2)
 
 
-def test_both_consumers_ask_valid_buckets_but_keys_are_invalid(juju: jubilant.Juju):
-    """Test the S3 charm behavior when multiple consumers are related to it, all of them asking for buckets, but keys are invalid."""
+def test_keys_are_invalid(juju: jubilant.Juju, config_bucket_name_2: str):
+    """Test the S3 charm behavior when multiple consumers are related to it, but keys are invalid."""
     juju.cli("update-secret", SECRET_LABEL, "access-key=foo", "secret-key=bar")
     juju.config(CONSUMER1, {"bucket": "consumer1-bucket"})
     juju.config(CONSUMER2, {"bucket": "consumer2-bucket"})
@@ -336,9 +336,9 @@ def test_both_consumers_ask_valid_buckets_but_keys_are_invalid(juju: jubilant.Ju
     # The charm should stay in blocked state, with appropriate message
     assert all(
         phrase in status.apps[S3].app_status.message
-        for phrase in ["Could not fetch or create bucket", "consumer1-bucket", "consumer2-bucket"]
+        for phrase in ["Could not fetch or create bucket", config_bucket_name_2]
     )
     assert all(
         phrase in status.apps[S3].units[f"{S3}/0"].workload_status.message
-        for phrase in ["Could not fetch or create bucket", "consumer1-bucket", "consumer2-bucket"]
+        for phrase in ["Could not fetch or create bucket", config_bucket_name_2]
     )
