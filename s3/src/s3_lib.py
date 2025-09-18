@@ -377,6 +377,7 @@ class S3ProviderData(ProviderData):
         """Override `update_relation_data` to bypass the parent's validation that raises PrematureDataAccessError."""
         super(ProviderData, self)._update_relation_data(relation, data)
 
+
 class S3ProviderEventHandlers(EventHandlers):
     """The event handlers related to provider side of S3 relation."""
 
