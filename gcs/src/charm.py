@@ -33,7 +33,6 @@ class GCStorageIntegratorCharm(ops.charm.CharmBase):
     def _sync_state(self, _=None):
         """Ensure the charm's state matches the desired config."""
         cfg = self.get_charm_config()
-        self.context = Context(self.model, cfg) if cfg else None
         if not cfg:
             return
         ok, message = cfg.online_validate(self)
