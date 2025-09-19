@@ -11,7 +11,7 @@ from ops import ConfigData, Model
 from ops.model import SecretNotFoundError, ModelError
 from core.domain import GcsConnectionInfo
 from utils.logging import WithLogging
-from utils.secrets import decode_secret_key, normalize
+from utils.secrets import decode_secret_key_with_retry
 from core.charm_config import CharmConfig
 from dataclasses import dataclass
 
@@ -38,29 +38,22 @@ class GcsConnectionInfo:
 class Context(WithLogging):
     """Properties and relations of the charm."""
 
-    def __init__(self, model: Model, charm_config: CharmConfig):
+    def __init__(self, model: Model):
         self.model = model
-        self.charm_config = charm_config
 
     @property
     def gc_storage(self) -> Optional[GcsConnectionInfo]:
         """Return information related to GC Storage connection parameters."""
-        cfg = self.charm_config
+        cfg = CharmConfig.from_charm(self)
         if not cfg or not cfg.bucket or not cfg.credentials:
             logger.warning("charm_config not set")
             return None
 
-        cred = str(self.charm_config.credentials).strip()
-        try:
-            ref = normalize(cred)
-            plaintext = decode_secret_key(self.model, ref)
-        except (SecretNotFoundError, ModelError, Exception) as e:
-            self.logger.warning("Failed to resolve credentials: %s", e)
-            return None
-
+        cred = str(cfg.credentials).strip()
+        plaintext = decode_secret_key_with_retry(self.model, cred)
         return GcsConnectionInfo(
-            bucket=self.charm_config.bucket,
+            bucket=cfg.bucket,
             secret_key=plaintext,
-            storage_class=self.charm_config.storage_class or None,
-            path=self.charm_config.path or None,
+            storage_class=cfg.storage_class or None,
+            path=cfg.path or None,
         )
