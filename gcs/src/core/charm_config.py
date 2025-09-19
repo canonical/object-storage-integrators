@@ -3,7 +3,6 @@
 
 """GCS charm configuration validation."""
 
-import json
 import logging
 import re
 from dataclasses import dataclass
@@ -19,8 +18,7 @@ from google.oauth2 import service_account
 from google.auth.transport.requests import Request
 from google.cloud import storage
 
-from utils.secrets import decode_secret_key, normalize
-
+from utils.secrets import decode_secret_key_with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +48,7 @@ class GCSConfig(BaseModel):
 
     Args:
         bucket (StrictStr): Target GCS bucket. Syntax checks: (3–63, lowercase, digits, hyphens).
-        secret_key (StrictStr): Juju Secret (id or label) that contains a
-            service-account JSON (validated online).
+        credentials (StrictStr): Juju Secret (id or label) that contains a service-account JSON (validated online).
         storage_class (StrictStr): Optional storage class (STANDARD|NEARLINE|COLDLINE|ARCHIVE).
         path (StrictStr): Optional object prefix <=1024 bytes UTF-8, no NULL, no leading slash (/).
     """
@@ -125,7 +122,7 @@ class CharmConfig:
     def from_charm(cls, charm: ops.CharmBase) -> "CharmConfig":
         """Build from charm.config, raising aggregated errors on invalid offline config."""
         try:
-            return cls(gcs_config=GCSConfig(**dict(charm.config.items()))) # type: ignore[arg-type]
+            return cls(gcs_config=GCSConfig(**dict(charm.model.config.items()))) # type: ignore[arg-type]
         except ValidationError as exc:
             err_fields: list[str] = []
             for err in exc.errors():
@@ -153,8 +150,8 @@ class CharmConfig:
             (ok, message): True if both checks pass, else False and a reason.
         """
         try:
-            secret_id = normalize(self.credentials)
-            sa_json = decode_secret_key(charm.model, secret_id)
+            secret_ref = charm.model.config.get("credentials").strip()
+            plaintext = decode_secret_key_with_retry(charm.model, secret_ref)
         except SecretNotFoundError:
             return False, "waiting for secret grant: service-account-json-secret"
         except Exception as e:
@@ -163,7 +160,7 @@ class CharmConfig:
         # Token Validation (WhoAmI)
         try:
             creds = service_account.Credentials.from_service_account_info(
-                sa_json, scopes=["https://www.googleapis.com/auth/cloud-platform"]
+                plaintext, scopes=["https://www.googleapis.com/auth/cloud-platform"]
             )
             creds.refresh(Request())
             r = requests.get(
@@ -178,10 +175,10 @@ class CharmConfig:
         # Validate Bucket existence
         try:
             ro_creds = service_account.Credentials.from_service_account_info(
-                info, scopes=["https://www.googleapis.com/auth/devstorage.read_only"]
+                plaintext, scopes=["https://www.googleapis.com/auth/devstorage.read_only"]
             )
             ro_creds.refresh(Request())
-            client = storage.Client(project=info.get("project_id"), credentials=ro_creds)
+            client = storage.Client(project=plaintext.get("project_id"), credentials=ro_creds)
             client.get_bucket(self.bucket)
         except Exception as e:
             return False, f"bucket validation failed: {e}"

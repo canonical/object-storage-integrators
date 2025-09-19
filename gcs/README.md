@@ -21,7 +21,8 @@ This is an operator charm providing an integrator for connecting to Google Cloud
 
 3. Add a new secret to Juju, and grant it's permissions to gcs-integrator using a valid service account JSON file.
     ```
-    juju add-secret mysecret secret-key="$(cat service_account.json)"
+    juju add-secret mysecret secret-key#file=service_account.json
+
     juju grant-secret mysecret gcs-integrator
     ```
 
@@ -36,7 +37,7 @@ This is an operator charm providing an integrator for connecting to Google Cloud
     ```
 
 Now whenever the user changes the configuration options in gcs-integrator charm, appropriate event handlers are fired
-so that the charms that consume the relation on the requirer side sees the latest information.
+so that the charms that consume the relation on the requirer side see the latest information.
 
 
 ## Security
