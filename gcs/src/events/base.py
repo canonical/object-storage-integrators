@@ -8,9 +8,9 @@ from functools import wraps
 from typing import Callable
 
 from ops import EventBase, Model, Object, StatusBase
-from ops.model import ActiveStatus, BlockedStatus, ModelError
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
-from constants import CREDENTIAL_FIELD
+from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
+from core.charm_config import get_charm_config
+from constants import CREDENTIAL_FIELD, MANDATORY_OPTIONS
 from utils.logging import WithLogging
 from utils.secrets import decode_secret_key_with_retry
 
@@ -18,24 +18,39 @@ from utils.secrets import decode_secret_key_with_retry
 class BaseEventHandler(Object, WithLogging):
     """Base class for all Event Handler classes in the GCS Integrator."""
 
-    def get_app_status(self, model, charm_config) -> StatusBase:
+    def get_app_status(self, model, cfg_map) -> StatusBase:
         """Return the status of the charm."""
-        missing_options = []
-        if not charm_config.get("bucket"):
-            missing_options.append("bucket")
-        if not charm_config.get("credentials"):
-            missing_options.append("credentials")
-        if missing_options:
-            self.logger.warning(f"Missing parameters: {missing_options}")
-            return BlockedStatus(f"Missing parameters: {missing_options}")
+        missing = [opt for opt in MANDATORY_OPTIONS if not (cfg_map.get(opt) or "").strip()]
+        if missing:
+            self.logger.warning("Missing parameters: %s", missing)
+            return BlockedStatus(f"Missing parameters: {missing}")
+
         try:
-            decode_secret_key_with_retry(model, charm_config.get("credentials"))
+            decode_secret_key_with_retry(model, cfg_map.get("credentials"))
         except Exception as e:
             self.logger.warning(f"Error in decoding secret: {e}")
             return BlockedStatus(f"The credentials secret could not be decoded: {str(e)}")
 
-        return ActiveStatus()
+        if not cfg_map.get("validate-credentials"):
+            return ActiveStatus("ready")
 
+        try:
+            cfg = get_charm_config(self.charm)
+        except Exception as e:
+            self.logger.warning("Invalid config: %s", e)
+            return BlockedStatus(str(e))
+
+        ok, message = self._validate_online(cfg)
+        if not ok:
+            if "waiting for" in message or "permission" in message.lower():
+                return WaitingStatus(message)
+            return BlockedStatus(message)
+
+        return ActiveStatus("ready")
+
+    def _validate_online(self, cfg) -> tuple[bool, str]:
+        """Pure online check. Accepts a CharmConfig; returns (ok, message)."""
+        return cfg.access_google_apis(self.charm)
 
 def compute_status(
     hook: Callable[[BaseEventHandler, EventBase], None],
@@ -46,13 +61,12 @@ def compute_status(
     def wrapper_hook(event_handler: BaseEventHandler, event: EventBase):
         """Return output after resetting statuses."""
         res = hook(event_handler, event)
-        if event_handler.charm.unit.is_leader():
-            event_handler.charm.app.status = event_handler.get_app_status(
-                event_handler.charm.model, event_handler.charm.config
-            )
-        event_handler.charm.unit.status = event_handler.get_app_status(
+        status = event_handler.get_app_status(
             event_handler.charm.model, event_handler.charm.config
         )
+        if event_handler.charm.unit.is_leader():
+            event_handler.charm.app.status = status
+        event_handler.charm.unit.status = status
         return res
 
     return wrapper_hook

@@ -1,6 +1,5 @@
-
 #!/usr/bin/env python3
-# Copyright 2024 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 import logging
@@ -117,14 +116,14 @@ class StorageRequirerEvents(CharmEvents):
 class StorageRequirerData(RequirerData):
     SECRET_FIELDS: ClassVar[List[str]] = []
 
-    def __init__(self, model, relation_name: str,  contract: StorageContract):
-        super().__init__(
-            model,
-            relation_name,
-        )
+    @classmethod
+    def configure_from_contract(cls, contract: StorageContract) -> None:
+        cls.SECRET_FIELDS = list(contract.secret_fields)
+
+    def __init__(self, model, relation_name: str, contract: StorageContract):
         self.contract = contract
-        self._secret_fields = list(contract.secret_fields or [])
-        type(self).SECRET_FIELDS = list(self._secret_fields)
+        self._secret_fields = list(type(self).SECRET_FIELDS)
+        super().__init__(model, relation_name)
 
 
 class StorageRequirerEventHandlers(RequirerEventHandlers):
@@ -160,6 +159,14 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         info = self.get_storage_connection_info(relation)
         return all(k in info for k in (self.contract.required_info + self.contract.secret_fields))
 
+    def _missing_fields(self, relation) -> List[str]:
+        info = self.get_storage_connection_info(relation)
+        missing = []
+        for k in (self.contract.required_info + self.contract.secret_fields):
+            if k not in info:
+                missing.append(k)
+        return missing
+
     def _register_new_secrets(self, event: RelationChangedEvent):
         diff = self._diff(event)
         added_keys = set(diff.added) if isinstance(diff.added, (set, list, tuple)) else set(
@@ -188,9 +195,8 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         if not self.charm.unit.is_leader():
             return
 
-        existing_data = self.relation_data.fetch_relation_data([relation_id])[relation_id]
-        existing_data.update({k: v for k, v in overrides.items() if v is not None})
-        self.relation_data.update_relation_data(relation_id, existing_data)
+        payload = {k: v for k, v in overrides.items() if v is not None}
+        self.relation_data.update_relation_data(relation_id, payload)
 
     def _on_relation_joined_event(self, event: RelationJoinedEvent) -> None:
         """Requirer may override some fields using the override keys (optional in the requirer charm)."""
@@ -209,15 +215,15 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         """This method validates the required fields present in the relation data."""
         logger.info("Storage relation (%s) changed", event.relation.name)
         self._register_new_secrets(event)
-        # TODO: add missing fields
 
         if self._all_required_present(event.relation):
             getattr(self.on, "storage_connection_info_changed").emit(
                 event.relation, app=event.app, unit=event.unit
             )
         else:
+            missing = self._missing_fields(event.relation)
             logger.warning(
-                f"Some mandatory fields does not exist: do not emit credential change event!"
+                "Some mandatory fields: %s are not present, do not emit credential change event!", ",".join(missing)
             )
 
     def _on_secret_changed_event(self, event: SecretChangedEvent):
@@ -238,14 +244,15 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         for unit in relation.units:
             if unit.app != self.charm.app:
                 remote_unit = unit
-        # TODO: add missing fields
+
         if self._all_required_present(relation):
             getattr(self.on, "storage_connection_info_changed").emit(
                 relation, app=relation.app, unit=remote_unit
             )
         else:
+            missing = self._missing_fields(relation)
             logger.warning(
-                f"Some mandatory fields are missing: do not emit credential change event!"
+                "Some mandatory fields: %s are not present, do not emit credential change event!", ",".join(missing)
             )
 
     def _on_relation_broken_event(self, event: RelationBrokenEvent) -> None:
@@ -262,6 +269,7 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
 class StorageRequires(StorageRequirerData, StorageRequirerEventHandlers):
     """The requirer side of Storage relation."""
     def __init__(self, charm: CharmBase, relation_name: str, contract: StorageContract):
+        StorageRequirerData.configure_from_contract(contract)
         StorageRequirerData.__init__(self, charm.model, relation_name, contract)
         StorageRequirerEventHandlers.__init__(self, charm, self, contract)
 

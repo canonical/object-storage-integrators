@@ -3,15 +3,14 @@
 # See LICENSE file for licensing details.
 
 """Google Cloud Storage general event handlers."""
-
 import ops
 from charms.data_platform_libs.v0.object_storage import StorageProviderData
-from ops import CharmBase, BlockedStatus
+from ops import CharmBase
 from ops.charm import ConfigChangedEvent, StartEvent
 
 from constants import GCS_RELATION_NAME
 from core.context import Context
-from core.charm_config import CharmConfig
+from core.charm_config import CharmConfig, CharmConfigInvalidError, get_charm_config
 from events.base import BaseEventHandler, compute_status
 from managers.gc_storage import GCStorageManager
 from utils.logging import WithLogging
@@ -33,7 +32,7 @@ class GeneralEvents(BaseEventHandler, WithLogging):
         self.framework.observe(self.charm.on.secret_changed, self._on_secret_changed)
 
     def _ctx(self) -> Context:
-        return Context(self.charm.model)
+        return Context(self.charm)
 
     @compute_status
     def _on_start(self, _: StartEvent) -> None:
@@ -52,10 +51,9 @@ class GeneralEvents(BaseEventHandler, WithLogging):
             return
 
         context = self._ctx()
-        if not context:
+        if not context or not context.gc_storage:
             return
 
-        self.logger.debug(f"Config changed. Current configuration: {self.charm.config}")
         self.gc_storage_manager.update(context.gc_storage)
 
     @compute_status
@@ -68,16 +66,17 @@ class GeneralEvents(BaseEventHandler, WithLogging):
         """
         if not self.charm.unit.is_leader():
             return
-        cfg = CharmConfig.from_charm(self)
+        cfg = get_charm_config(self.charm)
         if not cfg:
             return
+
         secret = event.secret
         ref = normalize(str(cfg.credentials))
         if not ref:
             return
 
         context = self._ctx()
-        if not context:
+        if not context or not context.gc_storage:
             return
 
         # match either by id or label
