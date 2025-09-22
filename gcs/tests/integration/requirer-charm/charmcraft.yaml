@@ -1,0 +1,9 @@
+type: charm
+platforms:
+  ubuntu@24.04:amd64:
+
+parts:
+  charm-poetry:
+    plugin: poetry
+    source: .
+    poetry-export-extra-args: ['--only', 'main']
