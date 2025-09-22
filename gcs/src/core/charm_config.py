@@ -1,18 +1,21 @@
+#!/usr/bin/env python3
+
 # Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """GCS charm configuration validation."""
-
+import json
 import logging
 import re
 from dataclasses import dataclass
 from typing import Optional
 
 import ops
-from ops.model import SecretNotFoundError, ModelError
-
-from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError
-from pydantic.functional_validators import field_validator
+from ops.model import SecretNotFoundError
+from enum import StrEnum
+from charms.data_platform_libs.v0.data_models import BaseConfigModel
+from pydantic import ConfigDict, Field, StrictStr, ValidationError
+from pydantic import field_validator
 import requests
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
@@ -31,19 +34,18 @@ class CharmConfigInvalidError(Exception):
         super().__init__(msg)
 
 
-def to_kebab(name: str) -> str:
-    """Convert snake_case to kebab-case for config aliases."""
-    return name.replace("_", "-")
-
-
-_ALLOWED_CLASSES = {"STANDARD", "NEARLINE", "COLDLINE", "ARCHIVE"}
+class StorageClass(StrEnum):
+    STANDARD = "STANDARD"
+    NEARLINE = "NEARLINE"
+    COLDLINE = "COLDLINE"
+    ARCHIVE = "ARCHIVE"
 
 # bucket: 3–63 chars, lowercase letters/digits/hyphens,
 # must start and end with a letter or digit
-_BUCKET_RX = re.compile(r"^[a-z0-9](?:[a-z0-9-]{1,61})[a-z0-9]$")
+_BUCKET_RX = re.compile(r"^[a-z0-9](?:[a-z0-9.-]{1,61})[a-z0-9]$")
 
 
-class GCSConfig(BaseModel):
+class GCSConfig(BaseConfigModel):
     """Basic Config Validation.
 
     Args:
@@ -52,16 +54,21 @@ class GCSConfig(BaseModel):
         storage_class (StrictStr): Optional storage class (STANDARD|NEARLINE|COLDLINE|ARCHIVE).
         path (StrictStr): Optional object prefix <=1024 bytes UTF-8, no NULL, no leading slash (/).
     """
-
-    model_config = ConfigDict(alias_generator=to_kebab)
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
     bucket: StrictStr = Field(..., description="Target GCS bucket (3–63, lowercase/digits/hyphens)")
     credentials: StrictStr = Field(
         ..., description="Juju secret id/label holding service-account JSON"
     )
     storage_class: Optional[StrictStr] = Field(
-        default="", description="GCS class (STANDARD|NEARLINE|COLDLINE|ARCHIVE)"
+        default=None, alias="storage-class",
+        description="GCS class (STANDARD|NEARLINE|COLDLINE|ARCHIVE)"
     )
     path: StrictStr = Field(default="", description="Object prefix inside the bucket")
+    validate_credentials: bool = Field(
+        default=False,
+        alias="validate-credentials",
+        description="If true, validate of the service account JSON by obtaining an OAuth token (WhoAmI)."
+    )
 
     @field_validator("bucket")
     @classmethod
@@ -76,11 +83,16 @@ class GCSConfig(BaseModel):
     @field_validator("storage_class")
     @classmethod
     def _storage_class_allowed(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        v = v.strip()
         if not v:
-            return v
-        if v not in _ALLOWED_CLASSES:
-            raise ValueError("storage-class must be one of: STANDARD, NEARLINE, COLDLINE, ARCHIVE")
-        return v
+            return None
+        allowed = {sc.value for sc in StorageClass}
+        v_up = v.upper()
+        if v_up not in allowed:
+            raise ValueError(f"storage-class must be one of: {', '.join(sorted(allowed))}")
+        return v_up
 
     @field_validator("path")
     @classmethod
@@ -103,9 +115,9 @@ class CharmConfig:
     """Runtime view of validated GCS configuration including advanced validation."""
     bucket: str
     credentials: str
-    storage_class: str
+    storage_class: Optional[str]
     path: str
-
+    validate_credentials: bool
 
     def __init__(self, *, gcs_config: GCSConfig):
         """Initialize a new instance of the CharmConfig class.
@@ -117,12 +129,13 @@ class CharmConfig:
         self.credentials = gcs_config.credentials
         self.storage_class = gcs_config.storage_class
         self.path = gcs_config.path
+        self.validate_credentials = gcs_config.validate_credentials
 
     @classmethod
     def from_charm(cls, charm: ops.CharmBase) -> "CharmConfig":
         """Build from charm.config, raising aggregated errors on invalid offline config."""
         try:
-            return cls(gcs_config=GCSConfig(**dict(charm.model.config.items()))) # type: ignore[arg-type]
+            return cls(gcs_config=GCSConfig(**dict(charm.config.items()))) # type: ignore[arg-type]
         except ValidationError as exc:
             err_fields: list[str] = []
             for err in exc.errors():
@@ -138,10 +151,10 @@ class CharmConfig:
             err_fields.sort()
             err_field_str = ", ".join(f"'{f}'" for f in err_fields)
             raise CharmConfigInvalidError(
-                f"The following configurations are not valid: [{err_field_str}]"
+                f"The following configurations are empty or invalid: [{err_field_str}]"
             ) from exc
 
-    def online_validate(self, charm: ops.CharmBase) -> tuple[bool, str]:
+    def access_google_apis(self, charm: ops.CharmBase) -> tuple[bool, str]:
         """Run online checks:
         1) Validate the service account JSON by obtaining an OAuth token (WhoAmI).
         2) Validate the bucket by fetching metadata with devstorage.read_only.
@@ -150,8 +163,10 @@ class CharmConfig:
             (ok, message): True if both checks pass, else False and a reason.
         """
         try:
-            secret_ref = charm.model.config.get("credentials").strip()
+            secret_ref = (charm.config.get("credentials") or "").strip()
             plaintext = decode_secret_key_with_retry(charm.model, secret_ref)
+            if isinstance(plaintext, str):
+                plaintext = json.loads(plaintext)
         except SecretNotFoundError:
             return False, "waiting for secret grant: service-account-json-secret"
         except Exception as e:
@@ -170,7 +185,7 @@ class CharmConfig:
             )
             r.raise_for_status()
         except Exception as e:
-            return False, f"service account validation failed: {e}"
+            return False, format_exception("service account validation failed", e)
 
         # Validate Bucket existence
         try:
@@ -179,8 +194,27 @@ class CharmConfig:
             )
             ro_creds.refresh(Request())
             client = storage.Client(project=plaintext.get("project_id"), credentials=ro_creds)
-            client.get_bucket(self.bucket)
+            bucket = client.lookup_bucket(self.bucket)
+            if bucket is None:
+                return False, f"bucket '{self.bucket}' not found"
+            if not bucket.exists(timeout=10.0):
+                return False, f"bucket '{self.bucket}' not found"
         except Exception as e:
-            return False, f"bucket validation failed: {e}"
+            return False, format_exception("bucket validation failed", e)
 
         return True, "gcs config valid"
+
+def get_charm_config(charm) -> Optional[CharmConfig]:
+    try:
+        return CharmConfig.from_charm(charm)
+    except CharmConfigInvalidError as e:
+        logger.error(e)
+        return None
+
+
+def format_exception(prefix: str, err: Exception) -> str:
+    """Turn low-level exceptions into short messages."""
+    msg = str(err).splitlines()[0]
+    return f"{prefix}: error code: {msg[:3]}"
+
+

@@ -38,10 +38,15 @@ pytest-asyncio = "*"
 
 [tool.poetry.group.integration.dependencies]
 pytest = "^8.1.1"
-pytest-operator = "^0.34.0"
-juju = "^3.3.1.1"
+jubilant = "^1.0.0"
 
 # Testing tools configuration
+
+[tool.poetry.group.dev.dependencies]
+jubilant = "^1.4.0"
+pytest = "^8.4.2"
+pytest-asyncio = "^1.2.0"
+
 [tool.coverage.run]
 branch = true
 
@@ -93,3 +98,4 @@ include = ["src"]
 extraPaths = ["./lib", "src"]
 pythonVersion = "3.10"
 pythonPlatform = "All"
+

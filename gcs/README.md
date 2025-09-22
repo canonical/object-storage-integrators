@@ -41,7 +41,7 @@ so that the charms that consume the relation on the requirer side see the latest
 
 
 ## Security
-Security issues in the Charmed Object Storage Integrator Operator can be reported through [LaunchPad](https://wiki.ubuntu.com/DebuggingSecurity#How%20to%20File). Please do not file GitHub issues about security issues.
+Security issues in the GCS Integrator Operator can be reported through [LaunchPad](https://wiki.ubuntu.com/DebuggingSecurity#How%20to%20File). Please do not file GitHub issues about security issues.
 
 
 ## Contributing
