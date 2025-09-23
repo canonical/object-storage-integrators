@@ -5,8 +5,8 @@
 import ops
 from ops.main import main
 
-from events.requirer import GcsRequirer
 from events.general import GeneralEvents
+from events.requirer import GcsRequirer
 
 
 class GcsRequirerTestCharm(ops.charm.CharmBase):
