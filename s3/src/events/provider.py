@@ -123,16 +123,16 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
                 s3_manager=s3_manager, bucket_name=config_bucket_value
             )
             if not config_bucket_available:
-                missing_buckets.append(config_bucket_value)
+                self._handle_status(missing_buckets=[config_bucket_value], invalid_buckets=[])
+                return
 
         relation_bucket_requests = self.get_requested_relation_buckets()
         for relation_id, request in relation_bucket_requests.items():
             relation_bucket_value = request.get("bucket", "")
             relation_path_value = request.get("path", "")
-            relation_data = self.state.s3
 
-            if config_bucket_value and not config_bucket_available:
-                continue
+            # The relation data will start holding values from config options (self.state.s3) initially
+            relation_data = self.state.s3
 
             if not config_bucket_value and relation_bucket_value:
                 relation_bucket_valid = re.match(BUCKET_REGEX, relation_bucket_value)
@@ -173,6 +173,8 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
         if not self.state.s3:
             return status_list
 
+        s3_manager = S3Manager(self.state.s3)
+
         requested_buckets = [
             request.get("bucket", "")
             for request in self.get_requested_relation_buckets().values()
@@ -180,18 +182,26 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
         ]
 
         config_bucket = self.state.s3.get("bucket")
-        if config_bucket and config_bucket not in requested_buckets:
-            requested_buckets.insert(0, config_bucket)
+        if config_bucket and not s3_manager.get_bucket(bucket_name=config_bucket):
+            status_list.append(BucketStatuses.bucket_unavailable(bucket_names=[config_bucket]))
+            return status_list
 
-        s3_manager = S3Manager(self.state.s3)
+        invalid_buckets = [
+            bucket_name
+            for bucket_name in requested_buckets
+            if not re.match(BUCKET_REGEX, bucket_name)
+        ]
         missing_buckets = [
             bucket_name
             for bucket_name in requested_buckets
             if not s3_manager.get_bucket(bucket_name=bucket_name)
+            and bucket_name not in invalid_buckets
         ]
         if missing_buckets:
             status_list.append(BucketStatuses.bucket_unavailable(bucket_names=missing_buckets))
-        else:
+        if invalid_buckets:
+            status_list.append(BucketStatuses.bucket_name_invalid(bucket_names=invalid_buckets))
+        if not missing_buckets and not invalid_buckets:
             status_list.append(CharmStatuses.ACTIVE_IDLE.value)
 
         return status_list
