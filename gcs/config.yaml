@@ -13,10 +13,6 @@ options:
     type: string
     description: Optional object prefix (<=1024 bytes, no NULL bytes).
     default: ""
-  validate-credentials:
-    type: boolean
-    description: Optional online validation of the service account JSON by obtaining an OAuth token (WhoAmI).
-    default: false
   credentials:
     type: secret
     description: |

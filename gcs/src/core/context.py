@@ -6,15 +6,18 @@
 """Charm Context definition and parsing logic."""
 import json
 import logging
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-from ops.charm import CharmBase
-from ops.model import SecretNotFoundError
+from data_platform_helpers.advanced_statuses.protocol import StatusesState, StatusesStateProtocol
+from ops import Object
 from utils.logging import WithLogging
 from utils.secrets import decode_secret_key_with_retry
 from core.charm_config import CharmConfig
 from dataclasses import dataclass
-from core.charm_config import CharmConfigInvalidError, get_charm_config
+from core.charm_config import CharmConfigInvalidError
+from constants import STATUS_PEERS_RELATION_NAME
+if TYPE_CHECKING:
+    from charm import GCStorageIntegratorCharm
 
 logger = logging.getLogger(__name__)
 
@@ -37,38 +40,34 @@ class GcsConnectionInfo:
 
 
 
-class Context(WithLogging):
+class Context(Object, WithLogging, StatusesStateProtocol):
     """Properties and relations of the charm."""
 
-    def __init__(self, charm: CharmBase):
+    def __init__(self, charm: "GCStorageIntegratorCharm"):
+        super().__init__(charm, "charm_context")
         self.charm = charm
+        self.charm_config = self.charm.config
+        self.statuses = StatusesState(self, STATUS_PEERS_RELATION_NAME)
+
 
     @property
     def gc_storage(self) -> Optional[GcsConnectionInfo]:
         """Return information related to GC Storage connection parameters."""
-        cfg = get_charm_config(self.charm)
-        if not cfg:
-            logger.warning("charm_config not set")
-            return None
-        if not cfg.bucket or not cfg.credentials:
-            logger.warning("bucket and credentials not set")
-            return None
-        cred = str(cfg.credentials).strip()
         try:
+            cfg = self.charm.config
+            credentials = cfg.get("credentials")
+            cred = str(credentials).strip()
             plaintext = decode_secret_key_with_retry(self.charm.model, cred)
-        except SecretNotFoundError:
-            logger.warning("waiting for secret grant: service-account-json-secret")
-            return None
-        except Exception as e:
-            logger.warning("invalid service-account secret: %s", e)
+        except Exception as exc:
+            self.logger.error(exc)
             return None
         if isinstance(plaintext, (dict, list)):
             secret_str = json.dumps(plaintext)
         else:
             secret_str = str(plaintext)
         return GcsConnectionInfo(
-            bucket=cfg.bucket,
+            bucket=cfg.get("bucket"),
             secret_key=secret_str,
-            storage_class=cfg.storage_class or None,
-            path=cfg.path or None,
+            storage_class=cfg.get("storage_class") or None,
+            path=cfg.get("path") or None,
         )
