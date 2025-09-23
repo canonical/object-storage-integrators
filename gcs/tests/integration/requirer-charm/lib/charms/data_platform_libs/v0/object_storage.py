@@ -4,7 +4,8 @@
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, ClassVar
+from typing import ClassVar, Dict, List, Optional
+
 from charms.data_platform_libs.v0.data_interfaces import (
     EventHandlers,
     ProviderData,
@@ -61,7 +62,13 @@ class StorageContract:
     secret_fields: List[str]
     overrides: Dict[str, str] = field(default_factory=dict)
 
-    def __init__(self, required_info: List[str], optional_info: List[str], secret_fields: List[str], **overrides: str) -> None:
+    def __init__(
+        self,
+        required_info: List[str],
+        optional_info: List[str],
+        secret_fields: List[str],
+        **overrides: str,
+    ) -> None:
         object.__setattr__(self, "required_info", required_info)
         object.__setattr__(self, "optional_info", optional_info)
         object.__setattr__(self, "secret_fields", secret_fields)
@@ -71,6 +78,7 @@ class StorageContract:
 @dataclass(frozen=True)
 class GcsContract(StorageContract):
     """GCS-specific contract for the GCS."""
+
     def __init__(self, **overrides: str):
         required_info = [
             "bucket",
@@ -79,14 +87,18 @@ class GcsContract(StorageContract):
             "storage-class",
             "path",
         ]
-        secret_fields = [
-            "secret-key"
-        ]
-        super().__init__(required_info=required_info, optional_info=optional_info, secret_fields=secret_fields, **overrides)
+        secret_fields = ["secret-key"]
+        super().__init__(
+            required_info=required_info,
+            optional_info=optional_info,
+            secret_fields=secret_fields,
+            **overrides,
+        )
 
 
 class ObjectStorageEvent(RelationEvent):
     pass
+
 
 class StorageConnectionInfoRequestedEvent(ObjectStorageEvent):
     pass
@@ -102,6 +114,7 @@ class StorageConnectionInfoGoneEvent(RelationEvent):
 
 class StorageProviderEvents(CharmEvents):
     """Events for the StorageProvider side implementation."""
+
     storage_connection_info_requested = EventSource(StorageConnectionInfoRequestedEvent)
 
 
@@ -161,22 +174,28 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
     def _missing_fields(self, relation) -> List[str]:
         info = self.get_storage_connection_info(relation)
         missing = []
-        for k in (self.contract.required_info + self.contract.secret_fields):
+        for k in self.contract.required_info + self.contract.secret_fields:
             if k not in info:
                 missing.append(k)
         return missing
 
     def _register_new_secrets(self, event: RelationChangedEvent):
-        """Get keys which are declared as secret in the contract and register them for tracking."""
         diff = self._diff(event)
-        added_keys = set(diff.added) if isinstance(diff.added, (set, list, tuple)) else set(
-            getattr(diff.added, "keys", lambda: [])())
-        changed_keys = set(diff.changed.keys()) if hasattr(diff, "changed") and isinstance(diff.changed,
-                                                                                           dict) else set()
+        added_keys = (
+            set(diff.added)
+            if isinstance(diff.added, (set, list, tuple))
+            else set(getattr(diff.added, "keys", lambda: [])())
+        )
+        changed_keys = (
+            set(diff.changed.keys())
+            if hasattr(diff, "changed") and isinstance(diff.changed, dict)
+            else set()
+        )
         candidate_keys = added_keys | changed_keys
         if not candidate_keys:
             return
 
+        # Get keys which are declared as secret in the contract
         secret_keys = [k for k in candidate_keys if self.relation_data._is_secret_field(k)]
         if not secret_keys:
             return
@@ -222,7 +241,8 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         else:
             missing = self._missing_fields(event.relation)
             logger.warning(
-                "Some mandatory fields: %s are not present, do not emit credential change event!", ",".join(missing)
+                "Some mandatory fields: %s are not present, do not emit credential change event!",
+                ",".join(missing),
             )
 
     def _on_secret_changed_event(self, event: SecretChangedEvent):
@@ -251,13 +271,16 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         else:
             missing = self._missing_fields(relation)
             logger.warning(
-                "Some mandatory fields: %s are not present, do not emit credential change event!", ",".join(missing)
+                "Some mandatory fields: %s are not present, do not emit credential change event!",
+                ",".join(missing),
             )
 
     def _on_relation_broken_event(self, event: RelationBrokenEvent) -> None:
         """Event handler for handling relation_broken event."""
         logger.info("Storage relation broken...")
-        getattr(self.on, "storage_connection_info_gone").emit(event.relation, app=event.app, unit=event.unit)
+        getattr(self.on, "storage_connection_info_gone").emit(
+            event.relation, app=event.app, unit=event.unit
+        )
 
     @property
     def relations(self) -> List[Relation]:
@@ -267,6 +290,7 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
 
 class StorageRequires(StorageRequirerData, StorageRequirerEventHandlers):
     """The requirer side of Storage relation."""
+
     def __init__(self, charm: CharmBase, relation_name: str, contract: StorageContract):
         StorageRequirerData.configure_from_contract(contract)
         StorageRequirerData.__init__(self, charm.model, relation_name, contract)
@@ -275,14 +299,19 @@ class StorageRequires(StorageRequirerData, StorageRequirerEventHandlers):
 
 class StorageProviderData(ProviderData):
     """The Data abstraction of the provider side of storage relation."""
+
+    RESOURCE_FIELD = "bucket"
+
     def __init__(self, model: Model, relation_name: str) -> None:
         super().__init__(model, relation_name)
 
     def publish_payload(self, relation: Relation, payload: Dict[str, str]) -> None:
         self.update_relation_data(relation.id, payload)
 
+
 class StorageProviderEventHandlers(EventHandlers):
     """The event handlers related to the provider side of Storage relation."""
+
     on = StorageProviderEvents()
 
     def __init__(
@@ -298,12 +327,14 @@ class StorageProviderEventHandlers(EventHandlers):
         if not self.charm.unit.is_leader():
             return
 
-        self.on.storage_connection_info_requested.emit(event.relation, app=event.app, unit=event.unit)
+        self.on.storage_connection_info_requested.emit(
+            event.relation, app=event.app, unit=event.unit
+        )
+
 
 class StorageProvides(StorageProviderData, StorageProviderEventHandlers):
     """The provider side of the Storage relation."""
+
     def __init__(self, charm: CharmBase, relation_name: str) -> None:
         StorageProviderData.__init__(self, charm.model, relation_name)
         StorageProviderEventHandlers.__init__(self, charm, self)
-
-
