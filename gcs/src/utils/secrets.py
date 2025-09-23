@@ -54,8 +54,15 @@ def decode_secret_key_with_retry(model: Model, secret_id: str):
     """Try to decode the secret key, retry for 3 times before failing."""
     return decode_secret_key(model, secret_id)
 
+
 def normalize(secret_uri: str) -> str:
-    return secret_uri.split("secret:", 1)[1].strip() if secret_uri.startswith("secret:") else secret_uri
+    """Normalize the secret URI."""
+    return (
+        secret_uri.split("secret:", 1)[1].strip()
+        if secret_uri.startswith("secret:")
+        else secret_uri
+    )
+
 
 def decode_secret_key(model: Model, secret_id: str) -> str:
     """Decode the secret with given secret_id and return the access and secret key in plaintext value.
@@ -102,5 +109,3 @@ def decode_secret_key(model: Model, secret_id: str) -> str:
         raise SecretDecodeError(f"Could not decode secret '{secret_id}'.", secret_id=secret_id)
     except Exception:
         raise SecretDecodeError(f"Could not decode secret '{secret_id}'.", secret_id=secret_id)
-
-
