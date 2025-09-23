@@ -38,7 +38,6 @@ LIBPATCH = 1
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass(frozen=True)
 class StorageContract:
     """Contract describing what the requirer and provider exchange in the Storage relation.
@@ -276,6 +275,9 @@ class StorageRequires(StorageRequirerData, StorageRequirerEventHandlers):
 
 class StorageProviderData(ProviderData):
     """The Data abstraction of the provider side of storage relation."""
+
+    RESOURCE_FIELD = "bucket"
+
     def __init__(self, model: Model, relation_name: str) -> None:
         super().__init__(model, relation_name)
 
