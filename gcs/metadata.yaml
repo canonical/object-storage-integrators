@@ -28,3 +28,7 @@ provides:
   gcs-credentials:
     interface: gcs
 
+peers:
+  status-peers:
+    interface: status_peers
+

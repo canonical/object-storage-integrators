@@ -4,43 +4,50 @@
 
 """Google Cloud Storage Provider related event handlers."""
 import logging
-from typing import Dict
+from typing import Dict, TYPE_CHECKING
 
-import ops
 from charms.data_platform_libs.v0.object_storage import (
     StorageProviderEventHandlers,
     StorageProviderData,
     GcsContract,
     StorageConnectionInfoRequestedEvent,
 )
-from ops import CharmBase, ActiveStatus
+
+from data_platform_helpers.advanced_statuses.models import StatusObject
+from data_platform_helpers.advanced_statuses.types import Scope
 
 from constants import (
     GCS_RELATION_NAME,
     CREDENTIAL_FIELD,
     ALLOWED_OVERRIDES
 )
-from core.charm_config import get_charm_config
 from core.context import Context
-from events.base import BaseEventHandler, compute_status
+from events.base import BaseEventHandler
 from utils.logging import WithLogging
 from utils.secrets import decode_secret_key_with_retry
-from managers.gc_storage import GCStorageManager
+from core.context import GcsConnectionInfo
+from events.statuses import CharmStatuses
 
 from utils.secrets import normalize
+from data_platform_helpers.advanced_statuses.protocol import ManagerStatusProtocol
+
+if TYPE_CHECKING:
+    from charm import GCStorageIntegratorCharm
+
+
 
 logger = logging.getLogger(__name__)
 
-class GCStorageProviderEvents(BaseEventHandler, WithLogging):
-    """Class implementing GCS Integration event hooks."""
+class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol):
+    """Class implementing GCS Integration event hooks.""",
 
-    def __init__(self, charm: CharmBase):
-        super().__init__(charm, "gc-storage-provider")
+    def __init__(self, charm: "GCStorageIntegratorCharm", context: Context):
+        self.name = "gc-storage-provider"
+        super().__init__(charm, self.name)
         self.charm = charm
+        self.state = context
 
         self.gcs_provider_data = StorageProviderData(self.charm.model, GCS_RELATION_NAME)
-        self.gc_storage_manager = GCStorageManager(self.gcs_provider_data)
-
         self.gcs_provider = StorageProviderEventHandlers(
             self.charm, self.gcs_provider_data
         )
@@ -49,6 +56,24 @@ class GCStorageProviderEvents(BaseEventHandler, WithLogging):
             self.gcs_provider.on.storage_connection_info_requested,
             self._on_storage_connection_info_requested,
         )
+        self.framework.observe(
+            self.charm.on[GCS_RELATION_NAME].relation_broken, self._on_gcs_relation_broken
+        )
+
+    def _add_status(self, status: StatusObject, is_running_status: bool = False) -> None:
+        for scope in ("app", "unit"):
+            if is_running_status:
+                self.charm.status.set_running_status(
+                    status=status,
+                    scope=scope,
+                    component_name=self.name,
+                )
+            else:
+                self.state.statuses.add(status=status, scope=scope, component=self.name)
+
+    def _clear_status(self) -> None:
+        for scope in ("app", "unit"):
+            self.state.statuses.clear(scope=scope, component=self.name)
 
     def _build_payload(self) -> Dict[str, str]:
         """
@@ -56,29 +81,19 @@ class GCStorageProviderEvents(BaseEventHandler, WithLogging):
         Expectation: context.gc_storage returns an object with .to_dict()
         mapping keys precisely to the GcsContract (bucket, secret-key, storage-class, path).
         """
-        context = Context(self.charm)
-        cfg = get_charm_config(self.charm)
-        if not cfg:
+        cfg = self.charm.config
+        if not self.state.gc_storage:
             return {}
 
-        gc = context.gc_storage
+        self._clear_status()
 
-        if gc:
-            raw = gc.to_dict()
-        else:
-            raw = {
-                "bucket": cfg.bucket,
-                "storage-class": cfg.storage_class,
-                "path": cfg.path or "",
-            }
+        raw_data = self.state.gc_storage.to_dict()
 
-        secret_ref = (cfg.credentials or "").strip()
-        if secret_ref:
-            raw["secret-key"] = normalize(secret_ref)
-        else:
-            raw.pop("secret-key", None)
+        secret_ref = (cfg.get("credentials") or "").strip()
 
-        return {k: v for k, v in raw.items() if v not in (None, "")}
+        raw_data["secret-key"] = normalize(secret_ref)
+
+        return {k: v for k, v in raw_data.items() if v not in (None, "")}
 
     def _merge_requirer_override(self, relation, payload: Dict[str, str]) -> Dict[str, str]:
         """Optionally, override keys from the requirer (bucket, path, storage-class)."""
@@ -92,7 +107,7 @@ class GCStorageProviderEvents(BaseEventHandler, WithLogging):
                 logger.info("Applied requirer override %r=%r", key, remote[key])
         return merged
 
-    def _publish_to_relation(self, relation) -> None:
+    def publish_to_relation(self, relation) -> None:
         if not self.charm.unit.is_leader() or relation is None:
             return
         base = self._build_payload()
@@ -100,16 +115,35 @@ class GCStorageProviderEvents(BaseEventHandler, WithLogging):
 
         payload = self._merge_requirer_override(relation, base)
         self.gcs_provider_data.publish_payload(relation, payload)
-        self.charm.unit.status = ActiveStatus("ready")
         logger.info("Published GCS payload to relation %s", relation.id)
+        self._add_status(CharmStatuses.ACTIVE_IDLE.value)
 
-    def _publish_to_all_relations(self) -> None:
+    def publish_to_all_relations(self) -> None:
         for rel in self.charm.model.relations.get(GCS_RELATION_NAME, []):
-            self._publish_to_relation(rel)
+            self.publish_to_relation(rel)
 
     def _on_storage_connection_info_requested(self, event: StorageConnectionInfoRequestedEvent):
         self.logger.info("On storage-connection-info-requested")
         if not self.charm.unit.is_leader():
             return
-        self._publish_to_relation(event.relation)
+        self.publish_to_relation(event.relation)
+
+    def _on_gcs_relation_broken(self, event: StorageConnectionInfoRequestedEvent):
+        self.logger.info("On gcs relation broken")
+        if not self.charm.unit.is_leader():
+            return
+        self.publish_to_relation(event.relation)
+
+    def get_statuses(self, scope: Scope, recompute: bool = False) -> list[StatusObject]:
+        """Return the list of statuses for this component."""
+        if not recompute:
+            return self.state.statuses.get(scope=scope, component=self.name)
+
+        status_list: list[StatusObject] = []
+        if not self.state.gc_storage:
+            return status_list
+
+        status_list.append(CharmStatuses.ACTIVE_IDLE.value)
+
+        return status_list
 

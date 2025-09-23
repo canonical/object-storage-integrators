@@ -8,8 +8,10 @@
 import logging
 
 import ops
+from data_platform_helpers.advanced_statuses.handler import StatusHandler
 from events.provider import GCStorageProviderEvents
 from events.general import GeneralEvents
+from core.context import Context
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +21,15 @@ class GCStorageIntegratorCharm(ops.charm.CharmBase):
 
     def __init__(self, *args) -> None:
         super().__init__(*args)
-        self.provider = GCStorageProviderEvents(self)
-        self.general_events = GeneralEvents(self)
+        self.context = Context(self)
+        self.provider_events = GCStorageProviderEvents(self, self.context)
+        self.general_events = GeneralEvents(self, self.context)
+        self.status = StatusHandler(  # priority order
+            self,
+            self.general_events,
+            self.provider_events,
+        )
+
 
 
 if __name__ == "__main__":
