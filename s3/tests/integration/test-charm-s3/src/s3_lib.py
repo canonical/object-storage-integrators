@@ -373,6 +373,10 @@ class S3ProviderData(ProviderData):
                 return_data[relation_id].pop("bucket", None)
         return return_data
 
+    def _update_relation_data(self, relation: Relation, data: Dict[str, str]) -> None:
+        """Override `update_relation_data` to bypass the parent's validation that raises PrematureDataAccessError."""
+        super(ProviderData, self)._update_relation_data(relation, data)
+
 
 class S3ProviderEventHandlers(EventHandlers):
     """The event handlers related to provider side of S3 relation."""
@@ -389,6 +393,14 @@ class S3ProviderEventHandlers(EventHandlers):
         self.on.storage_connection_info_requested.emit(
             event.relation, app=event.app, unit=event.unit
         )
+
+    def _on_secret_changed_event(self, event: SecretChangedEvent) -> None:
+        """Event emitted when the secret has changed.
+
+        This method is called by the event handler on `secret-changed` event due to being registered in
+        the parent class.If this method is overridden, `secret-changed` event need not be observed separately.
+        """
+        pass
 
 
 class S3Provides(S3ProviderData, S3ProviderEventHandlers):
