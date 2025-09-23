@@ -4,22 +4,24 @@
 # See LICENSE file for licensing details.
 
 """Charm Context definition and parsing logic."""
+
 import json
 import logging
-from typing import Optional, TYPE_CHECKING
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Optional
 
 from data_platform_helpers.advanced_statuses.protocol import StatusesState, StatusesStateProtocol
 from ops import Object
+
+from constants import STATUS_PEERS_RELATION_NAME
 from utils.logging import WithLogging
 from utils.secrets import decode_secret_key_with_retry
-from core.charm_config import CharmConfig
-from dataclasses import dataclass
-from core.charm_config import CharmConfigInvalidError
-from constants import STATUS_PEERS_RELATION_NAME
+
 if TYPE_CHECKING:
     from charm import GCStorageIntegratorCharm
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class GcsConnectionInfo:
@@ -31,13 +33,13 @@ class GcsConnectionInfo:
     path: Optional[str] = None
 
     def to_dict(self) -> dict:
+        """Return a dict representation of the object."""
         d = {"bucket": self.bucket, "secret-key": self.secret_key}
         if self.storage_class:
             d["storage-class"] = self.storage_class
         if self.path:
             d["path"] = self.path
         return d
-
 
 
 class Context(Object, WithLogging, StatusesStateProtocol):
@@ -48,7 +50,6 @@ class Context(Object, WithLogging, StatusesStateProtocol):
         self.charm = charm
         self.charm_config = self.charm.config
         self.statuses = StatusesState(self, STATUS_PEERS_RELATION_NAME)
-
 
     @property
     def gc_storage(self) -> Optional[GcsConnectionInfo]:

@@ -4,17 +4,14 @@
 # See LICENSE file for licensing details.
 
 """GCS charm configuration validation."""
-import json
+
 import logging
 import re
+from enum import StrEnum
 from typing import Optional
 
-from enum import StrEnum
 from charms.data_platform_libs.v0.data_models import BaseConfigModel
-from pydantic import ConfigDict, Field, StrictStr
-from pydantic import field_validator
-
-from utils.secrets import decode_secret_key_with_retry
+from pydantic import ConfigDict, Field, StrictStr, field_validator
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +25,13 @@ class CharmConfigInvalidError(Exception):
 
 
 class StorageClass(StrEnum):
+    """Type of storage classes supported by GCS."""
+
     STANDARD = "STANDARD"
     NEARLINE = "NEARLINE"
     COLDLINE = "COLDLINE"
     ARCHIVE = "ARCHIVE"
+
 
 # bucket: 3–63 chars, lowercase letters/digits/hyphens,
 # must start and end with a letter or digit
@@ -47,21 +47,20 @@ class CharmConfig(BaseConfigModel):
         storage_class (StrictStr): Optional storage class (STANDARD|NEARLINE|COLDLINE|ARCHIVE).
         path (StrictStr): Optional object prefix <=1024 bytes UTF-8, no NULL, no leading slash (/).
     """
+
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
-    bucket: StrictStr = Field(..., description="Target GCS bucket (3–63, lowercase/digits/hyphens)")
+    bucket: StrictStr = Field(
+        ..., description="Target GCS bucket (3–63, lowercase/digits/hyphens)"
+    )
     credentials: StrictStr = Field(
         ..., description="Juju secret id/label holding service-account JSON"
     )
     storage_class: Optional[StrictStr] = Field(
-        default=None, alias="storage-class",
-        description="GCS class (STANDARD|NEARLINE|COLDLINE|ARCHIVE)"
+        default=None,
+        alias="storage-class",
+        description="GCS class (STANDARD|NEARLINE|COLDLINE|ARCHIVE)",
     )
     path: StrictStr = Field(default="", description="Object prefix inside the bucket")
-    validate_credentials: bool = Field(
-        default=False,
-        alias="validate-credentials",
-        description="If true, validate of the service account JSON by obtaining an OAuth token (WhoAmI)."
-    )
 
     @field_validator("bucket")
     @classmethod
@@ -97,10 +96,9 @@ class CharmConfig(BaseConfigModel):
         if len(v.encode("utf-8")) > 1024:
             raise ValueError("path must be ≤ 1024 bytes (UTF-8)")
         if not re.fullmatch(r"[A-Za-z0-9._\-/ ]+", v):
-            raise ValueError("path contains unsupported characters (allow letters, digits, . _ - / space)")
+            raise ValueError(
+                "path contains unsupported characters (allow letters, digits, . _ - / space)"
+            )
         if v.startswith("/"):
             raise ValueError("path must not start with '/'")
         return v
-
-
-

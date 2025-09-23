@@ -3,22 +3,23 @@
 # See LICENSE file for licensing details.
 
 """Google Cloud Storage general event handlers."""
-from typing import cast, TYPE_CHECKING
+
+from typing import TYPE_CHECKING, cast
 
 import ops
 from charms.data_platform_libs.v0.object_storage import StorageProviderData
-from ops.charm import ConfigChangedEvent, StartEvent
 from data_platform_helpers.advanced_statuses.models import StatusObject
 from data_platform_helpers.advanced_statuses.protocol import ManagerStatusProtocol
 from data_platform_helpers.advanced_statuses.types import Scope
+from ops.charm import ConfigChangedEvent, StartEvent
+from pydantic import ValidationError
+
 from constants import GCS_RELATION_NAME
+from core.charm_config import CharmConfig
 from core.context import Context
-from core.charm_config import CharmConfig, CharmConfigInvalidError
 from events.base import BaseEventHandler
-from managers.gc_storage import GCStorageManager
 from events.statuses import CharmStatuses, ConfigStatuses
 from utils.logging import WithLogging
-from utils.secrets import normalize
 from utils.secrets import (
     SecretDecodeError,
     SecretDoesNotExistError,
@@ -27,13 +28,12 @@ from utils.secrets import (
     decode_secret_key_with_retry,
 )
 
-from pydantic import ValidationError
-
 if TYPE_CHECKING:
     from charm import GCStorageIntegratorCharm
 
-class GeneralEvents(BaseEventHandler, ManagerStatusProtocol):
-    """Class implementing GCS Integration event hooks."""
+
+class GeneralEvents(BaseEventHandler, ManagerStatusProtocol, WithLogging):
+    """Class implementing general event hooks."""
 
     def __init__(self, charm: "GCStorageIntegratorCharm", context: Context):
         self.name = "general"
@@ -42,12 +42,10 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol):
         self.charm = charm
         self.state = context
         self.gcs_provider_data = StorageProviderData(self.charm.model, GCS_RELATION_NAME)
-        self.gc_storage_manager = GCStorageManager(self.gcs_provider_data)
         self.framework.observe(self.charm.on.start, self._on_start)
         self.framework.observe(self.charm.on.update_status, self._on_update_status)
         self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
         self.framework.observe(self.charm.on.secret_changed, self._on_secret_changed)
-
 
     def _on_start(self, _: StartEvent) -> None:
         """Handle the charm startup event."""
@@ -64,7 +62,6 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol):
 
         self.logger.debug(f"Config changed... Current configuration: {self.charm.config}")
         self.charm.provider_events.publish_to_all_relations()
-
 
     def _on_secret_changed(self, event: ops.SecretChangedEvent):
         """Handle the secret changed event.
@@ -124,4 +121,3 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol):
             status_list.append(ConfigStatuses.secret_cannot_be_decoded(secret_id=e.secret_id))
 
         return status_list or [CharmStatuses.ACTIVE_IDLE.value]
-
