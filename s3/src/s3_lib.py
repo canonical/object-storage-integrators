@@ -395,7 +395,11 @@ class S3ProviderEventHandlers(EventHandlers):
         )
 
     def _on_secret_changed_event(self, event: SecretChangedEvent) -> None:
-        """Event emitted when the secret has changed."""
+        """Event emitted when the secret has changed.
+
+        This method is called by the event handler on `secret-changed` event due to being registered in
+        the parent class.If this method is overridden, `secret-changed` event need not be observed separately.
+        """
         pass
 
 
