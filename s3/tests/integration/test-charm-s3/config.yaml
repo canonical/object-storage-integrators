@@ -6,3 +6,7 @@ options:
     type: string
     description: The name of the bucket to be requested in the relation
     default: ""
+  path:
+    type: string
+    description: The path to be requested in the relation
+    default: ""
