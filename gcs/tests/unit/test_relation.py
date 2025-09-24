@@ -21,7 +21,12 @@ def test_requirer_overrides_win(metadata, actions, charm_config, base_state, mk_
     rel = Relation(
         REL,
         remote_app_name="requirer",
-        remote_app_data={"bucket": "override-b", "path": "ov/p", "storage-class": "ARCHIVE"},
+        remote_app_data={
+            "requested-secrets": '["secret-key"]',
+            "bucket": "override-b",
+            "path": "ov/p",
+            "storage-class": "ARCHIVE",
+        },
     )
     state = dataclasses.replace(
         base_state, leader=True, secrets={credentials_secret}, relations=[rel]
@@ -34,7 +39,7 @@ def test_requirer_overrides_win(metadata, actions, charm_config, base_state, mk_
     assert app_data["bucket"] == "override-b"
     assert app_data["path"] == "ov/p"
     assert app_data["storage-class"] == "ARCHIVE"
-    assert len(app_data["secret-key"]) == 20
+    assert len(app_data["secret-extra"]) == 27
 
 
 def test_provider_puts_data_to_relation_databag(
@@ -52,7 +57,12 @@ def test_provider_puts_data_to_relation_databag(
     rel = Relation(
         REL,
         remote_app_name="requirer",
-        remote_app_data={"bucket": "", "path": "", "storage-class": ""},
+        remote_app_data={
+            "requested-secrets": '["secret-key"]',
+            "bucket": "",
+            "path": "",
+            "storage-class": "",
+        },
     )
     state = dataclasses.replace(
         base_state, leader=True, secrets={credentials_secret}, relations=[rel]
@@ -63,4 +73,4 @@ def test_provider_puts_data_to_relation_databag(
     app_data = rel_out.local_app_data
 
     assert app_data["bucket"] == "bucket-name"
-    assert len(app_data["secret-key"]) == 20
+    assert len(app_data["secret-extra"]) == 27
