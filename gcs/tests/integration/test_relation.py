@@ -14,7 +14,7 @@ REQUIRER = "gcs-requirer"
 logger = logging.getLogger(__name__)
 
 
-def test_deploy_provider_then_status_is_blocked(juju: jubilant.Juju, gcs_charm: Path) -> None:
+def test_provider_when_deploy_then_status_is_blocked(juju: jubilant.Juju, gcs_charm: Path) -> None:
     """Test plain deployment of the charm."""
     logger.info("Deploying provider charm")
     juju.deploy(gcs_charm, app=PROVIDER, trust=True)
@@ -25,7 +25,7 @@ def test_deploy_provider_then_status_is_blocked(juju: jubilant.Juju, gcs_charm: 
     assert "Missing config" in status.apps[PROVIDER].app_status.message
 
 
-def test_configure_provider_then_status_is_active(juju, gcs_charm, tmp_path: Path):
+def test_provider_when_configure_then_status_is_active(juju, gcs_charm, tmp_path: Path):
     logger.info("Configuring provider charm")
     sa_file = _write_fake_sa(tmp_path)
     content = Path(sa_file).read_text()
@@ -45,7 +45,7 @@ def test_configure_provider_then_status_is_active(juju, gcs_charm, tmp_path: Pat
     )
 
 
-def test_deploy_requirer_then_status_is_waiting(
+def test_requirer_when_deploy_then_status_is_waiting(
     juju: jubilant.Juju, gcs_charm: Path, requirer_charm: Path
 ) -> None:
     """Test plain deployment of the charm."""
@@ -58,7 +58,7 @@ def test_deploy_requirer_then_status_is_waiting(
     assert "waiting for gcs-credentials relation" in status.apps[REQUIRER].app_status.message
 
 
-def test_integrate_and_both_charms_are_active(
+def test_relation_when_integrate_then_both_charms_are_active(
     juju: jubilant.Juju,
     gcs_charm,
 ):
@@ -75,7 +75,7 @@ def test_integrate_and_both_charms_are_active(
     assert st.apps[REQUIRER].app_status.current == "active"
 
 
-def test_requirer_bucket_override_wins(
+def test_relation_when_requirer_overrides_bucket_then_relation_includes_overriden_bucket(
     juju: jubilant.Juju,
 ):
     logger.info("Testing bucket override")
