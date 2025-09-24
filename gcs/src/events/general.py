@@ -7,7 +7,7 @@
 from typing import TYPE_CHECKING, cast
 
 import ops
-from charms.data_platform_libs.v0.object_storage import StorageProviderData
+from charms.data_platform_libs.v0.object_storage import GcsStorageProviderData
 from data_platform_helpers.advanced_statuses.models import StatusObject
 from data_platform_helpers.advanced_statuses.protocol import ManagerStatusProtocol
 from data_platform_helpers.advanced_statuses.types import Scope
@@ -41,7 +41,7 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol, WithLogging):
 
         self.charm = charm
         self.state = context
-        self.gcs_provider_data = StorageProviderData(self.charm.model, GCS_RELATION_NAME)
+        self.gcs_provider_data = GcsStorageProviderData(self.charm.model, GCS_RELATION_NAME)
         self.framework.observe(self.charm.on.start, self._on_start)
         self.framework.observe(self.charm.on.update_status, self._on_update_status)
         self.framework.observe(self.charm.on.config_changed, self._on_config_changed)

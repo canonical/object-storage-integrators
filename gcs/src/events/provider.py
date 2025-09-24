@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Dict
 
 from charms.data_platform_libs.v0.object_storage import (
     StorageConnectionInfoRequestedEvent,
-    StorageProviderData,
+    GcsStorageProviderData,
     StorageProviderEventHandlers,
 )
 from data_platform_helpers.advanced_statuses.models import StatusObject
@@ -39,7 +39,7 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
         self.charm = charm
         self.state = context
 
-        self.gcs_provider_data = StorageProviderData(self.charm.model, GCS_RELATION_NAME)
+        self.gcs_provider_data = GcsStorageProviderData(self.charm.model, GCS_RELATION_NAME)
         self.gcs_provider = StorageProviderEventHandlers(self.charm, self.gcs_provider_data)
 
         self.framework.observe(
