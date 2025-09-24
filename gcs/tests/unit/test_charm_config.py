@@ -6,7 +6,7 @@ import pytest
 from src.core.charm_config import CharmConfig
 
 
-def test_valid_minimal_config():
+def test_config_when_valid_config_given_then_cfg_is_loaded():
     cfg = CharmConfig(
         bucket="my-bucket", credentials="secret:abc", path="tmp", storage_class="STANDARD"
     )
@@ -17,26 +17,33 @@ def test_valid_minimal_config():
 
 
 @pytest.mark.parametrize(
-    "bucket,ok",
+    "bucket",
     [
-        ("a-b", True),
-        ("abc", True),
-        ("a" * 63, True),
-        ("ab", False),
-        ("A-b", False),
-        ("abc_", False),
-        ("-abc", False),
-        ("abc-", False),
-        ("a" * 64, False),
+        "a-b",
+        "abc",
+        "a" * 63,
     ],
 )
-def test_bucket_rules(bucket, ok):
+def test_bucket_rules_when_valid_bucket_name_given_than_cfg_loaded(bucket):
     base = {"credentials": "secret:any"}
-    if ok:
-        assert CharmConfig(bucket=bucket, **base).bucket == bucket
-    else:
-        with pytest.raises(Exception):
-            CharmConfig(bucket=bucket, **base)
+    assert CharmConfig(bucket=bucket, **base).bucket == bucket
+
+
+@pytest.mark.parametrize(
+    "bucket",
+    [
+        "ab",
+        "A-b",
+        "abc_",
+        "-abc",
+        "abc-",
+        "a" * 64,
+    ],
+)
+def test_bucket_rules_when_invlid_bucket_name_given_then_raise(bucket):
+    base = {"credentials": "secret:any"}
+    with pytest.raises(Exception):
+        CharmConfig(bucket=bucket, **base)
 
 
 @pytest.mark.parametrize(
@@ -50,7 +57,7 @@ def test_bucket_rules(bucket, ok):
         (None, None),
     ],
 )
-def test_storage_class_normalization(val, expected):
+def test_storage_class_when_lowercase_given_then_always_return_uppercase(val, expected):
     cfg = CharmConfig(
         bucket="abc", credentials="s", **({"storage-class": val} if val is not None else {})
     )
@@ -58,25 +65,31 @@ def test_storage_class_normalization(val, expected):
 
 
 @pytest.mark.parametrize("bad", ["FASTLINE", "coolline", "STANDARD-IA", "X"])
-def test_storage_class_invalid(bad):
+def test_storage_class_when_invalid_value_given_then_raise(bad):
     with pytest.raises(Exception):
         CharmConfig(bucket="abc", credentials="s", **{"storage-class": bad})
 
 
 @pytest.mark.parametrize(
-    "path,ok",
+    "path",
     [
-        ("", True),
-        ("dir/sub/file-01.ext", True),
-        ("a" * 1024, True),
-        ("/leading/slash", False),
-        ("nul\x00byte", False),
-        ("a" * 1025, False),
+        "",
+        "dir/sub/file-01.ext",
+        "a" * 1024,
     ],
 )
-def test_path_rules(path, ok):
-    if ok:
-        assert CharmConfig(bucket="abc", credentials="s", path=path).path == path
-    else:
-        with pytest.raises(Exception):
-            CharmConfig(bucket="abc", credentials="s", path=path)
+def test_path_rules_when_valid_values_given_then_charm_config_loaded(path):
+    assert CharmConfig(bucket="abc", credentials="s", path=path).path == path
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/leading/slash",
+        "nul\x00byte",
+        "a" * 1025,
+    ],
+)
+def test_path_rules_when_invalid_config_given_then_raise(path):
+    with pytest.raises(Exception):
+        CharmConfig(bucket="abc", credentials="s", path=path)
