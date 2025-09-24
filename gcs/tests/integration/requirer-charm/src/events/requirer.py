@@ -3,16 +3,16 @@
 # SPDX-License-Identifier: Apache-2.0
 import json
 import logging
-from typing import Dict, Optional, Mapping, Any
+from typing import Any, Dict, Mapping, Optional
 
 import ops
+from charms.data_platform_libs.v0.object_storage import (
+    GcsContract,
+    StorageRequires,
+)
 from ops.charm import CharmBase
 from ops.framework import Object
-from ops.model import ActiveStatus, WaitingStatus, BlockedStatus, RelationDataTypeError
-from charms.data_platform_libs.v0.object_storage import (
-    StorageRequires,
-    GcsContract,
-)
+from ops.model import ActiveStatus, BlockedStatus, RelationDataTypeError, WaitingStatus
 
 logger = logging.getLogger(__name__)
 REL_NAME = "gcs-credentials"
@@ -32,11 +32,15 @@ class GcsRequirer(Object):
         ov = self.overrides_from_config()
         self.contract = GcsContract(**ov)
         self.storage = StorageRequires(charm, relation_name, self.contract)
-        self.framework.observe(self.storage.on.storage_connection_info_changed, self._on_conn_info_changed)
-        self.framework.observe(self.storage.on.storage_connection_info_gone, self._on_conn_info_gone)
-        self.framework.observe(self.storage.on[self.relation_name].relation_joined, self._on_relation_joined)
-
-
+        self.framework.observe(
+            self.storage.on.storage_connection_info_changed, self._on_conn_info_changed
+        )
+        self.framework.observe(
+            self.storage.on.storage_connection_info_gone, self._on_conn_info_gone
+        )
+        self.framework.observe(
+            self.storage.on[self.relation_name].relation_joined, self._on_relation_joined
+        )
 
     def _on_relation_joined(self, event):
         ov = self.overrides_from_config()
@@ -63,8 +67,6 @@ class GcsRequirer(Object):
         else:
             self.charm.unit.status = WaitingStatus("gcs credentials not available")
 
-
-
     def refresh_status(self):
         rels = self.charm.model.relations.get(self.relation_name, [])
         if not rels:
@@ -85,7 +87,9 @@ class GcsRequirer(Object):
 
         return ov
 
-    def apply_overrides(self, overrides: Dict[str, str], relation_id: Optional[int] = None) -> None:
+    def apply_overrides(
+        self, overrides: Dict[str, str], relation_id: Optional[int] = None
+    ) -> None:
         if not overrides or not self.charm.unit.is_leader():
             return
         payload = self._as_relation_strings(overrides)
@@ -105,7 +109,9 @@ class GcsRequirer(Object):
         except RelationDataTypeError as e:
             types = {k: type(v).__name__ for k, v in overrides.items()}
             logger.exception(
-                "apply_overrides: non-string in overrides; raw types=%r; payload=%r", types, payload
+                "apply_overrides: non-string in overrides; raw types=%r; payload=%r",
+                types,
+                payload,
             )
             self.charm.unit.status = BlockedStatus(f"invalid override value type: {e}")
             raise
@@ -119,8 +125,6 @@ class GcsRequirer(Object):
             if secret_id == changed_id:
                 self.refresh_status()
                 break
-
-
 
     def _any_relation_ready(self, exclude_relation_id: Optional[int] = None) -> bool:
         for rel in self.charm.model.relations.get(self.relation_name, []):
@@ -158,5 +162,3 @@ class GcsRequirer(Object):
             except (TypeError, ValueError):
                 out[k] = str(v)
         return out
-
-

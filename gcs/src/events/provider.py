@@ -7,9 +7,10 @@
 import logging
 from typing import TYPE_CHECKING, Dict
 
+from charms.data_platform_libs.v0.data_interfaces import PrematureDataAccessError
 from charms.data_platform_libs.v0.object_storage import (
-    StorageConnectionInfoRequestedEvent,
     GcsStorageProviderData,
+    StorageConnectionInfoRequestedEvent,
     StorageProviderEventHandlers,
 )
 from data_platform_helpers.advanced_statuses.models import StatusObject
@@ -97,7 +98,7 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
                 logger.info("Applied requirer override %r=%r", key, remote[key])
         return merged
 
-    def publish_to_relation(self, relation) -> None:
+    def publish_to_relation(self, relation, event=None) -> None:
         """Publish the payload to the relation."""
         if not self.charm.unit.is_leader() or relation is None:
             return
@@ -105,26 +106,35 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
         logger.info("base_payload %s", base)
 
         payload = self._merge_requirer_override(relation, base)
-        self.gcs_provider_data.publish_payload(relation, payload)
-        logger.info("Published GCS payload to relation %s", relation.id)
-        self._add_status(CharmStatuses.ACTIVE_IDLE.value)
 
-    def publish_to_all_relations(self) -> None:
+        try:
+            self.gcs_provider_data.publish_payload(relation, payload)
+            logger.info("Published GCS payload to relation %s", relation.id)
+            self._add_status(CharmStatuses.ACTIVE_IDLE.value)
+        except PrematureDataAccessError:
+            if event is not None:
+                self.logger.info("PrematureDataAccessError; deferring.")
+                event.defer()
+            else:
+                raise
+
+    def publish_to_all_relations(self, event) -> None:
         """Publish the payload to all relations."""
         for rel in self.charm.model.relations.get(GCS_RELATION_NAME, []):
-            self.publish_to_relation(rel)
+            self.publish_to_relation(rel, event)
 
     def _on_storage_connection_info_requested(self, event: StorageConnectionInfoRequestedEvent):
         self.logger.info("On storage-connection-info-requested")
         if not self.charm.unit.is_leader():
             return
-        self.publish_to_relation(event.relation)
+
+        self.publish_to_relation(event.relation, event)
 
     def _on_gcs_relation_broken(self, event: StorageConnectionInfoRequestedEvent):
         self.logger.info("On gcs relation broken")
         if not self.charm.unit.is_leader():
             return
-        self.publish_to_relation(event.relation)
+        self.publish_to_relation(event.relation, event)
 
     def get_statuses(self, scope: Scope, recompute: bool = False) -> list[StatusObject]:
         """Return the list of statuses for this component."""
