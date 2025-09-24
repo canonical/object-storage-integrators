@@ -3,7 +3,7 @@
 # See LICENSE file for licensing details.
 
 """Google Cloud Storage general event handlers."""
-
+import logging
 from typing import TYPE_CHECKING, cast
 
 import ops
@@ -60,7 +60,7 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol, WithLogging):
         if not self.charm.unit.is_leader():
             return
 
-        self.logger.debug(f"Config changed... Current configuration: {self.charm.config}")
+        self.logger.debug(f"Config changed. Current configuration: {self.charm.config}")
         self.charm.provider_events.publish_to_all_relations(event)
 
     def _on_secret_changed(self, event: ops.SecretChangedEvent):
