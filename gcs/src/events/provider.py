@@ -27,9 +27,6 @@ if TYPE_CHECKING:
     from charm import GCStorageIntegratorCharm
 
 
-logger = logging.getLogger(__name__)
-
-
 class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLogging):
     """Class implementing GCS Integration event hooks."""
 
@@ -94,7 +91,7 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
         for key in ALLOWED_OVERRIDES:
             if key in remote and remote[key]:
                 merged[key] = remote[key]
-                logger.info("Applied requirer override %r=%r", key, remote[key])
+                self.logger.info("Applied requirer override %r=%r", key, remote[key])
         return merged
 
     def publish_to_relation(self, relation, event=None) -> None:
@@ -102,11 +99,11 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
         if not self.charm.unit.is_leader() or relation is None:
             return
         base = self._build_payload()
-        logger.info("base_payload %s", base)
+        self.logger.info("base_payload %s", base)
 
         payload = self._merge_requirer_override(relation, base)
         self.gcs_provider_data.publish_payload(relation, payload)
-        logger.info("Published GCS payload to relation %s", relation.id)
+        self.logger.info("Published GCS payload to relation %s", relation.id)
         self._add_status(CharmStatuses.ACTIVE_IDLE.value)
 
     def publish_to_all_relations(self, event) -> None:

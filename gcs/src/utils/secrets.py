@@ -8,8 +8,6 @@ import logging
 from ops.model import Model, ModelError, SecretNotFoundError
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
-logger = logging.getLogger(__name__)
-
 
 class SecretDoesNotExistError(SecretNotFoundError):
     """The secret does not exist in Juju model."""
