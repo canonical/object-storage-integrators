@@ -36,7 +36,7 @@ class GcsRequirer(Object):
         self.framework.observe(self.storage.on.storage_connection_info_gone, self._on_conn_info_gone)
         self.framework.observe(self.storage.on[self.relation_name].relation_joined, self._on_relation_joined)
 
-    # ----- library event handlers ------
+
 
     def _on_relation_joined(self, event):
         ov = self.overrides_from_config()
@@ -63,7 +63,7 @@ class GcsRequirer(Object):
         else:
             self.charm.unit.status = WaitingStatus("gcs credentials not available")
 
-    # --------  lifecycle helpers  -------------
+
 
     def refresh_status(self):
         rels = self.charm.model.relations.get(self.relation_name, [])
@@ -120,7 +120,7 @@ class GcsRequirer(Object):
                 self.refresh_status()
                 break
 
-    # ------------------ internals -------------------------
+
 
     def _any_relation_ready(self, exclude_relation_id: Optional[int] = None) -> bool:
         for rel in self.charm.model.relations.get(self.relation_name, []):

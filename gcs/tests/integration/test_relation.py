@@ -56,7 +56,7 @@ def test_deploy_requirer_then_status_is_waiting(
         lambda st: jubilant.all_waiting(st, REQUIRER) and jubilant.all_agents_idle(st, REQUIRER),
         delay=5,
     )
-    assert "Missing config" in status.apps[REQUIRER].app_status.message
+    assert "waiting for gcs-credentials relation" in status.apps[REQUIRER].app_status.message
 
 
 def test_integrate_and_both_charms_are_active(

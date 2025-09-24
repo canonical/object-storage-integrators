@@ -30,7 +30,7 @@ def requirer_charm() -> Path:
 def juju(request: pytest.FixtureRequest):
     keep = bool(request.config.getoption("--keep-models"))
     with jubilant.temp_model(keep=keep) as j:
-        j.wait_timeout = 10 * 60
+        j.wait_timeout = 3 * 60
         yield j
         if request.session.testsfailed:
             print(j.debug_log(limit=50), end="")
