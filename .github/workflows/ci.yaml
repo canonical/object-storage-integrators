@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 5
     strategy: 
       matrix:
-        backend: ["s3", "azure_storage"]
+        backend: ["s3", "azure_storage", "gcs"]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -44,7 +44,7 @@ jobs:
     timeout-minutes: 5
     strategy: 
       matrix:
-        backend: ["s3", "azure_storage"]
+        backend: ["s3", "azure_storage", "gcs"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -66,6 +66,8 @@ jobs:
           - s3/
           - s3/tests/integration/test-charm-s3
           - s3/tests/integration/test-charm-s3-v0
+          - gcs/
+          - gcs/tests/integration/requirer-charm
     name: Build charm | ${{ matrix.path }}
     uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v35.0.2
     with:
