@@ -3,6 +3,7 @@
 # See LICENSE file for licensing details.
 """
 A lightweight library for communicating between GCS (Google Cloud Storage) provider and requirer charms.
+
 This library implements a common object-storage contract and the relation/event plumbing to publish
 and consume GCS connection info.
 
