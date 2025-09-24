@@ -3,4 +3,4 @@ environment:
   TEST_MODULE: test_config.py
 execute: |
   cd "$SPREAD_PATH/gcs"
-  tox run -e integration -- "tests/integration/$TEST_MODULE" --model testing
+  tox run -e integration -- "tests/integration/$TEST_MODULE" -x
