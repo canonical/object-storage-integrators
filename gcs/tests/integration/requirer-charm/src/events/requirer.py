@@ -3,16 +3,16 @@
 # SPDX-License-Identifier: Apache-2.0
 import json
 import logging
-from typing import Dict, Optional, Mapping, Any
+from typing import Any, Dict, Mapping, Optional
 
 import ops
+from charms.data_platform_libs.v0.object_storage import (
+    GcsContract,
+    StorageRequires,
+)
 from ops.charm import CharmBase
 from ops.framework import Object
-from ops.model import ActiveStatus, WaitingStatus, BlockedStatus, RelationDataTypeError
-from charms.data_platform_libs.v0.object_storage import (
-    StorageRequires,
-    GcsContract,
-)
+from ops.model import ActiveStatus, BlockedStatus, RelationDataTypeError, WaitingStatus
 
 logger = logging.getLogger(__name__)
 REL_NAME = "gcs-credentials"
@@ -22,18 +22,24 @@ class GcsRequirer(Object):
     """Requirer-side helper which listens to lib events and sets status directly."""
 
     def __init__(
-            self,
-            charm: CharmBase,
-            relation_name: str = REL_NAME,
+        self,
+        charm: CharmBase,
+        relation_name: str = REL_NAME,
     ):
         super().__init__(charm, "gcs-requirer")
         self.charm = charm
         self.relation_name = relation_name
         self.contract = GcsContract()
         self.storage = StorageRequires(charm, relation_name, self.contract)
-        self.framework.observe(self.storage.on.storage_connection_info_changed, self._on_conn_info_changed)
-        self.framework.observe(self.storage.on.storage_connection_info_gone, self._on_conn_info_gone)
-        self.framework.observe(self.storage.on[self.relation_name].relation_joined, self._on_relation_joined)
+        self.framework.observe(
+            self.storage.on.storage_connection_info_changed, self._on_conn_info_changed
+        )
+        self.framework.observe(
+            self.storage.on.storage_connection_info_gone, self._on_conn_info_gone
+        )
+        self.framework.observe(
+            self.storage.on[self.relation_name].relation_joined, self._on_relation_joined
+        )
 
         self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
 
@@ -83,7 +89,9 @@ class GcsRequirer(Object):
 
         return {"bucket": bucket} if bucket != "" else {"bucket": ""}
 
-    def apply_overrides(self, overrides: Dict[str, str], relation_id: Optional[int] = None) -> None:
+    def apply_overrides(
+        self, overrides: Dict[str, str], relation_id: Optional[int] = None
+    ) -> None:
         if not overrides or not self.charm.unit.is_leader():
             return
         if overrides == self._last_sent_overrides:
@@ -108,7 +116,9 @@ class GcsRequirer(Object):
         except RelationDataTypeError as e:
             types = {k: type(v).__name__ for k, v in overrides.items()}
             logger.exception(
-                "apply_overrides: non-string in overrides; raw types=%r; payload=%r", types, payload
+                "apply_overrides: non-string in overrides; raw types=%r; payload=%r",
+                types,
+                payload,
             )
             self.charm.unit.status = BlockedStatus(f"invalid override value type: {e}")
             raise
