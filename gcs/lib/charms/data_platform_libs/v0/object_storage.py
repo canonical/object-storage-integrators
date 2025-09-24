@@ -11,7 +11,13 @@ and consume GCS connection info.
 ### Provider charm
 
 A provider publishes the payload when the requirer asks for it. It is needed to wire the handlers and
-emit on demand.
+emit on demand. The RESOURCE_FIELD class attribute of GcsStorageProviderData must be provided by requirer, otherwise the provider will not publish any payload.
+
+```
+class GcsStorageProviderData(StorageProviderData):
+
+    RESOURCE_FIELD = "bucket"
+```
 
 Example:
 ```python
@@ -552,6 +558,6 @@ class StorageProvides(StorageProviderData, StorageProviderEventHandlers):
 
 
 class GcsStorageProviderData(StorageProviderData):
-    """The Data abstraction of the provider side of storage relation."""
+    """The resource field should be provided by requirer, otherwise provider will not publish any payload."""
 
     RESOURCE_FIELD = "bucket"

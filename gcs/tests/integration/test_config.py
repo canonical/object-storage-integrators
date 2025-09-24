@@ -6,7 +6,6 @@ import logging
 from pathlib import Path
 
 import jubilant
-import pytest
 
 APP = "gcs-provider"
 
@@ -30,7 +29,6 @@ def _write_fake_sa(tmp: Path) -> Path:
     return p
 
 
-@pytest.mark.skip
 def test_deploy(juju: jubilant.Juju, gcs_charm: Path) -> None:
     logger.info("Deploying charm and creating secret")
     juju.deploy(gcs_charm, app=APP, trust=True)
@@ -41,7 +39,6 @@ def test_deploy(juju: jubilant.Juju, gcs_charm: Path) -> None:
     assert "Missing config" in status.apps[APP].units[f"{APP}/0"].workload_status.message
 
 
-@pytest.mark.skip
 def test_configure_provider_then_status_is_active(juju, gcs_charm, tmp_path: Path):
     sa_file = _write_fake_sa(tmp_path)
     content = Path(sa_file).read_text()
@@ -58,7 +55,6 @@ def test_configure_provider_then_status_is_active(juju, gcs_charm, tmp_path: Pat
     juju.cli("remove-secret", secret_uri)
 
 
-@pytest.mark.skip
 def test_remove_credentials_config_then_status_is_set_to_blocked(juju: jubilant.Juju) -> None:
     """Test the charm behavior when non-existent secret URI is given as credentials."""
     secret_uri = juju.add_secret(name="nonexistent_secret", content={"foo": "bar"})
@@ -71,7 +67,6 @@ def test_remove_credentials_config_then_status_is_set_to_blocked(juju: jubilant.
     assert "does not exist" in status.apps[APP].units[f"{APP}/0"].workload_status.message
 
 
-@pytest.mark.skip
 def test_secret_not_granted_then_status_is_waiting(juju, gcs_charm, tmp_path: Path):
     sa_file = _write_fake_sa(tmp_path)
     content = Path(sa_file).read_text()
@@ -91,7 +86,6 @@ def test_secret_not_granted_then_status_is_waiting(juju, gcs_charm, tmp_path: Pa
     juju.cli("remove-secret", secret_uri)
 
 
-@pytest.mark.skip
 def test_invalid_bucket_then_status_is_set_to_blocked(
     juju: jubilant.Juju, gcs_charm: Path, tmp_path: Path
 ):
