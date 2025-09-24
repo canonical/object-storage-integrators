@@ -5,14 +5,13 @@
 import logging
 
 import ops
-from charms.data_platform_libs.v0.object_storage import GcsContract
-from ops.charm import CharmBase, ConfigChangedEvent, StartEvent
 from ops.framework import Object
+from ops.charm import CharmBase, StartEvent, ConfigChangedEvent
 
 from events.requirer import GcsRequirer
+from charms.data_platform_libs.v0.object_storage import GcsContract
 
 logger = logging.getLogger(__name__)
-
 
 class GeneralEvents(Object):
     """Lifecycle helper."""
