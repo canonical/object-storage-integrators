@@ -48,8 +48,6 @@ class GcsRequirer(Object):
 
     def _on_conn_info_changed(self, event):
         payload = self._load_payload(event.relation)
-        storage_class = payload.get("storage-class", "") or ""
-        path = payload.get("path", "") or ""
         bucket = payload.get("bucket")
         secret_content = payload.get("secret-key")
 

@@ -4,10 +4,11 @@
 
 """Utilities for logging."""
 
+import os
 from logging import Logger, getLogger
 from typing import Any, Callable, Literal, TypedDict, Union
 
-PathLike = Union[str, "os.PathLike[str]"]
+PathLike = Union[str, os.PathLike[str]]
 
 LevelTypes = Literal[
     "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET", 50, 40, 30, 20, 10, 0
