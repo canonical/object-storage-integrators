@@ -14,7 +14,6 @@ REQUIRER = "gcs-requirer"
 logger = logging.getLogger(__name__)
 
 
-
 def test_deploy_provider_then_status_is_blocked(juju: jubilant.Juju, gcs_charm: Path) -> None:
     """Test plain deployment of the charm."""
     logger.info("Deploying provider charm")
