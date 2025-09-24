@@ -59,7 +59,7 @@ def test_configure_provider_then_status_is_active(juju, gcs_charm, tmp_path: Pat
 
 
 @pytest.mark.skip
-def test_remove_credentials_config_then_status_is_set_to_status(juju: jubilant.Juju) -> None:
+def test_remove_credentials_config_then_status_is_set_to_blocked(juju: jubilant.Juju) -> None:
     """Test the charm behavior when non-existent secret URI is given as credentials."""
     secret_uri = juju.add_secret(name="nonexistent_secret", content={"foo": "bar"})
     juju.cli("remove-secret", secret_uri)
