@@ -560,4 +560,4 @@ class StorageProvides(StorageProviderData, StorageProviderEventHandlers):
 class GcsStorageProviderData(StorageProviderData):
     """The resource field should be provided by requirer, otherwise provider will not publish any payload."""
 
-    RESOURCE_FIELD = "bucket"
+    RESOURCE_FIELD = "requested-secrets"
