@@ -16,7 +16,7 @@ emit on demand. The RESOURCE_FIELD class attribute of GcsStorageProviderData mus
 ```
 class GcsStorageProviderData(StorageProviderData):
 
-    RESOURCE_FIELD = "bucket"
+    RESOURCE_FIELD = "requested-secrets"
 ```
 
 Example:
@@ -113,7 +113,7 @@ if __name__ == "__main__":
 
 ### Requirer charm
 
-A requirer consumes the published fields and (optionally) provides overrides. The requirer must write bucket name into its app databag using overrides to influence the provider payload.
+A requirer consumes the published fields and (optionally) provides overrides. The requirer must write REQUIRED_FIELDS into its app databag using overrides to influence the provider payload.
 Provider charm.
 
 An example of requirer charm is the following:
