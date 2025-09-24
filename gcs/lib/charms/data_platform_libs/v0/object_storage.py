@@ -21,7 +21,6 @@ from charms.data_platform_libs.v0.object_storage import (
     GcsStorageProviderData,
     StorageProviderEventHandlers,
 )
-from charms.data_platform_libs.v0.data_interfaces import PrematureDataAccessError
 
 class ExampleProviderCharm(CharmBase):
 
@@ -80,16 +79,10 @@ class ExampleProviderCharm(CharmBase):
 
         payload = self._merge_requirer_override(relation, base)
 
-        try:
-            self.gcs_provider_data.publish_payload(relation, payload)
-            logger.info("Published GCS payload to relation %s", relation.id)
-            self._add_status(CharmStatuses.ACTIVE_IDLE.value)
-        except PrematureDataAccessError:
-            if event is not None:
-                self.logger.info("PrematureDataAccessError; deferring.")
-                event.defer()
-            else:
-                raise
+
+        self.gcs_provider_data.publish_payload(relation, payload)
+        logger.info("Published GCS payload to relation %s", relation.id)
+        self._add_status(CharmStatuses.ACTIVE_IDLE.value)
 
     def publish_to_all_relations(self, event) -> None:
         for rel in self.charm.model.relations.get(GCS_RELATION_NAME, []):
@@ -114,7 +107,7 @@ if __name__ == "__main__":
 
 ### Requirer charm
 
-A requirer consumes the published fields and (optionally) provides overrides. The requirer can also write overrides into its app databag to influence the provider payload (optionally).
+A requirer consumes the published fields and (optionally) provides overrides. The requirer must write bucket name into its app databag using overrides to influence the provider payload.
 Provider charm.
 
 An example of requirer charm is the following:
@@ -126,7 +119,6 @@ from charms.data_platform_libs.v0.object_storage import (
     StorageRequires,
     GcsContract,
 )
-
 
 class ExampleRequirerCharm(CharmBase):
 

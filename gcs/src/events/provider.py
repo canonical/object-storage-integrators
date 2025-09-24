@@ -7,7 +7,6 @@
 import logging
 from typing import TYPE_CHECKING, Dict
 
-from charms.data_platform_libs.v0.data_interfaces import PrematureDataAccessError
 from charms.data_platform_libs.v0.object_storage import (
     GcsStorageProviderData,
     StorageConnectionInfoRequestedEvent,
@@ -106,17 +105,9 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
         logger.info("base_payload %s", base)
 
         payload = self._merge_requirer_override(relation, base)
-
-        try:
-            self.gcs_provider_data.publish_payload(relation, payload)
-            logger.info("Published GCS payload to relation %s", relation.id)
-            self._add_status(CharmStatuses.ACTIVE_IDLE.value)
-        except PrematureDataAccessError:
-            if event is not None:
-                self.logger.info("PrematureDataAccessError; deferring.")
-                event.defer()
-            else:
-                raise
+        self.gcs_provider_data.publish_payload(relation, payload)
+        logger.info("Published GCS payload to relation %s", relation.id)
+        self._add_status(CharmStatuses.ACTIVE_IDLE.value)
 
     def publish_to_all_relations(self, event) -> None:
         """Publish the payload to all relations."""
