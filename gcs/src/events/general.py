@@ -3,7 +3,7 @@
 # See LICENSE file for licensing details.
 
 """Google Cloud Storage general event handlers."""
-import logging
+
 from typing import TYPE_CHECKING, cast
 
 import ops

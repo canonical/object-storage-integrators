@@ -4,7 +4,6 @@
 
 """Google Cloud Storage Provider related event handlers."""
 
-import logging
 from typing import TYPE_CHECKING, Dict
 
 from charms.data_platform_libs.v0.object_storage import (
