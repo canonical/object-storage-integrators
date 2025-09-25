@@ -393,6 +393,7 @@ class StorageRequirerEvents(CharmEvents):
 
 class StorageRequirerData(RequirerData):
     SECRET_FIELDS: ClassVar[List[str]] = []
+    SECRET_LABEL_MAP = {}
 
     @classmethod
     def configure_from_contract(cls, contract: StorageContract) -> None:
