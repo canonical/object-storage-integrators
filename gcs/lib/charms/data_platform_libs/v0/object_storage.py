@@ -129,7 +129,6 @@ from charms.data_platform_libs.v0.object_storage import (
 
 class ExampleRequirerCharm(CharmBase):
 
-
     def __init__(
         self,
         charm: CharmBase,
@@ -138,13 +137,26 @@ class ExampleRequirerCharm(CharmBase):
         super().__init__(charm, "gcs-requirer")
         self.charm = charm
         self.relation_name = relation_name
-        ov = self.overrides_from_config()
-        self.contract = GcsContract(**ov)
+        self.contract = GcsContract()
         self.storage = StorageRequires(charm, relation_name, self.contract)
-        self.framework.observe(self.storage.on.storage_connection_info_changed, self._on_conn_info_changed)
-        self.framework.observe(self.storage.on.storage_connection_info_gone, self._on_conn_info_gone)
-        self.framework.observe(self.storage.on[self.relation_name].relation_joined, self._on_relation_joined)
+        self.framework.observe(
+            self.storage.on.storage_connection_info_changed, self._on_conn_info_changed
+        )
+        self.framework.observe(
+            self.storage.on.storage_connection_info_gone, self._on_conn_info_gone
+        )
+        self.framework.observe(
+            self.storage.on[self.relation_name].relation_joined, self._on_relation_joined
+        )
 
+        self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
+
+        self._last_sent_overrides: Dict[str, str] = {}
+
+    def _on_config_changed(self, _):
+        ov = self.overrides_from_config()
+        self.apply_overrides(ov)
+        self.refresh_status()
 
     def _on_relation_joined(self, event):
         ov = self.overrides_from_config()
@@ -152,8 +164,6 @@ class ExampleRequirerCharm(CharmBase):
 
     def _on_conn_info_changed(self, event):
         payload = self._load_payload(event.relation)
-        storage_class = payload.get("storage-class", "") or ""
-        path = payload.get("path", "") or ""
         bucket = payload.get("bucket")
         secret_content = payload.get("secret-key")
 
@@ -184,16 +194,19 @@ class ExampleRequirerCharm(CharmBase):
         c = self.charm.config
         bucket = (c.get("bucket") or "").strip()
 
-        ov: Dict[str, str] = {}
-        if bucket:
-            ov["bucket"] = bucket
+        return {"bucket": bucket} if bucket != "" else {"bucket": ""}
 
-        return ov
-
-    def apply_overrides(self, overrides: Dict[str, str], relation_id: Optional[int] = None) -> None:
+    def apply_overrides(
+        self, overrides: Dict[str, str], relation_id: Optional[int] = None
+    ) -> None:
         if not overrides or not self.charm.unit.is_leader():
             return
-        payload = overrides
+        if overrides == self._last_sent_overrides:
+            return
+        if not overrides:
+            overrides = {"bucket": ""}
+
+        payload = self._as_relation_strings(overrides)
         try:
             if relation_id is not None:
                 self.storage.write_overrides(payload, relation_id=relation_id)
@@ -210,7 +223,9 @@ class ExampleRequirerCharm(CharmBase):
         except RelationDataTypeError as e:
             types = {k: type(v).__name__ for k, v in overrides.items()}
             logger.exception(
-                "apply_overrides: non-string in overrides; raw types=%r; payload=%r", types, payload
+                "apply_overrides: non-string in overrides; raw types=%r; payload=%r",
+                types,
+                payload,
             )
             self.charm.unit.status = BlockedStatus(f"invalid override value type: {e}")
             raise
@@ -224,7 +239,6 @@ class ExampleRequirerCharm(CharmBase):
             if secret_id == changed_id:
                 self.refresh_status()
                 break
-
 
     def _any_relation_ready(self, exclude_relation_id: Optional[int] = None) -> bool:
         for rel in self.charm.model.relations.get(self.relation_name, []):
@@ -246,6 +260,21 @@ class ExampleRequirerCharm(CharmBase):
     def _field_from_payload(self, relation, key: str) -> Optional[str]:
         val = self._load_payload(relation).get(key)
         return val if isinstance(val, str) and val.strip() else None
+
+    @staticmethod
+    def _as_relation_strings(d: Mapping[str, Any]) -> dict[str, str]:
+        out: dict[str, str] = {}
+        for k, v in d.items():
+            if v is None:
+                continue
+            if isinstance(v, str):
+                out[k] = v
+                continue
+            try:
+                out[k] = json.dumps(v, ensure_ascii=False, separators=(",", ":"))
+            except (TypeError, ValueError):
+                out[k] = str(v)
+        return out
 
  if __name__ == "__main__":
     main(ExampleRequirerCharm)
