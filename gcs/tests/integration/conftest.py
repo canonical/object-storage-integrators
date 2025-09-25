@@ -16,6 +16,7 @@ def pytest_addoption(parser):
         help="keep temporarily-created models",
     )
 
+
 @pytest.fixture(scope="module")
 def gcs_charm() -> Path:
     path = next(iter(Path.cwd().glob("*.charm")), None)

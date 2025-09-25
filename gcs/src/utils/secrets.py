@@ -3,7 +3,6 @@
 
 """Utility functions related to secrets."""
 
-import logging
 
 from ops.model import Model, ModelError, SecretNotFoundError
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
