@@ -1,0 +1,7 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+options:
+  bucket:
+    type: string
+    description: Optional target GCS bucket for snapshots/backups (3–63 chars, lowercase letters, digits, hyphens).
