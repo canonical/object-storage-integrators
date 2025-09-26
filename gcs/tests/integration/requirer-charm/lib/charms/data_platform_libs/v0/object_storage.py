@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
-"""
-A lightweight library for communicating between GCS (Google Cloud Storage) provider and requirer charms.
+"""A lightweight library for communicating between GCS (Google Cloud Storage) provider and requirer charms.
 
 This library implements a common object-storage contract and the relation/event plumbing to publish
 and consume GCS connection info.
@@ -170,8 +169,8 @@ class ExampleRequirerCharm(CharmBase):
         missing = [k for k, v in (("bucket", bucket), ("secret-key", secret_content)) if not v]
         if missing:
             self.charm.unit.status = BlockedStatus("missing data: " + ", ".join(missing))
-            return
 
+Return:
         self.charm.unit.status = ActiveStatus(f"gcs ok: bucket={bucket}")
 
     def _on_conn_info_gone(self, event):
@@ -184,7 +183,8 @@ class ExampleRequirerCharm(CharmBase):
         rels = self.charm.model.relations.get(self.relation_name, [])
         if not rels:
             self.charm.unit.status = WaitingStatus(f"waiting for {self.relation_name} relation")
-            return
+
+Return:
         if self._any_relation_ready():
             self.charm.unit.status = ActiveStatus("gcs ok")
         else:
@@ -210,13 +210,13 @@ class ExampleRequirerCharm(CharmBase):
         try:
             if relation_id is not None:
                 self.storage.write_overrides(payload, relation_id=relation_id)
-                return
 
+Return:
             rels = self.charm.model.relations.get(self.relation_name, [])
             if not rels:
                 logger.debug("apply_overrides: no relations for %r", self.relation_name)
-                return
 
+Return:
             for rel in rels:
                 self.storage.write_overrides(payload, relation_id=rel.id)
 
@@ -283,7 +283,8 @@ class ExampleRequirerCharm(CharmBase):
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, ClassVar
+from typing import ClassVar, Dict, List, Optional
+
 from charms.data_platform_libs.v0.data_interfaces import (
     EventHandlers,
     ProviderData,
@@ -300,9 +301,8 @@ from ops.charm import (
     RelationJoinedEvent,
     SecretChangedEvent,
 )
-from ops.framework import EventSource, ObjectEvents
+from ops.framework import EventSource
 from ops.model import Relation
-from ops.model import Secret, SecretNotFoundError
 
 # The unique Charmhub library identifier, never change it
 # # TODO: a new library ID should be generated
@@ -316,6 +316,7 @@ LIBAPI = 0
 LIBPATCH = 1
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass(frozen=True)
 class StorageContract:
@@ -340,7 +341,13 @@ class StorageContract:
     secret_fields: List[str]
     overrides: Dict[str, str] = field(default_factory=dict)
 
-    def __init__(self, required_info: List[str], optional_info: List[str], secret_fields: List[str], **overrides: str) -> None:
+    def __init__(
+        self,
+        required_info: List[str],
+        optional_info: List[str],
+        secret_fields: List[str],
+        **overrides: str,
+    ) -> None:
         object.__setattr__(self, "required_info", required_info)
         object.__setattr__(self, "optional_info", optional_info)
         object.__setattr__(self, "secret_fields", secret_fields)
@@ -362,6 +369,7 @@ class GcsContract(StorageContract):
         secret_fields (list[str]): Names of required/optional *secret* fields that must
             be transported and stored securely. Defaults to ["secret-key"].
     """
+
     def __init__(self, **overrides: str):
         """Initialize a GCS contract, optionally overriding the default schema.
 
@@ -378,14 +386,18 @@ class GcsContract(StorageContract):
             "storage-class",
             "path",
         ]
-        secret_fields = [
-            "secret-key"
-        ]
-        super().__init__(required_info=required_info, optional_info=optional_info, secret_fields=secret_fields, **overrides)
+        secret_fields = ["secret-key"]
+        super().__init__(
+            required_info=required_info,
+            optional_info=optional_info,
+            secret_fields=secret_fields,
+            **overrides,
+        )
 
 
 class ObjectStorageEvent(RelationEvent):
     pass
+
 
 class StorageConnectionInfoRequestedEvent(ObjectStorageEvent):
     pass
@@ -413,6 +425,7 @@ class StorageProviderEvents(CharmEvents):
             Providers are expected to (re)publish all relevant relation data
             and secrets for the requesting relation.
     """
+
     storage_connection_info_requested = EventSource(StorageConnectionInfoRequestedEvent)
 
 
@@ -442,21 +455,22 @@ class StorageRequirerEvents(CharmEvents):
 class StorageRequirerData(RequirerData):
     """Helper for managing requirer-side storage connection data and secrets.
 
-        This class encapsulates reading/writing relation data, tracking which
-        fields are considered secret, and mapping secret fields to Juju secret
-        labels/IDs. It is typically configured from a StorageContract
-        so different backends (S3, Azure, GCS) can reuse the same flow.
+    This class encapsulates reading/writing relation data, tracking which
+    fields are considered secret, and mapping secret fields to Juju secret
+    labels/IDs. It is typically configured from a StorageContract
+    so different backends (S3, Azure, GCS) can reuse the same flow.
 
-        Class Args:
-            SECRET_FIELDS (list[str]): Names of fields that must be stored as
-                secrets rather than plain relation data. Populated by
-                method configure_from_contract. This field should be filled up
-                if any secrets is requested by requirer.
-            SECRET_LABEL_MAP (dict[str, str]): Optional mapping from secret field
-                name to a stable label/alias to use when creating/looking up Juju
-                secrets. This is emptied to remove `provided-secrets` fields from
-                requirer relation databag which is unnecessary for object storage integrators.
-        """
+    Class Args:
+        SECRET_FIELDS (list[str]): Names of fields that must be stored as
+            secrets rather than plain relation data. Populated by
+            method configure_from_contract. This field should be filled up
+            if any secrets is requested by requirer.
+        SECRET_LABEL_MAP (dict[str, str]): Optional mapping from secret field
+            name to a stable label/alias to use when creating/looking up Juju
+            secrets. This is emptied to remove `provided-secrets` fields from
+            requirer relation databag which is unnecessary for object storage integrators.
+    """
+
     SECRET_FIELDS: ClassVar[List[str]] = []
     SECRET_LABEL_MAP = {}
 
@@ -553,17 +567,23 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
     def _missing_fields(self, relation) -> List[str]:
         info = self.get_storage_connection_info(relation)
         missing = []
-        for k in (self.contract.required_info + self.contract.secret_fields):
+        for k in self.contract.required_info + self.contract.secret_fields:
             if k not in info:
                 missing.append(k)
         return missing
 
     def _register_new_secrets(self, event: RelationChangedEvent):
         diff = self._diff(event)
-        added_keys = set(diff.added) if isinstance(diff.added, (set, list, tuple)) else set(
-            getattr(diff.added, "keys", lambda: [])())
-        changed_keys = set(diff.changed.keys()) if hasattr(diff, "changed") and isinstance(diff.changed,
-                                                                                           dict) else set()
+        added_keys = (
+            set(diff.added)
+            if isinstance(diff.added, (set, list, tuple))
+            else set(getattr(diff.added, "keys", lambda: [])())
+        )
+        changed_keys = (
+            set(diff.changed.keys())
+            if hasattr(diff, "changed") and isinstance(diff.changed, dict)
+            else set()
+        )
         candidate_keys = added_keys | changed_keys
         if not candidate_keys:
             return
@@ -632,7 +652,8 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         else:
             missing = self._missing_fields(event.relation)
             logger.warning(
-                "Some mandatory fields: %s are not present, do not emit credential change event!", ",".join(missing)
+                "Some mandatory fields: %s are not present, do not emit credential change event!",
+                ",".join(missing),
             )
 
     def _on_secret_changed_event(self, event: SecretChangedEvent):
@@ -661,13 +682,16 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         else:
             missing = self._missing_fields(relation)
             logger.warning(
-                "Some mandatory fields: %s are not present, do not emit credential change event!", ",".join(missing)
+                "Some mandatory fields: %s are not present, do not emit credential change event!",
+                ",".join(missing),
             )
 
     def _on_relation_broken_event(self, event: RelationBrokenEvent) -> None:
         """Emit gone when the relation is broken."""
         logger.info("Storage relation broken...")
-        getattr(self.on, "storage_connection_info_gone").emit(event.relation, app=event.app, unit=event.unit)
+        getattr(self.on, "storage_connection_info_gone").emit(
+            event.relation, app=event.app, unit=event.unit
+        )
 
     @property
     def relations(self) -> List[Relation]:
@@ -677,6 +701,7 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
 
 class StorageRequires(StorageRequirerData, StorageRequirerEventHandlers):
     """Combine StorageRequirerData and StorageRequirerEventHandlers into a single helper."""
+
     def __init__(self, charm: CharmBase, relation_name: str, contract: StorageContract):
         """Initialize the requirer helper.
 
@@ -711,8 +736,10 @@ class StorageProviderData(ProviderData):
         """
         self.update_relation_data(relation.id, payload)
 
+
 class StorageProviderEventHandlers(EventHandlers):
-    """ Listen for requirer changes and emits a higher-level events."""
+    """Listen for requirer changes and emits a higher-level events."""
+
     on = StorageProviderEvents()
 
     def __init__(
@@ -737,10 +764,14 @@ class StorageProviderEventHandlers(EventHandlers):
         if not self.charm.unit.is_leader():
             return
 
-        self.on.storage_connection_info_requested.emit(event.relation, app=event.app, unit=event.unit)
+        self.on.storage_connection_info_requested.emit(
+            event.relation, app=event.app, unit=event.unit
+        )
+
 
 class StorageProvides(StorageProviderData, StorageProviderEventHandlers):
     """Combine StorageProviderData and StorageProviderEventHandlers."""
+
     def __init__(self, charm: CharmBase, relation_name: str) -> None:
         """Initialize the provider helper.
 
@@ -765,4 +796,5 @@ class GcsStorageProviderData(StorageProviderData):
         which is hardcoded to requested-secrets as they always published.
 
     """
+
     RESOURCE_FIELD = "requested-secrets"
