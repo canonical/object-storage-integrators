@@ -319,7 +319,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class StorageContract:
-    """Contract describing what the requirer and provider exchange in the Storage relation.
+    """Define Contract describing what the requirer and provider exchange in the Storage relation.
 
     Args:
         required_info: Keys that must be present in the provider's application
@@ -349,8 +349,28 @@ class StorageContract:
 
 @dataclass(frozen=True)
 class GcsContract(StorageContract):
-    """GCS-specific contract for the GCS."""
+    """Define GCS-specific contract for the GCS.
+
+    This contract defines the shape of storage connection information that a
+    requirer/provider pair must exchange when integrating with GCS. It encodes:
+
+    Args:
+        required_info (list[str]): Names of required, non-secret fields. Defaults to
+            ["bucket"].
+        optional_info (list[str]): Names of optional, non-secret fields. Defaults to
+            ["storage-class", "path"].
+        secret_fields (list[str]): Names of required/optional *secret* fields that must
+            be transported and stored securely. Defaults to ["secret-key"].
+    """
     def __init__(self, **overrides: str):
+        """Initialize a GCS contract, optionally overriding the default schema.
+
+        Args:
+            overrides: Requirer can override some common keys which may include:
+                - bucket
+                - storage-class
+                - path
+        """
         required_info = [
             "bucket",
         ]
@@ -380,39 +400,131 @@ class StorageConnectionInfoGoneEvent(RelationEvent):
 
 
 class StorageProviderEvents(CharmEvents):
-    """Events for the StorageProvider side implementation."""
+    """Define events emitted by the provider side of a storage relation.
+
+    These events are produced by a charm that provides storage connection
+    information to requirers (an object-storage integrator). Providers
+    should observe these and respond by publishing the current connection
+    details per relation.
+
+    Events:
+        storage_connection_info_requested (StorageConnectionInfoRequestedEvent):
+            Fired by a requirer to request/refresh storage connection info.
+            Providers are expected to (re)publish all relevant relation data
+            and secrets for the requesting relation.
+    """
     storage_connection_info_requested = EventSource(StorageConnectionInfoRequestedEvent)
 
 
 class StorageRequirerEvents(CharmEvents):
-    """Events for the StorageRequirer side implementation."""
+    """Define events emitted by the requirer side of a storage relation.
+
+    These events are produced by a charm that consumes storage connection
+    information. Requirers should react by updating their application config,
+    restarting services, etc.
+
+    Events:
+        storage_connection_info_changed (StorageConnectionInfoChangedEvent):
+            Fired when the provider publishes new or updated connection info.
+            Handlers should read relation data/secrets and apply changes.
+
+        storage_connection_info_gone (StorageConnectionInfoGoneEvent):
+            Fired when previously available connection info has been removed or
+            invalidated (e.g., relation departed, secret revoked). Handlers
+            should gracefully degrade and update
+            status accordingly.
+    """
 
     storage_connection_info_changed = EventSource(StorageConnectionInfoChangedEvent)
     storage_connection_info_gone = EventSource(StorageConnectionInfoGoneEvent)
 
 
 class StorageRequirerData(RequirerData):
+    """Helper for managing requirer-side storage connection data and secrets.
+
+        This class encapsulates reading/writing relation data, tracking which
+        fields are considered secret, and mapping secret fields to Juju secret
+        labels/IDs. It is typically configured from a StorageContract
+        so different backends (S3, Azure, GCS) can reuse the same flow.
+
+        Class Args:
+            SECRET_FIELDS (list[str]): Names of fields that must be stored as
+                secrets rather than plain relation data. Populated by
+                method configure_from_contract. This field should be filled up
+                if any secrets is requested by requirer.
+            SECRET_LABEL_MAP (dict[str, str]): Optional mapping from secret field
+                name to a stable label/alias to use when creating/looking up Juju
+                secrets. This is emptied to remove `provided-secrets` fields from
+                requirer relation databag which is unnecessary for object storage integrators.
+        """
     SECRET_FIELDS: ClassVar[List[str]] = []
     SECRET_LABEL_MAP = {}
 
     @classmethod
     def configure_from_contract(cls, contract: StorageContract) -> None:
+        """Configure class-level secret handling from a storage contract.
+
+        Copies contract.secret_fields into the class variable
+        SECRET_FIELDS, so future instances know which fields must be
+        read from or written to Juju secrets.
+
+        Args:
+            contract (StorageContract): The contract whose secret_fields
+                define which fields are secret on the requirer side.
+        """
         cls.SECRET_FIELDS = list(contract.secret_fields)
 
     def __init__(self, model, relation_name: str, contract: StorageContract):
+        """Create a new requirer data manager for a given relation.
+
+        Initializes the instance with the provided contract using the
+        current class-level SECRET_FIELDS.
+
+        Args:
+            model: The Juju model instance from the charm.
+            relation_name (str): Relation endpoint name used by this requirer.
+            contract (StorageContract): Contract describing required/optional/
+                secret fields for this backend.
+
+        """
         self.contract = contract
         self._secret_fields = list(type(self).SECRET_FIELDS)
         super().__init__(model, relation_name)
 
 
 class StorageRequirerEventHandlers(RequirerEventHandlers):
-    """Event handlers for requirer side of Storage relation."""
+    """Bind the requirer lifecycle to the relation's events.
+
+    Validates that all required and secret fields are present, registers newly discovered secret
+    keys, and emits higher-level requirer events.
+
+    Emits:
+        StorageRequirerEvents.storage_connection_info_changed:
+            When all required + secret fields are present or become present.
+        StorageRequirerEvents.storage_connection_info_gone:
+            When the relation is broken (connection info no longer available).
+
+    Args:
+        relation_name (str): Name of the relation endpoint.
+        contract (StorageContract): Contract describing required/optional/secret fields.
+        relation_data (StorageRequirerData): Helper for relation data and secrets.
+    """
 
     on = StorageRequirerEvents()  # pyright: ignore[reportAssignmentType]
 
     def __init__(
         self, charm: CharmBase, relation_data: StorageRequirerData, contract: StorageContract
     ):
+        """Initialize the requirer event handlers.
+
+        Subscribes to relation_joined, relation_changed, relation_broken,
+        and secret_changed events to coordinate data and secret flow.
+
+        Args:
+            charm (CharmBase): The parent charm instance.
+            relation_data (StorageRequirerData): Requirer-side relation data helper.
+            contract (StorageContract): Storage contract for validation and overrides.
+        """
         super().__init__(charm, relation_data)
 
         self.relation_name = relation_data.relation_name
@@ -468,7 +580,15 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         overrides: Dict[str, str],
         relation_id: Optional[int] = None,
     ) -> None:
-        """Write/merge override keys into the requirer app-databag."""
+        """Write/merge override keys into the requirer app databag.
+
+        Only the leader writes. ``None`` values are ignored.
+
+        Args:
+            overrides (dict[str, str]): Keys/values to merge into app databag.
+            relation_id (int | None): Specific relation id to target; if omitted,
+                applies to all active relations for this endpoint.
+        """
         if not overrides:
             return
         if not self.charm.unit.is_leader():
@@ -478,20 +598,30 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         self.relation_data.update_relation_data(relation_id, payload)
 
     def _on_relation_joined_event(self, event: RelationJoinedEvent) -> None:
-        """Requirer may override some fields using the override keys (optional in the requirer charm)."""
+        """Handle relation-joined, apply optional requirer-side overrides."""
         logger.info(f"Storage relation ({event.relation.name}) joined...")
         if self.contract.overrides:
             self.write_overrides(self.contract.overrides, relation_id=event.relation.id)
 
     def get_storage_connection_info(self, relation) -> Dict[str, str]:
-        """Return the storage connection info as a dictionary."""
+        """Assemble the storage connection info for a relation.
+
+        Combines the provider-published relation data and any readable secrets
+        to produce a flat dictionary usable by the requirer.
+
+        Args:
+            relation: Relation object to read from.
+
+        Returns:
+            dict[str, str]: Connection info (may be empty if relation/app does not exist).
+        """
         if relation and relation.app:
             info = self.relation_data.fetch_relation_data([relation.id])[relation.id]
             return info
         return {}
 
     def _on_relation_changed_event(self, event: RelationChangedEvent) -> None:
-        """This method validates the required fields present in the relation data."""
+        """Validate fields on relation-changed and emit requirer events."""
         logger.info("Storage relation (%s) changed", event.relation.name)
         self._register_new_secrets(event)
 
@@ -506,7 +636,7 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
             )
 
     def _on_secret_changed_event(self, event: SecretChangedEvent):
-        """Event handler for handling a new value of a secret."""
+        """React to secret changes by re-validating and emitting if complete."""
         if not event.secret.label:
             return
         relation = self.relation_data._relation_from_secret_label(event.secret.label)
@@ -535,35 +665,54 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
             )
 
     def _on_relation_broken_event(self, event: RelationBrokenEvent) -> None:
-        """Event handler for handling relation_broken event."""
+        """Emit gone when the relation is broken."""
         logger.info("Storage relation broken...")
         getattr(self.on, "storage_connection_info_gone").emit(event.relation, app=event.app, unit=event.unit)
 
     @property
     def relations(self) -> List[Relation]:
-        """The list of Relation instances associated with this relation_name."""
+        """List active relations for this endpoint."""
         return list(self.charm.model.relations[self.relation_name])
 
 
 class StorageRequires(StorageRequirerData, StorageRequirerEventHandlers):
-    """The requirer side of Storage relation."""
+    """Combine StorageRequirerData and StorageRequirerEventHandlers into a single helper."""
     def __init__(self, charm: CharmBase, relation_name: str, contract: StorageContract):
+        """Initialize the requirer helper.
+
+        Args:
+            charm (CharmBase): Parent charm.
+            relation_name (str): Relation endpoint name.
+            contract (StorageContract): Storage contract for validation and secrets.
+        """
         StorageRequirerData.configure_from_contract(contract)
         StorageRequirerData.__init__(self, charm.model, relation_name, contract)
         StorageRequirerEventHandlers.__init__(self, charm, self, contract)
 
 
 class StorageProviderData(ProviderData):
-    """The Data abstraction of the provider side of storage relation."""
+    """Responsible for publishing provider-owned connection information to the relation databag."""
 
     def __init__(self, model: Model, relation_name: str) -> None:
+        """Initialize the provider data helper.
+
+        Args:
+            model (Model): The Juju model instance.
+            relation_name (str): Provider relation endpoint name.
+        """
         super().__init__(model, relation_name)
 
     def publish_payload(self, relation: Relation, payload: Dict[str, str]) -> None:
+        """Publish connection info into the provider app databag.
+
+        Args:
+            relation (Relation): Target relation to update.
+            payload (dict[str, str]): Key/value pairs to write.
+        """
         self.update_relation_data(relation.id, payload)
 
 class StorageProviderEventHandlers(EventHandlers):
-    """The event handlers related to the provider side of Storage relation."""
+    """ Listen for requirer changes and emits a higher-level events."""
     on = StorageProviderEvents()
 
     def __init__(
@@ -572,23 +721,48 @@ class StorageProviderEventHandlers(EventHandlers):
         relation_data: StorageProviderData,
         unique_key: str = "",
     ):
+        """Initialize provider event handlers.
+
+        Args:
+            charm (CharmBase): Parent charm.
+            relation_data (StorageProviderData): Provider data helper.
+            unique_key (str): Optional key used by the base handler for
+                idempotency or uniq semantics.
+        """
         super().__init__(charm, relation_data, unique_key)
         self.relation_data = relation_data
 
     def _on_relation_changed_event(self, event: RelationChangedEvent):
+        """Emit a request for connection info when the requirer changes."""
         if not self.charm.unit.is_leader():
             return
 
         self.on.storage_connection_info_requested.emit(event.relation, app=event.app, unit=event.unit)
 
 class StorageProvides(StorageProviderData, StorageProviderEventHandlers):
-    """The provider side of the Storage relation."""
+    """Combine StorageProviderData and StorageProviderEventHandlers."""
     def __init__(self, charm: CharmBase, relation_name: str) -> None:
+        """Initialize the provider helper.
+
+        Args:
+            charm (CharmBase): Parent charm.
+            relation_name (str): Provider relation endpoint name.
+        """
         StorageProviderData.__init__(self, charm.model, relation_name)
         StorageProviderEventHandlers.__init__(self, charm, self)
 
 
 class GcsStorageProviderData(StorageProviderData):
-    """The resource field should be provided by requirer, otherwise provider will not publish any payload."""
+    """Define the resource fields which is provided by requirer, otherwise provider will not publish any payload.
 
+    A requirer must first advertises a field via the
+    RESOURCE_FIELD key so the provider can publish the appropriate
+    payload. This is a  protection mechanism which is implemented in data interfaces not to publish data to a unready requirer.
+    If the requirer put the data defined as RESOURCE FIELD, this means requirer is ready to get the data.
+
+    Attributes:
+        RESOURCE_FIELD (str): Relation key name the requirer uses to declare a RESOURCE_FIELD
+        which is hardcoded to requested-secrets as they always published.
+
+    """
     RESOURCE_FIELD = "requested-secrets"
