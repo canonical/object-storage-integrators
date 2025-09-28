@@ -17,7 +17,7 @@ from pydantic import ValidationError
 
 from core.context import Context
 from core.domain import CharmConfig
-from events.base import BaseEventHandler
+from events.base import BaseEventHandler, defer_on_premature_data_access_error
 from events.statuses import CharmStatuses, ConfigStatuses
 from utils.secrets import (
     SecretDecodeError,
@@ -50,10 +50,12 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol):
         """Handle the charm startup event."""
         pass
 
+    @defer_on_premature_data_access_error
     def _on_update_status(self, event: ops.UpdateStatusEvent) -> None:
         """Handle the update status event."""
         self.charm.s3_provider_events.reconcile_buckets()
 
+    @defer_on_premature_data_access_error
     def _on_config_changed(self, event: ConfigChangedEvent) -> None:  # noqa: C901
         """Event handler for configuration changed events."""
         # Only execute in the unit leader
@@ -63,6 +65,7 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol):
         self.logger.debug(f"Config changed... Current configuration: {self.charm.config}")
         self.charm.s3_provider_events.reconcile_buckets()
 
+    @defer_on_premature_data_access_error
     def _on_secret_changed(self, event: ops.SecretChangedEvent) -> None:
         """Handle the secret changed event.
 
