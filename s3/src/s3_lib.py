@@ -196,7 +196,7 @@ class S3RequirerData(RequirerData):
             model,
             relation_name,
         )
-        self._local_secret_fields = []
+        self._local_secret_fields: list[str] = []
         self.bucket = bucket
         self.path = path
 
@@ -399,8 +399,7 @@ class S3ProviderData(ProviderData):
         )
         if (
             data_from_requirer.get(relation_id, {}).get(REQ_SECRET_FIELDS) is None
-            and
-            data_from_requirer.get(relation_id, {}).get(self.RESOURCE_FIELD) is None
+            and data_from_requirer.get(relation_id, {}).get(self.RESOURCE_FIELD) is None
         ):
             raise PrematureDataAccessError(
                 "Premature access to relation data, update is forbidden before the connection is initialized."
