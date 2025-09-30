@@ -14,6 +14,7 @@ from charms.data_platform_libs.v0.object_storage import (
 from data_platform_helpers.advanced_statuses.models import StatusObject
 from data_platform_helpers.advanced_statuses.protocol import ManagerStatusProtocol
 from data_platform_helpers.advanced_statuses.types import Scope
+from ops import Relation
 
 from constants import ALLOWED_OVERRIDES, GCS_RELATION_NAME
 from core.context import Context
@@ -67,8 +68,6 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
         if not self.state.gc_storage:
             return {}
 
-        self._clear_status()
-
         raw_data = self.state.gc_storage.to_dict()
 
         secret_ref = (cfg.get("credentials") or "").strip()
@@ -77,7 +76,9 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
 
         return {k: v for k, v in raw_data.items() if v not in (None, "")}
 
-    def _merge_requirer_override(self, relation, payload: Dict[str, str]) -> Dict[str, str]:
+    def _merge_requirer_override(
+        self, relation: Relation, payload: Dict[str, str]
+    ) -> Dict[str, str]:
         """Optionally, override keys from the requirer (bucket, path, storage-class)."""
         if not payload or not relation or not relation.app:
             return payload
@@ -87,41 +88,45 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
             else None
         )
         merged = dict(payload)
-        for key in ALLOWED_OVERRIDES:
-            if key in remote and remote[key]:
+
+        for key in remote:
+            if remote[key] and key in ALLOWED_OVERRIDES:
                 merged[key] = remote[key]
                 self.logger.info("Applied requirer override %r=%r", key, remote[key])
         return merged
 
-    def publish_to_relation(self, relation, event=None) -> None:
+    def publish_to_relation(self, relation: Relation) -> None:
         """Publish the payload to the relation."""
         if not self.charm.unit.is_leader() or relation is None:
             return
+        self._clear_status()
         base = self._build_payload()
         self.logger.info("base_payload %s", base)
 
         payload = self._merge_requirer_override(relation, base)
-        self.gcs_provider_data.publish_payload(relation, payload)
+        self.gcs_provider_data.update_relation_data(relation.id, payload)
         self.logger.info("Published GCS payload to relation %s", relation.id)
         self._add_status(CharmStatuses.ACTIVE_IDLE.value)
 
-    def publish_to_all_relations(self, event) -> None:
+    def publish_to_all_relations(self) -> None:
         """Publish the payload to all relations."""
         for rel in self.charm.model.relations.get(GCS_RELATION_NAME, []):
-            self.publish_to_relation(rel, event)
+            self.publish_to_relation(rel)
 
-    def _on_storage_connection_info_requested(self, event: StorageConnectionInfoRequestedEvent):
+    def _on_storage_connection_info_requested(
+        self, event: StorageConnectionInfoRequestedEvent
+    ) -> None:
         self.logger.info("On storage-connection-info-requested")
         if not self.charm.unit.is_leader():
             return
 
-        self.publish_to_relation(event.relation, event)
+        self.publish_to_relation(event.relation)
 
-    def _on_gcs_relation_broken(self, event: StorageConnectionInfoRequestedEvent):
+    def _on_gcs_relation_broken(self, event: StorageConnectionInfoRequestedEvent) -> None:
         self.logger.info("On gcs relation broken")
         if not self.charm.unit.is_leader():
             return
-        self.publish_to_relation(event.relation, event)
+        self.publish_to_relation(event.relation)
 
     def get_statuses(self, scope: Scope, recompute: bool = False) -> list[StatusObject]:
         """Return the list of statuses for this component."""

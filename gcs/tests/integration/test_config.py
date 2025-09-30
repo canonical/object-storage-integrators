@@ -73,7 +73,7 @@ def test_provider_config_when_remove_credentials_config_then_status_is_set_to_bl
     assert "does not exist" in status.apps[APP].units[f"{APP}/0"].workload_status.message
 
 
-def test_provider_config_when_secret_not_granted_then_status_is_waiting(
+def test_provider_config_when_secret_not_granted_then_status_is_blocked(
     juju, gcs_charm, tmp_path: Path
 ):
     sa_file = _write_fake_sa(tmp_path)

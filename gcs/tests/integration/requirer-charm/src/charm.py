@@ -6,14 +6,14 @@ import ops
 from ops.main import main
 
 from events.general import GeneralEvents
-from events.requirer import GcsRequirer
+from events.requirer import GcsRequirerEvents
 
 
 class GcsRequirerTestCharm(ops.charm.CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
-        self.gcs = GcsRequirer(self)
-        self.general = GeneralEvents(self, self.gcs)
+        self.gcs_requirer_events = GcsRequirerEvents(self)
+        self.general_events = GeneralEvents(self, self.gcs_requirer_events)
 
 
 if __name__ == "__main__":

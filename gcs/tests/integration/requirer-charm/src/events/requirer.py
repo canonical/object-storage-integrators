@@ -7,7 +7,6 @@ from typing import Any, Dict, Mapping, Optional
 
 import ops
 from charms.data_platform_libs.v0.object_storage import (
-    GcsContract,
     StorageRequires,
 )
 from ops.charm import CharmBase
@@ -16,9 +15,10 @@ from ops.model import ActiveStatus, BlockedStatus, RelationDataTypeError, Waitin
 
 logger = logging.getLogger(__name__)
 REL_NAME = "gcs-credentials"
+BACKEND_NAME = "gcs"
 
 
-class GcsRequirer(Object):
+class GcsRequirerEvents(Object):
     """Requirer-side helper which listens to lib events and sets status directly."""
 
     def __init__(
@@ -29,8 +29,7 @@ class GcsRequirer(Object):
         super().__init__(charm, "gcs-requirer")
         self.charm = charm
         self.relation_name = relation_name
-        self.contract = GcsContract()
-        self.storage = StorageRequires(charm, relation_name, self.contract)
+        self.storage = StorageRequires(charm, relation_name, BACKEND_NAME, overrides={})
         self.framework.observe(
             self.storage.on.storage_connection_info_changed, self._on_conn_info_changed
         )
@@ -103,6 +102,7 @@ class GcsRequirer(Object):
         try:
             if relation_id is not None:
                 self.storage.write_overrides(payload, relation_id=relation_id)
+                self._last_sent_overrides = dict(overrides)
                 return
 
             rels = self.charm.model.relations.get(self.relation_name, [])
@@ -112,6 +112,7 @@ class GcsRequirer(Object):
 
             for rel in rels:
                 self.storage.write_overrides(payload, relation_id=rel.id)
+            self._last_sent_overrides = dict(overrides)
 
         except RelationDataTypeError as e:
             types = {k: type(v).__name__ for k, v in overrides.items()}

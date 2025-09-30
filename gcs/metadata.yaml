@@ -1,4 +1,4 @@
-# Copyright 2024 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 name: gcs-integrator
@@ -6,12 +6,12 @@ display-name: GCS Integrator
 summary: A provider charm for Google Cloud storage credentials.
 description: |
   Google Cloud Storage Integrator is an integrator charm for providing credentials
-  for Google Cloud buckets to consumer charms which seek to access shared object storage data. 
+  for Google Storage buckets to consumer charms which seek to access shared object storage data. 
   Store the credentials centrally in the integrator charm and relate consumer charms as needed.
 
   This charm supports both bare-metal/virtual-machines and K8s.
-docs: TODO
-source: https://github.com/canonical/object-storage-integrators
+docs: https://github.com/canonical/object-storage-integrators/gcs/README.md
+source: https://github.com/canonical/object-storage-integrators/gcs
 issues: https://github.com/canonical/object-storage-integrators/issues
 website:
   - https://ubuntu.com/data
