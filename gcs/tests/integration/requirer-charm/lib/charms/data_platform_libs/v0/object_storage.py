@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
-"""
-A lightweight library for communicating between Cloud storages provider and requirer charms.
+"""A lightweight library for communicating between Cloud storages provider and requirer charms.
 
 This library implements a common object-storage contract and the relation/event plumbing to publish
 and consume storage connection info.
@@ -82,7 +81,6 @@ Provider charm.
 An example of requirer charm is the following:
 
 Example:
-
 ```python
 
 from charms.data_platform_libs.v0.object_storage import (
@@ -134,8 +132,8 @@ class ExampleRequirerCharm(CharmBase):
         missing = [k for k, v in (("bucket", bucket), ("secret-key", secret_content)) if not v]
         if missing:
             self.charm.unit.status = BlockedStatus("missing data: " + ", ".join(missing))
-            return
 
+Return:
         self.charm.unit.status = ActiveStatus(f"gcs ok: bucket={bucket}")
 
     def _on_conn_info_gone(self, event):
@@ -151,8 +149,9 @@ class ExampleRequirerCharm(CharmBase):
 """
 
 import logging
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, ClassVar, Literal
+from dataclasses import dataclass
+from typing import ClassVar, Dict, List, Literal, Optional
+
 from charms.data_platform_libs.v0.data_interfaces import (
     EventHandlers,
     ProviderData,
@@ -169,9 +168,8 @@ from ops.charm import (
     RelationJoinedEvent,
     SecretChangedEvent,
 )
-from ops.framework import EventSource, ObjectEvents
+from ops.framework import EventSource
 from ops.model import Relation
-from ops.model import Secret, SecretNotFoundError
 
 # The unique Charmhub library identifier, never change it
 # # TODO: a new library ID should be generated
@@ -186,26 +184,29 @@ LIBPATCH = 1
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass(frozen=True)
 class _Contract:
     """Define Contract describing what the requirer and provider exchange in the Storage relation.
 
-       Args:
-           required_info: Keys that must be present in the provider's application
-               databag before the relation is considered "ready". This may include
-               non-secret fields such as bucket-name, container and secret fields
-               such as secret-key, access-key.
-           optional_info: Keys that must be optionally present in the provider's application
-               databag. These are the non-secret fields such as storage-account, path, storage-class, etc.
-           secret_fields: Keys in the provider's databag that represent Juju secret
-               references (URIs, labels, or IDs). The library will automatically
-               register and track these secrets for the requirer.
-       """
+    Args:
+        required_info: Keys that must be present in the provider's application
+            databag before the relation is considered "ready". This may include
+            non-secret fields such as bucket-name, container and secret fields
+            such as secret-key, access-key.
+        optional_info: Keys that must be optionally present in the provider's application
+            databag. These are the non-secret fields such as storage-account, path, storage-class, etc.
+        secret_fields: Keys in the provider's databag that represent Juju secret
+            references (URIs, labels, or IDs). The library will automatically
+            register and track these secrets for the requirer.
+    """
+
     required_info: List[str]
     optional_info: List[str]
     secret_fields: List[str]
 
-_CONTRACTS: Dict[Literal["gcs","s3","azure"], _Contract] = {
+
+_CONTRACTS: Dict[Literal["gcs", "s3", "azure"], _Contract] = {
     "gcs": _Contract(
         required_info=["bucket", "secret-key"],
         optional_info=["storage-class", "path"],
@@ -213,7 +214,14 @@ _CONTRACTS: Dict[Literal["gcs","s3","azure"], _Contract] = {
     ),
     "s3": _Contract(
         required_info=["bucket", "access-key", "secret-key"],
-        optional_info=["endpoint", "region", "path", "s3-uri-style", "storage-class", "s3-api-version"],
+        optional_info=[
+            "endpoint",
+            "region",
+            "path",
+            "s3-uri-style",
+            "storage-class",
+            "s3-api-version",
+        ],
         secret_fields=["access-key", "secret-key"],
     ),
     "azure": _Contract(
@@ -223,22 +231,28 @@ _CONTRACTS: Dict[Literal["gcs","s3","azure"], _Contract] = {
     ),
 }
 
+
 class ObjectStorageEvent(RelationEvent):
     """The class representing an object storage event."""
+
     pass
+
 
 class StorageConnectionInfoRequestedEvent(ObjectStorageEvent):
     """The class representing an object storage connection info requested event."""
+
     pass
 
 
 class StorageConnectionInfoChangedEvent(ObjectStorageEvent):
     """The class representing an object storage connection info changed event."""
+
     pass
 
 
 class StorageConnectionInfoGoneEvent(RelationEvent):
     """The class representing an object storage connection info gone event."""
+
     pass
 
 
@@ -256,6 +270,7 @@ class StorageProviderEvents(CharmEvents):
             Providers are expected to (re)publish all relevant relation data
             and secrets for the requesting relation.
     """
+
     storage_connection_info_requested = EventSource(StorageConnectionInfoRequestedEvent)
 
 
@@ -290,6 +305,7 @@ class StorageRequirerData(RequirerData):
     labels/IDs. It is typically configured from a Contract
     so different backends (S3, Azure, GCS) can reuse the same flow.
     """
+
     SECRET_FIELDS: ClassVar[List[str]] = []
     SECRET_LABEL_MAP = {}
 
@@ -320,6 +336,7 @@ class StorageRequirerData(RequirerData):
             additional_secret_fields=list(contract.secret_fields),
         )
         self.contract = contract
+
 
 class StorageRequirerEventHandlers(RequirerEventHandlers):
     """Bind the requirer lifecycle to the relation's events.
@@ -390,10 +407,16 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
 
     def _register_new_secrets(self, event: RelationChangedEvent) -> None:
         diff = self._diff(event)
-        added_keys = set(diff.added) if isinstance(diff.added, (set, list, tuple)) else set(
-            getattr(diff.added, "keys", lambda: [])())
-        changed_keys = set(diff.changed.keys()) if hasattr(diff, "changed") and isinstance(diff.changed,
-                                                                                           dict) else set()
+        added_keys = (
+            set(diff.added)
+            if isinstance(diff.added, (set, list, tuple))
+            else set(getattr(diff.added, "keys", lambda: [])())
+        )
+        changed_keys = (
+            set(diff.changed.keys())
+            if hasattr(diff, "changed") and isinstance(diff.changed, dict)
+            else set()
+        )
         candidate_keys = added_keys | changed_keys
         if not candidate_keys:
             return
@@ -462,7 +485,8 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         else:
             missing = self._missing_fields(event.relation)
             logger.warning(
-                "Some mandatory fields: %s are not present, do not emit credential change event!", ",".join(missing)
+                "Some mandatory fields: %s are not present, do not emit credential change event!",
+                ",".join(missing),
             )
 
     def _on_secret_changed_event(self, event: SecretChangedEvent) -> None:
@@ -491,13 +515,16 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         else:
             missing = self._missing_fields(relation)
             logger.warning(
-                "Some mandatory fields: %s are not present, do not emit credential change event!", ",".join(missing)
+                "Some mandatory fields: %s are not present, do not emit credential change event!",
+                ",".join(missing),
             )
 
     def _on_relation_broken_event(self, event: RelationBrokenEvent) -> None:
         """Emit gone when the relation is broken."""
         logger.info("Storage relation broken...")
-        getattr(self.on, "storage_connection_info_gone").emit(event.relation, app=event.app, unit=event.unit)
+        getattr(self.on, "storage_connection_info_gone").emit(
+            event.relation, app=event.app, unit=event.unit
+        )
 
     @property
     def relations(self) -> List[Relation]:
@@ -507,7 +534,14 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
 
 class StorageRequires(StorageRequirerData, StorageRequirerEventHandlers):
     """Combine StorageRequirerData and StorageRequirerEventHandlers into a single helper."""
-    def __init__(self, charm: CharmBase, relation_name: str, backend: Literal["gcs", "s3", "azure"], overrides: Dict[str, str] | None = None) -> None:
+
+    def __init__(
+        self,
+        charm: CharmBase,
+        relation_name: str,
+        backend: Literal["gcs", "s3", "azure"],
+        overrides: Dict[str, str] | None = None,
+    ) -> None:
         """Initialize the requirer helper.
 
         Args:
@@ -534,7 +568,8 @@ class StorageProviderData(ProviderData):
 
 
 class StorageProviderEventHandlers(EventHandlers):
-    """ Listen for requirer changes and emits a higher-level events."""
+    """Listen for requirer changes and emits a higher-level events."""
+
     on = StorageProviderEvents()
 
     def __init__(
@@ -559,10 +594,14 @@ class StorageProviderEventHandlers(EventHandlers):
         if not self.charm.unit.is_leader():
             return
 
-        self.on.storage_connection_info_requested.emit(event.relation, app=event.app, unit=event.unit)
+        self.on.storage_connection_info_requested.emit(
+            event.relation, app=event.app, unit=event.unit
+        )
+
 
 class StorageProvides(StorageProviderData, StorageProviderEventHandlers):
     """Combine StorageProviderData and StorageProviderEventHandlers."""
+
     def __init__(self, charm: CharmBase, relation_name: str) -> None:
         """Initialize the provider helper.
 
@@ -587,4 +626,5 @@ class GcsStorageProviderData(StorageProviderData):
         which is hardcoded to requested-secrets as they always published.
 
     """
+
     RESOURCE_FIELD = "requested-secrets"
