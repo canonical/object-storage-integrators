@@ -13,7 +13,7 @@ class GcsRequirerTestCharm(ops.charm.CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
         self.gcs_requirer_events = GcsRequirerEvents(self)
-        self.general_events = GeneralEvents(self, self.gcs_requirer_events)
+        self.general_events = GeneralEvents(self)
 
 
 if __name__ == "__main__":
