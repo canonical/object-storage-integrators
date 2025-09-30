@@ -45,17 +45,17 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol, WithLogging):
         self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
         self.framework.observe(self.charm.on.secret_changed, self._on_secret_changed)
 
-    def _on_update_status(self, event: UpdateStatusEvent) -> None:
+    def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handle the update status event."""
-        self.charm.provider_events.publish_to_all_relations(event)
+        self.charm.provider_events.publish_to_all_relations()
 
-    def _on_config_changed(self, event: ConfigChangedEvent) -> None:
+    def _on_config_changed(self, _: ConfigChangedEvent) -> None:
         """Event handler for the configuration changed events."""
         if not self.charm.unit.is_leader():
             return
 
         self.logger.debug(f"Config changed. Current configuration: {self.charm.config}")
-        self.charm.provider_events.publish_to_all_relations(event)
+        self.charm.provider_events.publish_to_all_relations()
 
     def _on_secret_changed(self, event: SecretChangedEvent) -> None:
         """Handle the secret changed event.
@@ -73,7 +73,7 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol, WithLogging):
         if self.charm.config.get("credentials") != secret.id:
             return
 
-        self.charm.provider_events.publish_to_all_relations(event)
+        self.charm.provider_events.publish_to_all_relations()
 
     def get_statuses(self, scope: Scope, recompute: bool = False) -> list[StatusObject]:
         """Return the list of statuses for this component."""
