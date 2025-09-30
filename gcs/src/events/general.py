@@ -6,12 +6,11 @@
 
 from typing import TYPE_CHECKING, cast
 
-import ops
 from charms.data_platform_libs.v0.object_storage import GcsStorageProviderData
 from data_platform_helpers.advanced_statuses.models import StatusObject
 from data_platform_helpers.advanced_statuses.protocol import ManagerStatusProtocol
 from data_platform_helpers.advanced_statuses.types import Scope
-from ops.charm import ConfigChangedEvent, StartEvent
+from ops.charm import ConfigChangedEvent, SecretChangedEvent, UpdateStatusEvent
 from pydantic import ValidationError
 
 from constants import GCS_RELATION_NAME
@@ -42,16 +41,11 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol, WithLogging):
         self.charm = charm
         self.state = context
         self.gcs_provider_data = GcsStorageProviderData(self.charm.model, GCS_RELATION_NAME)
-        self.framework.observe(self.charm.on.start, self._on_start)
         self.framework.observe(self.charm.on.update_status, self._on_update_status)
         self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
         self.framework.observe(self.charm.on.secret_changed, self._on_secret_changed)
 
-    def _on_start(self, _: StartEvent) -> None:
-        """Handle the charm startup event."""
-        pass
-
-    def _on_update_status(self, event: ops.UpdateStatusEvent):
+    def _on_update_status(self, event: UpdateStatusEvent) -> None:
         """Handle the update status event."""
         self.charm.provider_events.publish_to_all_relations(event)
 
@@ -63,7 +57,7 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol, WithLogging):
         self.logger.debug(f"Config changed. Current configuration: {self.charm.config}")
         self.charm.provider_events.publish_to_all_relations(event)
 
-    def _on_secret_changed(self, event: ops.SecretChangedEvent):
+    def _on_secret_changed(self, event: SecretChangedEvent) -> None:
         """Handle the secret changed event.
 
         When a secret is changed, it is first checked that whether this particular secret

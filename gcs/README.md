@@ -33,7 +33,7 @@ This is an operator charm providing an integrator for connecting to Google Cloud
 
 5. Now the charm should be in active and idle condition. To relate it with a consumer charm, simply do:
     ```
-    juju integrate gcs-integrator:gcs-credentials consumer-charm:some-interface
+    juju integrate gcs-integrator:gcs-credentials consumer-charm:gcs-credentials
     ```
 
 Now whenever the user changes the configuration options in gcs-integrator charm, appropriate event handlers are fired

@@ -7,14 +7,13 @@ from pathlib import Path
 import jubilant
 import pytest
 
-
-def pytest_addoption(parser):
-    parser.addoption(
-        "--keep-models",
-        action="store_true",
-        default=False,
-        help="keep temporarily-created models",
-    )
+# def pytest_addoption(parser):
+#    parser.addoption(
+#        "--keep-models",
+#        action="store_true",
+#        default=False,
+#        help="keep temporarily-created models",
+#    )
 
 
 @pytest.fixture(scope="module")

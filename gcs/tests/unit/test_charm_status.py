@@ -13,7 +13,7 @@ def test_config_when_missing_mandatory_configuration_then_status_set_to_blocked(
     metadata, actions, charm_config, base_state, mk_ctx
 ):
     ctx = mk_ctx(metadata, actions, charm_config)
-    out = ctx.run(ctx.on.start(), base_state)
+    out = ctx.run(ctx.on.config_changed(), base_state)
     assert isinstance(out.unit_status, BlockedStatus)
     assert "Missing config(s)" in (out.unit_status.message or "").lstrip()
 
@@ -31,7 +31,7 @@ def test_config_when_valid_configuration_then_status_set_to_active(
     ctx = mk_ctx(metadata, actions, charm_config)
     state_in = dataclasses.replace(base_state, secrets={credentials_secret})
 
-    state_out = ctx.run(ctx.on.start(), state_in)
+    state_out = ctx.run(ctx.on.config_changed(), state_in)
     assert state_out.unit_status == ActiveStatus()
 
 
@@ -48,5 +48,5 @@ def test_config_when_invalid_configuration_then_status_set_to_blocked(
     ctx = mk_ctx(metadata, actions, charm_config)
     state_in = dataclasses.replace(base_state, secrets={credentials_secret})
 
-    state_out = ctx.run(ctx.on.start(), state_in)
+    state_out = ctx.run(ctx.on.config_changed(), state_in)
     assert state_out.unit_status == BlockedStatus("Invalid config(s): 'bucket'")

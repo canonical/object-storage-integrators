@@ -10,7 +10,7 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fi
 class SecretDoesNotExistError(SecretNotFoundError):
     """The secret does not exist in Juju model."""
 
-    def __init__(self, message: str, secret_id: str):
+    def __init__(self, message: str, secret_id: str) -> None:
         super().__init__(message)
         self.secret_id = secret_id
 
@@ -18,7 +18,7 @@ class SecretDoesNotExistError(SecretNotFoundError):
 class SecretFieldMissingError(ValueError):
     """A mandatory field is missing in the secret content."""
 
-    def __init__(self, message: str, secret_id: str, missing_fields: list[str]):
+    def __init__(self, message: str, secret_id: str, missing_fields: list[str]) -> None:
         super().__init__(message)
         self.secret_id = secret_id
         self.missing_fields = missing_fields
@@ -27,7 +27,7 @@ class SecretFieldMissingError(ValueError):
 class SecretNotGrantedError(ModelError):
     """The secret has not been granted to the charm."""
 
-    def __init__(self, message: str, secret_id: str):
+    def __init__(self, message: str, secret_id: str) -> None:
         super().__init__(message)
         self.secret_id = secret_id
 
@@ -35,7 +35,7 @@ class SecretNotGrantedError(ModelError):
 class SecretDecodeError(ModelError):
     """The secret could not be decoded from the Secret ID."""
 
-    def __init__(self, message: str, secret_id: str):
+    def __init__(self, message: str, secret_id: str) -> None:
         super().__init__(message)
         self.secret_id = secret_id
 
@@ -46,13 +46,28 @@ class SecretDecodeError(ModelError):
     retry=retry_if_exception_type(SecretNotGrantedError),
     reraise=True,
 )
-def decode_secret_key_with_retry(model: Model, secret_id: str):
-    """Try to decode the secret key, retry for 3 times before failing."""
+def decode_secret_key_with_retry(model: Model, secret_id: str) -> str:
+    """Try to decode the secret key, retry for 3 times before failing.
+
+    Args:
+        model (Model): The model to decode the secret key with.
+        secret_id (str): The secret ID.
+
+    Returns:
+        str: The decoded secret key.
+    """
     return decode_secret_key(model, secret_id)
 
 
 def normalize(secret_uri: str) -> str:
-    """Normalize the secret URI."""
+    """Normalize the secret URI.
+
+    Args:
+        secret_uri (str): The secret URI.
+
+    Returns:
+        str: The normalized secret URI.
+    """
     return (
         secret_uri.split("secret:", 1)[1].strip()
         if secret_uri.startswith("secret:")
