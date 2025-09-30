@@ -38,8 +38,8 @@ pytest = "^8.1.1"
 pytest-asyncio = "*"
 
 [tool.poetry.group.integration.dependencies]
-pytest = "^8.1.1"
-jubilant = "^1.0.0"
+pytest = "^8.4.2"
+jubilant = "^1.4.0"
 
 # Testing tools configuration
 
