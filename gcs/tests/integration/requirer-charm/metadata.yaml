@@ -1,0 +1,16 @@
+name: requirer-charm
+summary: Minimal requirer charm for the gcs interface
+description: Consumes gcs-credentials from gcs-integrator and reads secret-key.
+type: charm
+bases:
+  - build-on:
+      - name: ubuntu
+        channel: "24.04"
+    run-on:
+      - name: ubuntu
+        channel: "24.04"
+
+requires:
+  gcs-credentials:
+    interface: gcs
+    limit: 1

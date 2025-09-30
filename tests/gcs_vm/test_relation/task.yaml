@@ -1,0 +1,6 @@
+summary: test_relation.py
+environment:
+  TEST_MODULE: test_relation.py
+execute: |
+  cd "$SPREAD_PATH/gcs"
+  tox run -e integration -- "tests/integration/$TEST_MODULE" -x
