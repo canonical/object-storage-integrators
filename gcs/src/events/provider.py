@@ -21,7 +21,6 @@ from core.context import Context
 from events.base import BaseEventHandler
 from events.statuses import CharmStatuses
 from utils.logging import WithLogging
-from utils.secrets import normalize
 
 if TYPE_CHECKING:
     from charm import GCStorageIntegratorCharm
@@ -64,15 +63,10 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
 
     def _build_payload(self) -> Dict[str, str]:
         """Build the provider payload (non-secret + secret fields)."""
-        cfg = self.charm.config
         if not self.state.gc_storage:
             return {}
 
         raw_data = self.state.gc_storage.to_dict()
-
-        secret_ref = (cfg.get("credentials") or "").strip()
-
-        raw_data["secret-key"] = normalize(secret_ref)
 
         return {k: v for k, v in raw_data.items() if v not in (None, "")}
 
