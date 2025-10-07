@@ -7,9 +7,8 @@
 from typing import TYPE_CHECKING, Dict
 
 from charms.data_platform_libs.v0.object_storage import (
-    GcsStorageProviderData,
+    GcsStorageProviderEventHandlers,
     StorageConnectionInfoRequestedEvent,
-    StorageProviderEventHandlers,
 )
 from data_platform_helpers.advanced_statuses.models import StatusObject
 from data_platform_helpers.advanced_statuses.protocol import ManagerStatusProtocol
@@ -35,8 +34,7 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
         self.charm = charm
         self.state = context
 
-        self.gcs_provider_data = GcsStorageProviderData(self.charm.model, GCS_RELATION_NAME)
-        self.gcs_provider = StorageProviderEventHandlers(self.charm, self.gcs_provider_data)
+        self.gcs_provider = GcsStorageProviderEventHandlers(self.charm)
 
         self.framework.observe(
             self.gcs_provider.on.storage_connection_info_requested,
@@ -77,7 +75,7 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
         if not payload or not relation or not relation.app:
             return payload
         remote = (
-            self.gcs_provider_data.fetch_relation_data([relation.id]).get(relation.id)
+            self.gcs_provider.relation_data.fetch_relation_data([relation.id]).get(relation.id)
             if relation
             else None
         )
@@ -98,7 +96,7 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
         self.logger.info("base_payload %s", base)
 
         payload = self._merge_requirer_override(relation, base)
-        self.gcs_provider_data.update_relation_data(relation.id, payload)
+        self.gcs_provider.relation_data.update_relation_data(relation.id, payload)
         self.logger.info("Published GCS payload to relation %s", relation.id)
         self._add_status(CharmStatuses.ACTIVE_IDLE.value)
 

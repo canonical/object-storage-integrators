@@ -5,7 +5,7 @@ import logging
 from typing import Dict, Optional
 
 from charms.data_platform_libs.v0.object_storage import (
-    StorageRequires,
+    GcsStorageRequires,
 )
 from ops.charm import CharmBase
 from ops.framework import Object
@@ -27,8 +27,8 @@ class GcsRequirerEvents(Object):
         super().__init__(charm, "gcs-requirer")
         self.charm = charm
         self.relation_name = relation_name
-        self.storage = StorageRequires(
-            charm, relation_name, BACKEND_NAME, overrides=self.overrides_from_config()
+        self.storage = GcsStorageRequires(
+            charm, relation_name, overrides=self.overrides_from_config()
         )
         self.framework.observe(
             self.storage.on.storage_connection_info_changed, self._on_conn_info_changed

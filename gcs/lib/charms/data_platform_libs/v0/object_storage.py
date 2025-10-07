@@ -17,12 +17,11 @@ Example:
 ```python
 
 from charms.data_platform_libs.v0.object_storage import (
-    GcsStorageProviderData,
     StorageConnectionInfoRequestedEvent,
-    StorageProviderEventHandlers,
+    GcsStorageProviderEventHandlers,
 )
 
-class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLogging):
+class ExampleStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLogging):
 
     def __init__(self, charm: "GCStorageIntegratorCharm", context: Context):
         self.name = "gc-storage-provider"
@@ -30,8 +29,7 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
         self.charm = charm
         self.state = context
 
-        self.gcs_provider_data = GcsStorageProviderData(self.charm.model, GCS_RELATION_NAME)
-        self.gcs_provider = StorageProviderEventHandlers(self.charm, self.gcs_provider_data)
+        self.gcs_provider = GcsStorageProviderEventHandlers(self.charm)
 
         self.framework.observe(
             self.gcs_provider.on.storage_connection_info_requested,
@@ -40,17 +38,6 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
         self.framework.observe(
             self.charm.on[GCS_RELATION_NAME].relation_broken, self._on_gcs_relation_broken
         )
-
-    def publish_to_relation(self, relation: Relation) -> None:
-        if not self.charm.unit.is_leader() or relation is None:
-            return
-        base = self._build_payload()
-        self.logger.info("base_payload %s", base)
-
-        payload = self._merge_requirer_override(relation, base)
-        self.gcs_provider_data.update_relation_data(relation.id, payload)
-        self.logger.info("Published GCS payload to relation %s", relation.id)
-        self._add_status(CharmStatuses.ACTIVE_IDLE.value)
 
     def _on_storage_connection_info_requested(
         self, event: StorageConnectionInfoRequestedEvent
@@ -84,7 +71,7 @@ Example:
 ```python
 
 from charms.data_platform_libs.v0.object_storage import (
-    StorageRequires,
+    GcsStorageRequires,
 )
 
 REL_NAME = "gcs-credentials"
@@ -100,29 +87,24 @@ class ExampleRequirerCharm(CharmBase):
         super().__init__(charm, "gcs-requirer")
         self.charm = charm
         self.relation_name = relation_name
-        self.storage = StorageRequires(charm, relation_name, BACKEND_NAME, overrides={})
+        self.storage = GcsStorageRequires(
+            charm, relation_name, overrides=self.overrides_from_config()
+        )
         self.framework.observe(
             self.storage.on.storage_connection_info_changed, self._on_conn_info_changed
         )
         self.framework.observe(
             self.storage.on.storage_connection_info_gone, self._on_conn_info_gone
         )
-        self.framework.observe(
-            self.storage.on[self.relation_name].relation_joined, self._on_relation_joined
-        )
 
         self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
 
-        self._last_sent_overrides: Dict[str, str] = {}
+        self.framework.observe(self.charm.on.start, lambda e: self.refresh_status())
+        self.framework.observe(self.charm.on.update_status, lambda e: self.refresh_status())
 
     def _on_config_changed(self, _):
-        ov = self.overrides_from_config()
-        self.apply_overrides(ov)
+        self.storage.set_overrides(self.overrides_from_config(), push=True)
         self.refresh_status()
-
-    def _on_relation_joined(self, event):
-        ov = self.overrides_from_config()
-        self.apply_overrides(ov, relation_id=event.relation.id)
 
     def _on_conn_info_changed(self, event):
         payload = self._load_payload(event.relation)
@@ -132,8 +114,8 @@ class ExampleRequirerCharm(CharmBase):
         missing = [k for k, v in (("bucket", bucket), ("secret-key", secret_content)) if not v]
         if missing:
             self.charm.unit.status = BlockedStatus("missing data: " + ", ".join(missing))
+            return
 
-Return:
         self.charm.unit.status = ActiveStatus(f"gcs ok: bucket={bucket}")
 
     def _on_conn_info_gone(self, event):
@@ -184,6 +166,10 @@ LIBPATCH = 1
 logger = logging.getLogger(__name__)
 
 StorageBackend: TypeAlias = Literal["gcs", "s3", "azure"]
+
+DEFAULT_REL_GCS = "gcs-credentials"
+DEFAULT_REL_S3 = "s3-credentials"
+DEFAULT_REL_AZURE = "azure-credentials"
 
 
 @dataclass(frozen=True)
@@ -318,9 +304,9 @@ class ObjectStorageEvent(HookEvent):
 
         The string includes:
           - the concrete event class name,
-          - the remote application name (or None),
-          - the remote unit name (or None),
-          - the relation object (repr),
+          - the remote application name,
+          - the remote unit name,
+          - the relation object,
           - and the framework handle that delivered the event.
 
         Returns:
@@ -683,6 +669,57 @@ class StorageRequires(StorageRequirerData, StorageRequirerEventHandlers):
         return StorageRequirerEventHandlers.set_overrides(self, *args, **kwargs)
 
 
+class GcsStorageRequires(StorageRequires):
+    """Requirer helper preconfigured for the GCS backend.
+
+    Args:
+        charm: Parent charm.
+        relation_name: Relation endpoint
+        overrides: Optional requirer-side overrides to write on join/push.
+    """
+    def __init__(
+        self,
+        charm: CharmBase,
+        relation_name: str = DEFAULT_REL_GCS,
+        overrides: dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(charm, relation_name, backend="gcs", overrides=overrides)
+
+
+class S3StorageRequires(StorageRequires):
+    """Requirer helper preconfigured for the S3 backend.
+
+    Args:
+        charm: Parent charm.
+        relation_name: Relation endpoint
+        overrides: Optional requirer-side overrides to write on join/push.
+    """
+    def __init__(
+        self,
+        charm: CharmBase,
+        relation_name: str = DEFAULT_REL_S3,
+        overrides: dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(charm, relation_name, backend="s3", overrides=overrides)
+
+
+class AzureStorageRequires(StorageRequires):
+    """Requirer helper preconfigured for the Azure backend.
+
+    Args:
+        charm: Parent charm.
+        relation_name: Relation endpoint
+        overrides: Optional requirer-side overrides to write on join/push.
+    """
+    def __init__(
+        self,
+        charm: CharmBase,
+        relation_name: str = DEFAULT_REL_AZURE,
+        overrides: dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(charm, relation_name, backend="azure", overrides=overrides)
+
+
 class StorageProviderData(ProviderData):
     """Responsible for publishing provider-owned connection information to the relation databag."""
 
@@ -742,3 +779,25 @@ class GcsStorageProviderData(StorageProviderData):
     """
 
     RESOURCE_FIELD = "requested-secrets"
+
+
+class GcsStorageProviderEventHandlers(StorageProviderEventHandlers):
+    """Provider-side event handlers preconfigured for GCS.
+    Args:
+        charm (CharmBase): Parent charm.
+        relation_name (str): Relation endpoint name.
+        unique_key (str): Optional key used by the base handler for
+            idempotency or uniq semantics
+    """
+
+    def __init__(
+        self,
+        charm: CharmBase,
+        relation_name: str = DEFAULT_REL_GCS,
+        unique_key: str = "",
+    ):
+        super().__init__(
+            charm=charm,
+            relation_data=GcsStorageProviderData(charm.model, relation_name),
+            unique_key=unique_key,
+        )
