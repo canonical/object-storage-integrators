@@ -6,7 +6,7 @@ package-mode = false
 requires-poetry = ">=2.0.0"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.11"
 ops = {version = ">=2.18.0", extras = ["testing"]}
 tenacity = "^9.1.2"
 pydantic = "^2.8"
@@ -40,6 +40,7 @@ pytest-asyncio = "*"
 [tool.poetry.group.integration.dependencies]
 pytest = "^8.4.2"
 jubilant = "^1.4.0"
+juju = "^3.6.0.0"
 
 # Testing tools configuration
 
