@@ -89,7 +89,6 @@ class S3Manager(WithLogging):
         with self.s3_resource() as resource:
             bucket: Bucket = resource.Bucket(bucket_name)
             try:
-                resource.meta.client.list_objects_v2(Bucket=bucket_name, Prefix="")
                 resource.meta.client.head_bucket(Bucket=bucket_name)
                 return bucket
             except (
