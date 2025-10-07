@@ -14,24 +14,54 @@ This is an operator charm providing an integrator for connecting to Google Cloud
     juju deploy gcs-integrator
     ```
 
-2. Configure the GC Storage Integrator charm as:
+2. Set the bucket name:
     ```
     juju config gcs-integrator bucket=foo
     ```
+3. Create a service account key (service_account.json) via Console:
 
-3. Add a new secret to Juju, and grant it's permissions to gcs-integrator using a valid service account JSON file.
+   1. IAM & Admin -> Service Accounts -> Create service account (e.g. gcs-integrator).
+
+   2. Grant the minimum roles your workload needs:
+
+     - Read/write objects (recommended minimum): roles/storage.objectAdmin
+
+     - Read-only objects: roles/storage.objectViewer
+
+     - Manage buckets (only if needed): roles/storage.admin
+
+   3. Keys -> Add key -> Create new key -> JSON -> download.
+    
+    The file looks like the one in below:
+```json
+{
+  "type": "service_account",
+  "project_id": "my-project-id",
+  "private_key_id": "abcdef1234567890abcdef1234567890abcdef12",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEv......\n-----END PRIVATE KEY-----\n",
+  "client_email": "gcs-integrator@my-project-id.iam.gserviceaccount.com",
+  "client_id": "123456789012345678901",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/gcs-integrator%40my-project-id.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+ }
+```
+
+4. Add the JSON as a Juju secret and grant it to the integrator.
     ```
     juju add-secret mysecret secret-key#file=service_account.json
 
     juju grant-secret mysecret gcs-integrator
     ```
 
-4. Configure the Google Cloud Storage Integrator charm:
+5. Configure the GCS Integrator charm by providing Juju secret ID:
     ```
     juju config gcs-integrator credentials=secret-xxxxxxxxxxxxxxxxxxxx
     ```
 
-5. Now the charm should be in active and idle condition. To relate it with a consumer charm, simply do:
+6. Wait until the charm is active and idle. Then, relate your consumer charm to the integrator:
     ```
     juju integrate gcs-integrator:gcs-credentials consumer-charm:gcs-credentials
     ```
@@ -46,5 +76,5 @@ Security issues in the GCS Integrator Operator can be reported through [LaunchPa
 
 ## Contributing
 
-Please see the [Juju SDK docs](https://juju.is/docs/sdk) for guidelines on enhancements to this charm following best practice guidelines, and [CONTRIBUTING.md](https://github.com/canonical/object-storage-integrators/blob/main/CONTRIBUTING.md) for developer guidance.
+Please see the [Juju SDK docs](https://documentation.ubuntu.com/juju/3.6/) for guidelines on enhancements to this charm following best practice guidelines, and [CONTRIBUTING.md](https://github.com/canonical/object-storage-integrators/blob/main/CONTRIBUTING.md) for developer guidance.
 
