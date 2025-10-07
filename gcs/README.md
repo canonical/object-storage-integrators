@@ -9,7 +9,7 @@ This is an operator charm providing an integrator for connecting to Google Cloud
 
 
 ## Instructions for Usage
-1. First off all, deploy the `gcs-integrator` charm as:
+1. Deploy the `gcs-integrator` charm:
     ```
     juju deploy gcs-integrator
     ```
