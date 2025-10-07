@@ -81,6 +81,7 @@ backends:
     # Manually pass specific environment variables
     environment:
       CI: '$(HOST: echo $CI)'
+      CHARM_UBUNTU_BASE: '$(HOST: echo $CHARM_UBUNTU_BASE)'
     systems:
       - ubuntu-24.04:
           username: runner
