@@ -54,7 +54,7 @@ def test_bucket_rules_when_invlid_bucket_name_given_then_raise(bucket):
         ("ColdLine", "COLDLINE"),
         ("archive", "ARCHIVE"),
         ("", None),
-        (None, None),
+        (None, "STANDARD"),
     ],
 )
 def test_storage_class_when_lowercase_given_then_always_return_uppercase(val, expected):

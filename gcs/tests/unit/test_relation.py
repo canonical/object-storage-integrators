@@ -73,7 +73,6 @@ def test_provider_when_relation_joined_and_requested_secrets_in_databag_then_pro
     out = ctx.run(ctx.on.relation_changed(rel), state)
     rel_out = out.get_relations(REL)[0]
     app_data = rel_out.local_app_data
-
     assert app_data["bucket"] == "bucket-name"
     assert len(app_data["secret-extra"]) == 27
 

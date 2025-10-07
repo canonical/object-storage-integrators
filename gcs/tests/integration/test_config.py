@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 
 import jubilant
+from conftest import ensure_deployed
 
 APP = "gcs-provider"
 
@@ -33,7 +34,7 @@ def test_provider_config_when_deploy_then_missing_config_is_reported_in_status(
     juju: jubilant.Juju, gcs_charm: Path
 ) -> None:
     logger.info("Deploying charm and creating secret")
-    juju.deploy(gcs_charm, app=APP, trust=True)
+    ensure_deployed(juju, gcs_charm, app=APP, trust=True)
     status = juju.wait(
         lambda status: jubilant.all_blocked(status) and jubilant.all_agents_idle(status), delay=5
     )
@@ -44,6 +45,7 @@ def test_provider_config_when_deploy_then_missing_config_is_reported_in_status(
 def test_provider_config_when_configure_provider_then_status_is_active(
     juju, gcs_charm, tmp_path: Path
 ):
+    ensure_deployed(juju, gcs_charm, app=APP, trust=True)
     sa_file = _write_fake_sa(tmp_path)
     content = Path(sa_file).read_text()
     secret_uri = juju.add_secret("gcs-cred-dummy", {"secret-key": content})
@@ -60,9 +62,10 @@ def test_provider_config_when_configure_provider_then_status_is_active(
 
 
 def test_provider_config_when_remove_credentials_config_then_status_is_set_to_blocked(
-    juju: jubilant.Juju,
+    juju: jubilant.Juju, gcs_charm
 ) -> None:
     """Test the charm behavior when non-existent secret URI is given as credentials."""
+    ensure_deployed(juju, gcs_charm, app=APP, trust=True)
     secret_uri = juju.add_secret(name="nonexistent_secret", content={"foo": "bar"})
     juju.cli("remove-secret", secret_uri)
     juju.config(APP, {"credentials": secret_uri})
@@ -76,6 +79,7 @@ def test_provider_config_when_remove_credentials_config_then_status_is_set_to_bl
 def test_provider_config_when_secret_not_granted_then_status_is_blocked(
     juju, gcs_charm, tmp_path: Path
 ):
+    ensure_deployed(juju, gcs_charm, app=APP, trust=True)
     sa_file = _write_fake_sa(tmp_path)
     content = Path(sa_file).read_text()
     secret_uri = juju.add_secret("gcs-cred-dummy", {"secret-key": content})
@@ -97,6 +101,7 @@ def test_provider_config_when_secret_not_granted_then_status_is_blocked(
 def test_provider_config_when_invalid_bucket_then_status_is_set_to_blocked(
     juju: jubilant.Juju, gcs_charm: Path, tmp_path: Path
 ):
+    ensure_deployed(juju, gcs_charm, app=APP, trust=True)
     sa_file = _write_fake_sa(tmp_path)
     content = Path(sa_file).read_text()
     secret_uri = juju.add_secret("gcs-cred-dummy", {"secret-key": content})
