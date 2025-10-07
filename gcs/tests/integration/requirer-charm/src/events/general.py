@@ -22,7 +22,6 @@ class GeneralEvents(Object):
         self.framework.observe(self.charm.on.start, self._on_start)
         self.framework.observe(self.charm.on.update_status, self._on_update_status)
         self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
-        self.framework.observe(self.charm.on.secret_changed, self._on_secret_changed)
 
     def _on_start(self, _: StartEvent):
         self.gcs.refresh_status()
@@ -31,9 +30,6 @@ class GeneralEvents(Object):
         self.gcs.refresh_status()
 
     def _on_config_changed(self, event: ConfigChangedEvent):
-        if self.charm.unit.is_leader():
-            ov = self.gcs.overrides_from_config()
-            self.gcs.apply_overrides(ov)
-
-    def _on_secret_changed(self, event: ops.SecretChangedEvent):
-        self.gcs.handle_secret_changed(event)
+        ov = self.gcs.overrides_from_config()
+        self.gcs.storage.set_overrides(ov, push=True)
+        self.gcs.refresh_status()

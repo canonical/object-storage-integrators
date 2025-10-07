@@ -150,7 +150,7 @@ Return:
 
 import logging
 from dataclasses import dataclass
-from typing import ClassVar, Dict, List, Literal, Optional
+from typing import Any, ClassVar, Iterable, Literal, TypeAlias
 
 from charms.data_platform_libs.v0.data_interfaces import (
     EventHandlers,
@@ -158,22 +158,21 @@ from charms.data_platform_libs.v0.data_interfaces import (
     RequirerData,
     RequirerEventHandlers,
 )
-from ops import Model
+from ops import Model, model
 from ops.charm import (
     CharmBase,
     CharmEvents,
+    HookEvent,
     RelationBrokenEvent,
     RelationChangedEvent,
-    RelationEvent,
     RelationJoinedEvent,
     SecretChangedEvent,
 )
-from ops.framework import EventSource
+from ops.framework import EventSource, Handle
 from ops.model import Relation
 
 # The unique Charmhub library identifier, never change it
-# # TODO: a new library ID should be generated
-LIBID = "fca396f6254246c9bfa5650000000000"
+LIBID = "a5cd08394d024dba9dbaad10166b6176"
 
 # Increment this major API version when introducing breaking changes
 LIBAPI = 0
@@ -183,6 +182,8 @@ LIBAPI = 0
 LIBPATCH = 1
 
 logger = logging.getLogger(__name__)
+
+StorageBackend: TypeAlias = Literal["gcs", "s3", "azure"]
 
 
 @dataclass(frozen=True)
@@ -201,12 +202,12 @@ class _Contract:
             register and track these secrets for the requirer.
     """
 
-    required_info: List[str]
-    optional_info: List[str]
-    secret_fields: List[str]
+    required_info: list[str]
+    optional_info: list[str]
+    secret_fields: list[str]
 
 
-_CONTRACTS: Dict[Literal["gcs", "s3", "azure"], _Contract] = {
+_CONTRACTS: dict[StorageBackend, _Contract] = {
     "gcs": _Contract(
         required_info=["bucket", "secret-key"],
         optional_info=["storage-class", "path"],
@@ -232,10 +233,102 @@ _CONTRACTS: Dict[Literal["gcs", "s3", "azure"], _Contract] = {
 }
 
 
-class ObjectStorageEvent(RelationEvent):
-    """The class representing an object storage event."""
+class ObjectStorageEvent(HookEvent):
+    """Base storage event carrying relation/app/unit context."""
 
-    pass
+    relation: model.Relation
+    """The relation involved in this event."""
+
+    app: model.Application
+    """The remote application that has triggered this event."""
+
+    unit: model.Unit | None
+    """The remote unit that has triggered this event."""
+
+    def __init__(
+        self,
+        handle: Handle,
+        relation: model.Relation,
+        app: model.Application | None = None,
+        unit: model.Unit | None = None,
+    ):
+        super().__init__(handle)
+
+        if unit is not None and unit.app != app:
+            raise RuntimeError(
+                f"cannot create RelationEvent with application {app} and unit {unit}"
+            )
+
+        self.relation = relation
+        if app is None:
+            logger.warning(
+                "'app' expected but not received, see https://bugs.launchpad.net/juju/+bug/1960934"
+            )
+            self.app = None  # type: ignore
+        else:
+            self.app = app
+        self.unit = unit
+
+    def snapshot(self) -> dict[str, Any]:
+        """Used by the framework to serialize the event to disk.
+
+        Not meant to be called by charm code.
+        """
+        snapshot: dict[str, Any] = {
+            "relation_name": self.relation.name,
+            "relation_id": self.relation.id,
+        }
+        if self.app:
+            snapshot["app_name"] = self.app.name
+        if self.unit:
+            snapshot["unit_name"] = self.unit.name
+        return snapshot
+
+    def restore(self, snapshot: dict[str, Any]):
+        """Used by the framework to deserialize the event from disk.
+
+        Not meant to be called by charm code.
+        """
+        relation = self.framework.model.get_relation(
+            snapshot["relation_name"], snapshot["relation_id"]
+        )
+        if relation is None:
+            raise ValueError(
+                "Unable to restore {}: relation {} (id={}) not found.".format(
+                    self, snapshot["relation_name"], snapshot["relation_id"]
+                )
+            )
+        self.relation = relation
+
+        app_name = snapshot.get("app_name")
+        if app_name:
+            self.app = self.framework.model.get_app(app_name)
+        else:
+            logger.warning("'app_name' expected in snapshot but not found.")
+            self.app = None  # type: ignore
+
+        unit_name = snapshot.get("unit_name")
+        if unit_name:
+            self.unit = self.framework.model.get_unit(unit_name)
+        else:
+            self.unit = None
+
+    def __repr__(self):
+        """Return a debug friendly representation of this event.
+
+        The string includes:
+          - the concrete event class name,
+          - the remote application name (or None),
+          - the remote unit name (or None),
+          - the relation object (repr),
+          - and the framework handle that delivered the event.
+
+        Returns:
+            str: A formatted string useful for logs and debugging.
+        """
+        app = None if self.app is None else self.app.name
+        unit = None if self.unit is None else self.unit.name
+        return f"<{self.__class__.__name__} {app=} {unit=} on {self.relation!r} via {self.handle}>"
 
 
 class StorageConnectionInfoRequestedEvent(ObjectStorageEvent):
@@ -250,7 +343,7 @@ class StorageConnectionInfoChangedEvent(ObjectStorageEvent):
     pass
 
 
-class StorageConnectionInfoGoneEvent(RelationEvent):
+class StorageConnectionInfoGoneEvent(ObjectStorageEvent):
     """The class representing an object storage connection info gone event."""
 
     pass
@@ -306,14 +399,14 @@ class StorageRequirerData(RequirerData):
     so different backends (S3, Azure, GCS) can reuse the same flow.
     """
 
-    SECRET_FIELDS: ClassVar[List[str]] = []
+    SECRET_FIELDS: ClassVar[list[str]] = []
     SECRET_LABEL_MAP = {}
 
     def __init__(
         self,
         model: Model,
         relation_name: str,
-        backend: Literal["gcs", "s3", "azure"],
+        backend: StorageBackend,
     ) -> None:
         """Create a new requirer data manager for a given relation.
 
@@ -359,7 +452,7 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
     on = StorageRequirerEvents()  # pyright: ignore[reportAssignmentType]
 
     def __init__(
-        self, charm: CharmBase, relation_data: StorageRequirerData, overrides: Dict[str, str]
+        self, charm: CharmBase, relation_data: StorageRequirerData, overrides: dict[str, str]
     ):
         """Initialize the requirer event handlers.
 
@@ -379,6 +472,7 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         self.local_unit = self.charm.unit
         self.contract = relation_data.contract
         self.overrides = overrides
+        self._last_overrides: dict[str, str] = {}
 
         self.framework.observe(
             self.charm.on[self.relation_name].relation_joined, self._on_relation_joined_event
@@ -393,11 +487,14 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
             self._on_relation_broken_event,
         )
 
+    def _active_relations(self) -> list[Relation]:
+        return list(self.charm.model.relations.get(self.relation_name, []))
+
     def _all_required_info_present(self, relation: Relation) -> bool:
         info = self.get_storage_connection_info(relation)
         return all(k in info for k in self.contract.required_info)
 
-    def _missing_fields(self, relation: Relation) -> List[str]:
+    def _missing_fields(self, relation: Relation) -> list[str]:
         info = self.get_storage_connection_info(relation)
         missing = []
         for k in self.contract.required_info:
@@ -405,33 +502,66 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
                 missing.append(k)
         return missing
 
+    @staticmethod
+    def _get_keys_as_set(obj) -> set[str]:
+        if obj is None:
+            return set()
+        if isinstance(obj, dict):
+            return set(obj.keys())
+        if isinstance(obj, Iterable) and not isinstance(obj, (str, bytes)):
+            return set(obj)
+        return set()
+
     def _register_new_secrets(self, event: RelationChangedEvent) -> None:
         diff = self._diff(event)
-        added_keys = (
-            set(diff.added)
-            if isinstance(diff.added, (set, list, tuple))
-            else set(getattr(diff.added, "keys", lambda: [])())
+
+        candidate = self._get_keys_as_set(getattr(diff, "added", None)) | self._get_keys_as_set(
+            getattr(diff, "changed", None)
         )
-        changed_keys = (
-            set(diff.changed.keys())
-            if hasattr(diff, "changed") and isinstance(diff.changed, dict)
-            else set()
-        )
-        candidate_keys = added_keys | changed_keys
-        if not candidate_keys:
+        if not candidate:
             return
 
         # Get keys which are declared as secret in the contract
-        secret_keys = [k for k in candidate_keys if self.relation_data._is_secret_field(k)]
+        secret_keys = [k for k in candidate if self.relation_data._is_secret_field(k)]
         if not secret_keys:
             return
 
         self.relation_data._register_secrets_to_relation(event.relation, secret_keys)
 
+    def set_overrides(
+        self,
+        overrides: dict[str, str] | None,
+        *,
+        push: bool = True,
+        relation_id: int | None = None,
+    ) -> None:
+        """Update default overrides for all relations using push True.
+
+        Args:
+          overrides: New overrides (None means {}).
+          push: If True, also write to existing relation(s) now.
+          relation_id: Limit pushing to a specific relation id.
+        """
+        new_overrides = (overrides or {}).copy()
+        if new_overrides == self._last_overrides == self.overrides:
+            return
+        self.overrides = new_overrides
+
+        if not push:
+            return
+
+        if relation_id is not None:
+            self.write_overrides(new_overrides, relation_id=relation_id)
+        else:
+            for rel in self._active_relations():
+                self.write_overrides(new_overrides, relation_id=rel.id)
+
+        self._last_overrides = new_overrides.copy()
+
     def write_overrides(
         self,
-        overrides: Dict[str, str],
-        relation_id: Optional[int] = None,
+        overrides: dict[str, str],
+        relation_id: int | None = None,
     ) -> None:
         """Write/merge override keys into the requirer app databag.
 
@@ -456,7 +586,7 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         if self.overrides:
             self.write_overrides(self.overrides, relation_id=event.relation.id)
 
-    def get_storage_connection_info(self, relation: Relation) -> Dict[str, str]:
+    def get_storage_connection_info(self, relation: Relation) -> dict[str, str]:
         """Assemble the storage connection info for a relation.
 
         Combines the provider-published relation data and any readable secrets
@@ -480,7 +610,7 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
 
         if self._all_required_info_present(event.relation):
             getattr(self.on, "storage_connection_info_changed").emit(
-                event.relation, app=event.app, unit=event.unit
+                relation=event.relation, app=event.app, unit=event.unit
             )
         else:
             missing = self._missing_fields(event.relation)
@@ -502,6 +632,7 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
             return
         if relation.app == self.charm.app:
             logging.info("Secret changed event ignored for Secret Owner")
+            return
 
         remote_unit = None
         for unit in relation.units:
@@ -510,7 +641,7 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
 
         if self._all_required_info_present(relation):
             getattr(self.on, "storage_connection_info_changed").emit(
-                relation, app=relation.app, unit=remote_unit
+                relation=relation, app=relation.app, unit=remote_unit
             )
         else:
             missing = self._missing_fields(relation)
@@ -523,13 +654,8 @@ class StorageRequirerEventHandlers(RequirerEventHandlers):
         """Emit gone when the relation is broken."""
         logger.info("Storage relation broken...")
         getattr(self.on, "storage_connection_info_gone").emit(
-            event.relation, app=event.app, unit=event.unit
+            relation=event.relation, app=event.app, unit=event.unit
         )
-
-    @property
-    def relations(self) -> List[Relation]:
-        """List active relations for this endpoint."""
-        return list(self.charm.model.relations[self.relation_name])
 
 
 class StorageRequires(StorageRequirerData, StorageRequirerEventHandlers):
@@ -539,8 +665,8 @@ class StorageRequires(StorageRequirerData, StorageRequirerEventHandlers):
         self,
         charm: CharmBase,
         relation_name: str,
-        backend: Literal["gcs", "s3", "azure"],
-        overrides: Dict[str, str] | None = None,
+        backend: StorageBackend,
+        overrides: dict[str, str] | None = None,
     ) -> None:
         """Initialize the requirer helper.
 
@@ -552,6 +678,9 @@ class StorageRequires(StorageRequirerData, StorageRequirerEventHandlers):
         """
         StorageRequirerData.__init__(self, charm.model, relation_name, backend)
         StorageRequirerEventHandlers.__init__(self, charm, self, overrides or {})
+
+    def set_overrides(self, *args, **kwargs):
+        return StorageRequirerEventHandlers.set_overrides(self, *args, **kwargs)
 
 
 class StorageProviderData(ProviderData):
@@ -587,7 +716,6 @@ class StorageProviderEventHandlers(EventHandlers):
                 idempotency or uniq semantics.
         """
         super().__init__(charm, relation_data, unique_key)
-        self.relation_data = relation_data
 
     def _on_relation_changed_event(self, event: RelationChangedEvent) -> None:
         """Emit a request for connection info when the requirer changes."""
@@ -595,22 +723,8 @@ class StorageProviderEventHandlers(EventHandlers):
             return
 
         self.on.storage_connection_info_requested.emit(
-            event.relation, app=event.app, unit=event.unit
+            relation=event.relation, app=event.app, unit=event.unit
         )
-
-
-class StorageProvides(StorageProviderData, StorageProviderEventHandlers):
-    """Combine StorageProviderData and StorageProviderEventHandlers."""
-
-    def __init__(self, charm: CharmBase, relation_name: str) -> None:
-        """Initialize the provider helper.
-
-        Args:
-            charm (CharmBase): Parent charm.
-            relation_name (str): Provider relation endpoint name.
-        """
-        StorageProviderData.__init__(self, charm.model, relation_name)
-        StorageProviderEventHandlers.__init__(self, charm, self)
 
 
 class GcsStorageProviderData(StorageProviderData):
