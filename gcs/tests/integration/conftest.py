@@ -134,17 +134,13 @@ def requirer_charm() -> Path:
 
 @pytest.fixture(scope="module")
 def juju(request: pytest.FixtureRequest):
-    """Temporary Juju model for the duration of a test module.
-
-    Uses the `--keep-models` pytest option to keep the model for debugging.
-    Exposes a Jubilant controller handle with an extended wait timeout.
-
-    Yields:
-        A configured Jubilant controller.
-    """
-    keep = bool(getattr(request.config, "getoption", lambda *_: False)("--keep-models"))
-    with jubilant.temp_model(keep=keep) as ctl:
-        ctl.wait_timeout = 10 * 60
-        yield ctl
+    try:
+        keep = bool(request.config.getoption("--keep-models"))
+    except Exception:
+        keep = False
+    with jubilant.temp_model(keep=keep) as juju:
+        juju.wait_timeout = 10 * 60
+        yield juju
         if request.session.testsfailed:
-            print(ctl.debug_log(limit=30), end="")
+            log = juju.debug_log(limit=30)
+            print(log, end="")
