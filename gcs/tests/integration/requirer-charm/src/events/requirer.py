@@ -39,9 +39,6 @@ class GcsRequirerEvents(Object):
 
         self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
 
-        self.framework.observe(self.charm.on.start, lambda e: self.refresh_status())
-        self.framework.observe(self.charm.on.update_status, lambda e: self.refresh_status())
-
     def _on_config_changed(self, _):
         self.storage.set_overrides(self.overrides_from_config(), push=True)
         self.refresh_status()
