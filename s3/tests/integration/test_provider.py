@@ -336,9 +336,9 @@ def test_keys_are_invalid(juju: jubilant.Juju, config_bucket_name_2: str):
     # The charm should stay in blocked state, with appropriate message
     assert all(
         phrase in status.apps[S3].app_status.message
-        for phrase in ["Could not fetch or create bucket", config_bucket_name_2]
+        for phrase in ["Could not ensure bucket", config_bucket_name_2]
     )
     assert all(
         phrase in status.apps[S3].units[f"{S3}/0"].workload_status.message
-        for phrase in ["Could not fetch or create bucket", config_bucket_name_2]
+        for phrase in ["Could not ensure bucket", config_bucket_name_2]
     )

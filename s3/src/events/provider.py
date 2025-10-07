@@ -184,7 +184,9 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
 
         config_bucket = self.state.s3.get("bucket")
         config_path = self.state.s3.get("path", "")
-        if config_bucket and not s3_manager.get_bucket(bucket_name=config_bucket, path=config_path):
+        if config_bucket and not s3_manager.get_bucket(
+            bucket_name=config_bucket, path=config_path
+        ):
             status_list.append(BucketStatuses.bucket_unavailable(bucket_names=[config_bucket]))
             return status_list
 
@@ -196,9 +198,8 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
         missing_buckets = [
             bucket_name
             for bucket_name, bucket_path in requested_bucket_paths
-            if not s3_manager.get_bucket(bucket_name=bucket_name, path=(
-                config_bucket or bucket_path or ""
-                )
+            if not s3_manager.get_bucket(
+                bucket_name=bucket_name, path=(config_bucket or bucket_path or "")
             )
             and bucket_name not in invalid_buckets
         ]

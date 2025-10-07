@@ -118,11 +118,8 @@ def test_config_valid_bucket_name_invalid_keys(
     status = juju.wait(
         lambda status: jubilant.all_blocked(status) and jubilant.all_agents_idle(status), delay=5
     )
-    assert "Could not fetch or create bucket" in status.apps[S3].app_status.message
-    assert (
-        "Could not fetch or create bucket"
-        in status.apps[S3].units[f"{S3}/0"].workload_status.message
-    )
+    assert "Could not ensure bucket" in status.apps[S3].app_status.message
+    assert "Could not ensure bucket" in status.apps[S3].units[f"{S3}/0"].workload_status.message
     assert not get_bucket(s3_info=s3_info, bucket_name=config_bucket_name)
 
 
