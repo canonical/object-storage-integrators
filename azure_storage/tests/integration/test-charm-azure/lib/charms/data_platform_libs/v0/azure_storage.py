@@ -240,6 +240,8 @@ class AzureStorageRequires(AzureStorageRequirerData, AzureStorageRequirerEventHa
 class AzureStorageProviderData(ProviderData):
     """The Data abstraction of the provider side of Azure storage relation."""
 
+    RESOURCE_FIELD = "container"
+
     def __init__(self, model: Model, relation_name: str) -> None:
         super().__init__(model, relation_name)
 
