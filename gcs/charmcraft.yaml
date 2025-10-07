@@ -46,10 +46,11 @@ parts:
       - pkg-config
       - libssl-dev
       - libffi-dev
+    build-environment:
+      # ensure poetry is visible in all plugin phases
+      - PATH: /usr/local/bin:${HOME}/.local/bin:${PATH}
     override-build: |
       set -euxo pipefail
-      cargo --version
-      rustc --version
       craftctl default
       cp requirements.txt "$CRAFT_PART_INSTALL/requirements.txt"
   # "files" part name is arbitrary; use for consistency
