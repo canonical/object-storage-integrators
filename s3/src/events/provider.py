@@ -148,9 +148,6 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
                     continue
                 relation_data = relation_data | {"bucket": relation_bucket_value}
 
-            # if not config_path_value and relation_path_value:
-            #     relation_data = relation_data | {"path": relation_path_value}
-
             self.s3_provider_data.update_relation_data(relation_id, relation_data)
 
         self._handle_status(missing_buckets, invalid_buckets)
