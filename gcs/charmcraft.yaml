@@ -2,9 +2,16 @@
 # See LICENSE file for licensing details.
 
 type: charm
+base: ubuntu@24.04
+build-base: ubuntu@24.04
+
 platforms:
-  ubuntu@24.04:amd64:
-  ubuntu@24.04:arm64:
+  amd64:
+    build-on: [amd64]
+    build-for: [amd64]
+  arm64:
+    build-on: [amd64, arm64]
+    build-for: [arm64]
 parts:
   poetry-deps:
     plugin: nil
@@ -40,6 +47,7 @@ parts:
       - POETRY_VIRTUALENVS_PREFER_ACTIVE_PYTHON: "true"
       - POETRY_VIRTUALENVS_IN_PROJECT: "true"
     build-packages:
+      - build-essential
       - libffi-dev
       - libssl-dev
       - pkg-config
