@@ -7,12 +7,23 @@
 
 This is an operator charm providing an integrator for connecting to Google Cloud Storage.
 
+## Supported Architectures
+
+This charm is released for amd64 and arm64.
+
 
 ## Instructions for Usage
 1. Deploy the `gcs-integrator` charm:
     ```
     juju deploy gcs-integrator
     ```
+   
+Juju will automatically pick the correct artifact for your machines' CPU architecture. To force a specific architecture at deploy time:
+
+**ARM64**
+```bash
+juju deploy gcs-integrator --constraints arch=arm64
+````
 
 2. Set the bucket name:
     ```
