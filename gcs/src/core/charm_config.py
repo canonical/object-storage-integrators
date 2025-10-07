@@ -55,7 +55,7 @@ class CharmConfig(BaseConfigModel):
         ..., description="Juju secret id/label holding service-account JSON"
     )
     storage_class: Optional[StrictStr] = Field(
-        default=None,
+        default=StorageClass.STANDARD,
         alias="storage-class",
         description="GCS class (STANDARD|NEARLINE|COLDLINE|ARCHIVE)",
     )

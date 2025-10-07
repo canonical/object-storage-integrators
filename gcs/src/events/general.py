@@ -16,8 +16,8 @@ from pydantic import ValidationError
 from constants import GCS_RELATION_NAME
 from core.charm_config import CharmConfig
 from core.context import Context
+from core.statuses import CharmStatuses, ConfigStatuses
 from events.base import BaseEventHandler
-from events.statuses import CharmStatuses, ConfigStatuses
 from utils.logging import WithLogging
 from utils.secrets import (
     SecretDecodeError,

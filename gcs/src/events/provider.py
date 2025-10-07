@@ -18,8 +18,8 @@ from ops import Relation
 
 from constants import ALLOWED_OVERRIDES, GCS_RELATION_NAME
 from core.context import Context
+from core.statuses import CharmStatuses
 from events.base import BaseEventHandler
-from events.statuses import CharmStatuses
 from utils.logging import WithLogging
 
 if TYPE_CHECKING:
