@@ -138,7 +138,7 @@ class AzureStorageRequirerEventHandlers(RequirerEventHandlers):
         return {}
 
     def _on_relation_changed_event(self, event: RelationChangedEvent) -> None:
-        """Notify the charm about the presence of Azure credentials."""
+        """Notify the charm about the presence of Azure Storage credentials."""
         logger.info(f"Azure storage relation ({event.relation.name}) changed...")
 
         diff = self._diff(event)
@@ -240,6 +240,8 @@ class AzureStorageRequires(AzureStorageRequirerData, AzureStorageRequirerEventHa
 class AzureStorageProviderData(ProviderData):
     """The Data abstraction of the provider side of Azure storage relation."""
 
+    RESOURCE_FIELD = "container"
+
     def __init__(self, model: Model, relation_name: str) -> None:
         super().__init__(model, relation_name)
 
@@ -263,6 +265,10 @@ class AzureStorageProviderEventHandlers(EventHandlers):
             self.on.storage_connection_info_requested.emit(
                 event.relation, app=event.app, unit=event.unit
             )
+
+    def _on_secret_changed_event(self, event: SecretChangedEvent) -> None:
+        """Event emitted when the secret has changed."""
+        pass
 
 
 class AzureStorageProvides(AzureStorageProviderData, AzureStorageProviderEventHandlers):
