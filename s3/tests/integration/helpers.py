@@ -20,9 +20,10 @@ from domain import S3ConnectionInfo
 logger = logging.getLogger(__name__)
 
 
+
 @contextmanager
-def s3_resource(conn_info: S3ConnectionInfo):
-    """Yield a boto3 S3 resource, handling TLS CA chain cleanup safely."""
+def aws_resource(conn_info: S3ConnectionInfo, resource_type: str = "s3"):
+    """Yield a boto3 resource, of given type, handling TLS CA chain cleanup safely."""
     ca_file = None
     extra_args = {}
 
@@ -45,7 +46,7 @@ def s3_resource(conn_info: S3ConnectionInfo):
         aws_secret_access_key=conn_info.secret_key,
     )
     resource = session.resource(
-        "s3",
+        resource_type,
         endpoint_url=conn_info.endpoint,
         **extra_args,
     )
@@ -56,10 +57,13 @@ def s3_resource(conn_info: S3ConnectionInfo):
         if ca_file and os.path.exists(ca_file):
             os.remove(ca_file)
 
+def create_iam_user(s3_info: S3ConnectionInfo):
+    pass
+
 
 def get_bucket(s3_info: S3ConnectionInfo, bucket_name: str):
     """Fetch the bucket with given name from S3 cloud."""
-    with s3_resource(conn_info=s3_info) as resource:
+    with aws_resource(conn_info=s3_info, resource_type="s3") as resource:
         bucket = resource.Bucket(bucket_name)
         try:
             resource.meta.client.head_bucket(Bucket=bucket_name)
@@ -71,7 +75,7 @@ def get_bucket(s3_info: S3ConnectionInfo, bucket_name: str):
 
 def create_bucket(s3_info: S3ConnectionInfo, bucket_name: str):
     """Fetch the bucket with given name from S3 cloud."""
-    with s3_resource(conn_info=s3_info) as resource:
+    with aws_resource(conn_info=s3_info, resource_type="s3") as resource:
         bucket = resource.Bucket(bucket_name)
         create_args = {}
         region = s3_info.region
@@ -89,7 +93,7 @@ def create_bucket(s3_info: S3ConnectionInfo, bucket_name: str):
 
 def delete_bucket(s3_info: S3ConnectionInfo, bucket_name: str) -> bool:
     """Delete the bucket with given name from S3 cloud."""
-    with s3_resource(conn_info=s3_info) as resource:
+    with aws_resource(conn_info=s3_info, resource_type="s3") as resource:
         bucket = resource.Bucket(bucket_name)
         try:
             # Ensure the bucket is empty before deleting
