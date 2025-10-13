@@ -6,10 +6,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from functools import wraps
+from typing import TYPE_CHECKING, Callable
 
-from ops import Object
+from ops import EventBase, Object
 
+from s3_lib import PrematureDataAccessError
 from utils.logging import WithLogging
 
 if TYPE_CHECKING:
@@ -20,3 +22,23 @@ class BaseEventHandler(Object, WithLogging):
     """Base class for all Event Handler classes in the S3 Integrator."""
 
     charm: S3IntegratorCharm
+
+
+def defer_on_premature_data_access_error(
+    hook: Callable,
+) -> Callable[[BaseEventHandler, EventBase], None]:
+    """Decorator to defer hook if PrematureDataAccessError is raised."""
+
+    @wraps(hook)
+    def wrapper_hook(event_handler: BaseEventHandler, event: EventBase):
+        """Defer the event when PrematureDataAccessError is raised, proceed with normal hook otherwise."""
+        try:
+            return hook(event_handler, event)
+        except PrematureDataAccessError:
+            event_handler.logger.warning(
+                "Deferring the event because of premature data access error..."
+            )
+            event.defer()
+            return None
+
+    return wrapper_hook

@@ -106,6 +106,7 @@ from typing import Dict, List, Optional  # using py38-style typing
 from charms.data_platform_libs.v0.data_interfaces import (
     REQ_SECRET_FIELDS,
     EventHandlers,
+    PrematureDataAccessError,
     ProviderData,
     RequirerData,
     RequirerEventHandlers,
@@ -195,6 +196,7 @@ class S3RequirerData(RequirerData):
             model,
             relation_name,
         )
+        self._local_secret_fields: list[str] = []
         self.bucket = bucket
         self.path = path
 
@@ -227,7 +229,11 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
     def _on_relation_joined_event(self, event: RelationJoinedEvent) -> None:
         """Event emitted when the S3 relation is joined."""
         logger.debug(f"S3 relation ({event.relation.name}) joined...")
-        event_data = {"bucket": self.relation_data.bucket, "path": self.relation_data.path}
+        event_data = {
+            "bucket": self.relation_data.bucket,
+            "path": self.relation_data.path,
+            "version": str(LIBAPI),
+        }
         self.relation_data.update_relation_data(event.relation.id, event_data)
 
     def get_s3_connection_info(self) -> Dict[str, str]:
@@ -348,6 +354,8 @@ class S3Requires(S3RequirerData, S3RequirerEventHandlers):
 class S3ProviderData(ProviderData):
     """The Data abstraction of the provider side of S3 relation."""
 
+    RESOURCE_FIELD = "bucket"
+
     def __init__(self, model: Model, relation_name: str) -> None:
         super().__init__(model, relation_name)
 
@@ -385,6 +393,17 @@ class S3ProviderData(ProviderData):
 
     def _update_relation_data(self, relation: Relation, data: Dict[str, str]) -> None:
         """Override `update_relation_data` to bypass the parent's validation that raises PrematureDataAccessError."""
+        relation_id = relation.id
+        data_from_requirer = super().fetch_relation_data(
+            [relation.id], [REQ_SECRET_FIELDS, self.RESOURCE_FIELD], relation.name
+        )
+        if (
+            data_from_requirer.get(relation_id, {}).get(REQ_SECRET_FIELDS) is None
+            and data_from_requirer.get(relation_id, {}).get(self.RESOURCE_FIELD) is None
+        ):
+            raise PrematureDataAccessError(
+                "Premature access to relation data, update is forbidden before the connection is initialized."
+            )
         super(ProviderData, self)._update_relation_data(relation, data)
 
 

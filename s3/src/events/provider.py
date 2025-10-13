@@ -16,7 +16,7 @@ from data_platform_helpers.advanced_statuses.types import Scope
 from constants import S3_RELATION_NAME
 from core.context import Context
 from core.domain import BUCKET_REGEX
-from events.base import BaseEventHandler
+from events.base import BaseEventHandler, defer_on_premature_data_access_error
 from events.statuses import BucketStatuses, CharmStatuses
 from managers.s3 import S3BucketError, S3Manager
 from s3_lib import (
@@ -49,6 +49,7 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
             self.charm.on[S3_RELATION_NAME].relation_broken, self._on_s3_relation_broken
         )
 
+    @defer_on_premature_data_access_error
     def _on_s3_connection_info_requested(self, event: StorageConnectionInfoRequestedEvent) -> None:
         """Handle the `storage-connection-info-requested` event."""
         self.logger.info("On storage-connection-info-requested")
