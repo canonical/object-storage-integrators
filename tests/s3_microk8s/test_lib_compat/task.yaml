@@ -1,0 +1,7 @@
+summary: test_lib_compat.py
+environment:
+  TEST_MODULE: test_lib_compat.py
+  SUBSTRATE: microk8s
+execute: |
+  cd "$SPREAD_PATH/s3"
+  tox run -e integration -- "tests/integration/$TEST_MODULE" -x

@@ -243,6 +243,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
                 info = self.relation_data.fetch_relation_data([relation.id])[relation.id]
                 if set(S3_REQUIRED_OPTIONS) - set(info):
                     continue
+                info.pop("version", None)
                 return info
         return {}
 
