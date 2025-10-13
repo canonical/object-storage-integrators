@@ -1,0 +1,72 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+type: charm
+platforms:
+  ubuntu@24.04:amd64:
+  ubuntu@24.04:arm64:
+parts:
+  poetry-deps:
+    plugin: nil
+    build-packages:
+      - curl
+    override-build: |
+      # Keep pip recent without relying on --break-system-packages
+      PIP_BREAK_SYSTEM_PACKAGES=true python3 -m pip install --user --upgrade pip==24.3.1  # renovate: charmcraft-pip-latest
+
+      # Install uv
+      curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.5.15/uv-installer.sh | sh  # renovate: charmcraft-uv-latest
+
+      # Install CPython 3.11.x and ensure it's discoverable
+      "$HOME/.local/bin/uv" python install 3.11.9  # renovate: charmcraft-python-ubuntu-24.04
+
+      # Install Poetry (runs on 3.11), plus export plugin
+      "$HOME/.local/bin/uv" tool install \
+        --no-python-downloads \
+        --python '>=3.11,<3.12' \
+        poetry==2.0.0 \
+        --with poetry-plugin-export==1.8.0  # renovate: charmcraft-poetry-latest
+
+      ln -sf "$HOME/.local/bin/poetry" /usr/local/bin/poetry
+
+  # Main build using Poetry
+  charm-poetry:
+    plugin: poetry
+    source: .
+    after:
+      - poetry-deps
+    poetry-export-extra-args: ['--only', 'main,charm-libs']
+    build-environment:
+      - POETRY_VIRTUALENVS_PREFER_ACTIVE_PYTHON: "true"
+      - POETRY_VIRTUALENVS_IN_PROJECT: "true"
+    build-packages:
+      - build-essential
+      - libffi-dev
+      - libssl-dev
+      - pkg-config
+      - rustup       # On Ubuntu 24.04 this is available from the archive
+    override-build: |
+      # Show rustup version and set toolchain
+      rustup --version || true
+      rustup set profile minimal
+      rustup default 1.83.0  # renovate: charmcraft-rust-latest
+
+      # Force Poetry to use the uv-managed Python 3.11
+      PY311="$("$HOME/.local/bin/uv" python find '==3.11.*')"
+      if [[ -z "$PY311" ]]; then
+        echo "Python 3.11 not found by uv; aborting."
+        exit 1
+      fi
+      poetry env use "$PY311"
+
+      # Continue with the default poetry plugin build
+      craftctl default
+
+      # Keep requirements.txt inside the artifact for debugging
+      cp requirements.txt "$CRAFT_PART_INSTALL/requirements.txt"
+
+  files:
+    plugin: dump
+    source: .
+    stage:
+      - LICENSE

@@ -3532,7 +3532,7 @@ class DatabaseRequirerEventHandlers(RequirerEventHandlers):
                 return relation.data[self.relation_data.local_unit].get("alias")
         return None
 
-    def _on_relation_created_event(self, event: RelationCreatedEvent) -> None:
+    def _on_relation_created_event(self, event: RelationCreatedEvent) -> None: # noqa: C901
         """Event emitted when the database relation is created."""
         super()._on_relation_created_event(event)
 
@@ -3592,7 +3592,7 @@ class DatabaseRequirerEventHandlers(RequirerEventHandlers):
             except ModelError:
                 logger.debug("Unable to remove helper secret")
 
-    def _on_relation_changed_event(self, event: RelationChangedEvent) -> None:
+    def _on_relation_changed_event(self, event: RelationChangedEvent) -> None: # noqa: C901
         """Event emitted when the database relation has changed."""
         is_subordinate = False
         remote_unit_data = None
