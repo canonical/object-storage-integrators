@@ -254,12 +254,18 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
         if any(newval for newval in diff.added if self.relation_data._is_secret_field(newval)):
             self.relation_data._register_secrets_to_relation(event.relation, diff.added)
 
-        provider_lib_version = float(self.relation_data.fetch_relation_field(event.relation.id, "version") or "0")
-        if provider_lib_version < 1 and not self.relation_data.fetch_my_relation_field(event.relation.id, "bucket"):
+        provider_lib_version = float(
+            self.relation_data.fetch_relation_field(event.relation.id, "version") or "0"
+        )
+        if provider_lib_version < 1 and not self.relation_data.fetch_my_relation_field(
+            event.relation.id, "bucket"
+        ):
             # The following line exists here due to compatibility for v1 requirer to work with v0 provider
             # The v0 provider will still wait for `bucket` to appear in the databag, and if it does not exist,
             # the provider will simply not write any data to the databag.
-            self.relation_data.update_relation_data(event.relation.id, {"bucket": f"relation-{event.relation.id}"})
+            self.relation_data.update_relation_data(
+                event.relation.id, {"bucket": f"relation-{event.relation.id}"}
+            )
 
         # check if the mandatory options are in the relation data
         contains_required_options = True
@@ -435,7 +441,7 @@ class S3ProviderEventHandlers(EventHandlers):
             "version": f"{LIBAPI}.{LIBPATCH}",
         }
         self.relation_data.update_relation_data(event.relation.id, event_data)
-    
+
     # def _on_relation_joined_event(self, event: RelationJoinedEvent) -> None:
     #     """Event emitted when the S3 relation is joined."""
     #     logger.debug(f"S3 relation ({event.relation.name}) joined on provider side...")
