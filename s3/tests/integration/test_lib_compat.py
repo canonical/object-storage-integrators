@@ -96,7 +96,7 @@ def test_deploy_requirer_v0(juju: jubilant.Juju, test_charm_s3_v0):
 def test_integrate_provider_v1_requirer_v0(
     juju: jubilant.Juju, s3_info: S3ConnectionInfo, config_bucket_name
 ) -> None:
-    """Integrate S3 charm with consumer3 charm (which uses s3 LIBAPI=0), to test compatibility."""
+    """Integrate S3 charm with requirer charm (which uses s3 LIBAPI=0), to test compatibility."""
     juju.integrate(S3_INTEGRATOR_V1, REQUIRER_V0)
     juju.wait(
         lambda status: jubilant.all_active(status) and jubilant.all_agents_idle(status), delay=5
@@ -114,9 +114,6 @@ def test_integrate_provider_v1_requirer_v0(
         "endpoint": s3_info.endpoint,
         "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain).replace('"', "'"),
     }
-
-
-# Requirer asks for specific bucket
 
 
 def test_deploy_provider_v0(
@@ -177,8 +174,6 @@ def test_integrate_provider_v0_requirer_v1(
     result.pop(S3_LIB_VERSION_FIELD, None)
     result.pop("data", None)
 
-    # In this case, the consumer should be provided with the connection info with bucket from config option
-    # This is because the s3 LIBAPI=0 sets `bucket=relation-xxx` automatically which should be ignored by s3 LIBAPI=1
     assert result == {
         "bucket": config_bucket_name,
         "access-key": s3_info.access_key,
@@ -187,6 +182,3 @@ def test_integrate_provider_v0_requirer_v1(
         "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain),
     }
     assert get_bucket(s3_info=s3_info, bucket_name=config_bucket_name)
-
-
-# Requirer asks for specific bucket
