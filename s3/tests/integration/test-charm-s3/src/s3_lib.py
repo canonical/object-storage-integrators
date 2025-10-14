@@ -139,6 +139,7 @@ logger = logging.getLogger(__name__)
 
 
 S3_REQUIRED_OPTIONS = ["access-key", "secret-key"]
+S3_LIB_VERSION_FIELD = "lib-version"
 
 
 class BucketEvent(RelationEvent):
@@ -232,7 +233,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
         event_data = {
             "bucket": self.relation_data.bucket,
             "path": self.relation_data.path,
-            "lib-version": f"{LIBAPI}.{LIBPATCH}",
+            S3_LIB_VERSION_FIELD: f"{LIBAPI}.{LIBPATCH}",
         }
         self.relation_data.update_relation_data(event.relation.id, event_data)
 
@@ -243,7 +244,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
                 info = self.relation_data.fetch_relation_data([relation.id])[relation.id]
                 if set(S3_REQUIRED_OPTIONS) - set(info):
                     continue
-                info.pop("lib-version", None)
+                info.pop(S3_LIB_VERSION_FIELD, None)
                 return info
         return {}
 
@@ -256,7 +257,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
             self.relation_data._register_secrets_to_relation(event.relation, diff.added)
 
         provider_lib_version = float(
-            self.relation_data.fetch_relation_field(event.relation.id, "version") or "0"
+            self.relation_data.fetch_relation_field(event.relation.id, S3_LIB_VERSION_FIELD) or "0"
         )
         if provider_lib_version < 1 and not self.relation_data.fetch_my_relation_field(
             event.relation.id, "bucket"
@@ -409,18 +410,18 @@ class S3ProviderData(ProviderData):
         """Override `update_relation_data` to bypass the parent's validation that raises PrematureDataAccessError."""
         relation_id = relation.id
         data_from_requirer = super().fetch_relation_data(
-            [relation.id], ["lib-version", self.RESOURCE_FIELD], relation.name
+            [relation.id], [S3_LIB_VERSION_FIELD, self.RESOURCE_FIELD], relation.name
         )
         keys = set(data.keys())
         if (
-            keys - {"lib-version"}
-            and data_from_requirer.get(relation_id, {}).get("lib-version") is None
+            keys - {S3_LIB_VERSION_FIELD}
+            and data_from_requirer.get(relation_id, {}).get(S3_LIB_VERSION_FIELD) is None
             and data_from_requirer.get(relation_id, {}).get(self.RESOURCE_FIELD) is None
         ):
             # The logic here is that the provider should not start writing S3 data to the databag
             # before the requirer has asked for it (during their relation-joined) with either:
             #           RESOURCE_FIELD: a field guaranteed to be there if LIBAPI=0
-            #       OR  lib-version: a field guaranteed to be there if LIBAPI=1
+            #       OR  S3_LIB_VERSION_FIELD: a field guaranteed to be there if LIBAPI=1
             raise PrematureDataAccessError(
                 "Premature access to relation data, update is forbidden before the connection is initialized."
             )
@@ -440,7 +441,7 @@ class S3ProviderEventHandlers(EventHandlers):
         """Event emitted when the S3 relation is created."""
         logger.debug(f"S3 relation ({event.relation.name}) created on provider side...")
         event_data = {
-            "version": f"{LIBAPI}.{LIBPATCH}",
+            S3_LIB_VERSION_FIELD: f"{LIBAPI}.{LIBPATCH}",
         }
         self.relation_data.update_relation_data(event.relation.id, event_data)
 
