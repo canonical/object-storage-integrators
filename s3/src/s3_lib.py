@@ -232,7 +232,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
         event_data = {
             "bucket": self.relation_data.bucket,
             "path": self.relation_data.path,
-            "version": f"{LIBAPI}.{LIBPATCH}",
+            "lib-version": f"{LIBAPI}.{LIBPATCH}",
         }
         self.relation_data.update_relation_data(event.relation.id, event_data)
 
@@ -243,7 +243,7 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
                 info = self.relation_data.fetch_relation_data([relation.id])[relation.id]
                 if set(S3_REQUIRED_OPTIONS) - set(info):
                     continue
-                info.pop("version", None)
+                info.pop("lib-version", None)
                 return info
         return {}
 
@@ -409,14 +409,18 @@ class S3ProviderData(ProviderData):
         """Override `update_relation_data` to bypass the parent's validation that raises PrematureDataAccessError."""
         relation_id = relation.id
         data_from_requirer = super().fetch_relation_data(
-            [relation.id], [REQ_SECRET_FIELDS, self.RESOURCE_FIELD], relation.name
+            [relation.id], ["lib-version", self.RESOURCE_FIELD], relation.name
         )
         keys = set(data.keys())
         if (
-            keys - {"version"}
-            and data_from_requirer.get(relation_id, {}).get(REQ_SECRET_FIELDS) is None
+            keys - {"lib-version"}
+            and data_from_requirer.get(relation_id, {}).get("lib-version") is None
             and data_from_requirer.get(relation_id, {}).get(self.RESOURCE_FIELD) is None
         ):
+            # The logic here is that the provider should not start writing S3 data to the databag
+            # before the requirer has asked for it (during their relation-joined) with either:
+            #           RESOURCE_FIELD: a field guaranteed to be there if LIBAPI=0
+            #       OR  lib-version: a field guaranteed to be there if LIBAPI=1
             raise PrematureDataAccessError(
                 "Premature access to relation data, update is forbidden before the connection is initialized."
             )
@@ -431,9 +435,6 @@ class S3ProviderEventHandlers(EventHandlers):
     def __init__(self, charm: CharmBase, relation_data: S3ProviderData, unique_key: str = ""):
         super().__init__(charm, relation_data, unique_key)
         self.relation_data = relation_data
-        # self.framework.observe(
-        #     self.charm.on[self.relation_data.relation_name].relation_joined, self._on_relation_joined_event
-        # )
 
     def _on_relation_created_event(self, event: RelationJoinedEvent) -> None:
         """Event emitted when the S3 relation is created."""
@@ -442,14 +443,6 @@ class S3ProviderEventHandlers(EventHandlers):
             "version": f"{LIBAPI}.{LIBPATCH}",
         }
         self.relation_data.update_relation_data(event.relation.id, event_data)
-
-    # def _on_relation_joined_event(self, event: RelationJoinedEvent) -> None:
-    #     """Event emitted when the S3 relation is joined."""
-    #     logger.debug(f"S3 relation ({event.relation.name}) joined on provider side...")
-    #     event_data = {
-    #         "version": f"{LIBAPI}.{LIBPATCH}",
-    #     }
-    #     self.relation_data.update_relation_data(event.relation.id, event_data)
 
     def _on_relation_changed_event(self, event: RelationChangedEvent):
         if not self.charm.unit.is_leader():
