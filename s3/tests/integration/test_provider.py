@@ -21,7 +21,6 @@ CONSUMER3 = "consumer3"
 SECRET_LABEL = "s3-creds-secret-provider"
 INVALID_BUCKET = "random?invali!dname"
 
-
 logger = logging.getLogger(__name__)
 
 
