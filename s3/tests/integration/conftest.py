@@ -14,7 +14,7 @@ from typing import Iterable
 import jubilant
 import pytest
 from domain import S3ConnectionInfo
-from helpers import create_bucket, delete_bucket, local_tmp_folder
+from helpers import create_bucket, delete_bucket, local_tmp_folder, create_iam_user
 
 MICROCEPH_REVISION = 1169
 
@@ -279,7 +279,20 @@ def s3_root_user(host_ip: str, certs_path: Path) -> Iterable[S3ConnectionInfo]:
 
 @pytest.fixture(scope="module")
 def s3_user_with_listobjectsv2_enabled(s3_root_user: S3ConnectionInfo) -> Iterable[S3ConnectionInfo]:
-    pass
+    return create_iam_user(
+        s3_info=s3_root_user,
+        username="user-listobjectsv2-enabled",
+        policy_name="list_objects_v2_enabled"
+    )
+
+
+@pytest.fixture(scope="module")
+def s3_user_with_listobjectsv2_disabled(s3_root_user: S3ConnectionInfo) -> Iterable[S3ConnectionInfo]:
+    return create_iam_user(
+        s3_info=s3_root_user,
+        username="user-listobjectsv2-disabled",
+        policy_name="list_objects_v2_disabled"
+    )
 
 
 @pytest.fixture(scope="module")
@@ -492,7 +505,7 @@ def bucket_name() -> str:
 
 
 @pytest.fixture(scope="module")
-def pre_created_bucket(s3_info, bucket_name):
+def pre_created_bucket(s3_root_user, bucket_name):
     bucket = create_bucket(s3_info, bucket_name)
     assert bucket is not None
     yield bucket.name
