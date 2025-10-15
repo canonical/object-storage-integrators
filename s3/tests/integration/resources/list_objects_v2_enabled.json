@@ -8,7 +8,7 @@
       "Resource": "arn:aws:s3:::yesbucket",
       "Condition": {
         "StringLike": {
-          "s3:prefix": "yespath/*"
+          "s3:prefix": "yespath"
         }
       }
     }

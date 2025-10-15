@@ -61,11 +61,11 @@ def aws_session(conn_info: S3ConnectionInfo):
 @contextmanager
 def aws_resource(conn_info: S3ConnectionInfo, resource_type: str = "s3"):
     """Yield a boto3 resource, of given type, handling TLS CA chain cleanup safely."""
-    with aws_session(conn_info=conn_info) as session, tls_args(conn_info=conn_info) as tls_args:
+    with aws_session(conn_info=conn_info) as session, tls_args(conn_info=conn_info) as args:
         resource = session.resource(
             resource_type,
             endpoint_url=conn_info.endpoint,
-            **tls_args,
+            **args,
         )
         yield resource
 
@@ -73,22 +73,24 @@ def aws_resource(conn_info: S3ConnectionInfo, resource_type: str = "s3"):
 @contextmanager
 def aws_client(conn_info: S3ConnectionInfo, client_type: str = "s3"):
     """Yield a boto3 resource, of given type, handling TLS CA chain cleanup safely."""
-    with aws_session(conn_info=conn_info) as session, tls_args(conn_info=conn_info) as tls_args:
-        client = session.resource(
+    with aws_session(conn_info=conn_info) as session, tls_args(conn_info=conn_info) as args:
+        client = session.client(
             client_type,
             endpoint_url=conn_info.endpoint,
-            **tls_args,
+            **args,
         )
         yield client
 
 
-def create_iam_user(s3_info: S3ConnectionInfo, username: str, policy_name: str):
+def create_iam_user(
+    s3_info: S3ConnectionInfo, username: str, policy_name: str, policy_filename: str
+):
     with aws_client(conn_info=s3_info, client_type="iam") as iam:
         iam.create_user(UserName=username)
         access_key_response = iam.create_access_key(UserName=username)
-        access_key = access_key_response["AccessKey"]
-        secret_key = access_key_response["SecretAccessKey"]
-        policy_file = Path.cwd() / f"tests/integration/resources/{policy_name}.json"
+        access_key = access_key_response["AccessKey"]["AccessKeyId"]
+        secret_key = access_key_response["AccessKey"]["SecretAccessKey"]
+        policy_file = Path.cwd() / f"tests/integration/resources/{policy_filename}"
         with open(policy_file) as f:
             policy_document = json.load(f)
         iam.put_user_policy(

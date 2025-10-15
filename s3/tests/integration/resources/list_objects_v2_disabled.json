@@ -8,7 +8,7 @@
       "Resource": "arn:aws:s3:::nobucket",
       "Condition": {
         "StringLike": {
-          "s3:prefix": "nopath/*"
+          "s3:prefix": "nopath"
         }
       }
     },

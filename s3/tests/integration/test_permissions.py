@@ -12,12 +12,10 @@ from pathlib import Path
 import jubilant
 import pytest
 from conftest import S3ConnectionInfo
-from helpers import create_bucket, delete_bucket, get_bucket
+from helpers import create_bucket, delete_bucket
 
 S3 = "s3"
-CONSUMER1 = "consumer1"
-CONSUMER2 = "consumer2"
-CONSUMER3 = "consumer3"
+CONSUMER = "consumer"
 SECRET_LABEL = "s3-creds-secret-provider"
 INVALID_BUCKET = "random?invali!dname"
 
@@ -25,7 +23,7 @@ INVALID_BUCKET = "random?invali!dname"
 logger = logging.getLogger(__name__)
 
 
-# @pytest.fixture(scope="module")
+@pytest.fixture(scope="module")
 def allowed_bucket(s3_root_user):
     bucket_name = "yesbucket"
     bucket = create_bucket(s3_root_user, bucket_name)
@@ -35,12 +33,12 @@ def allowed_bucket(s3_root_user):
     assert deleted
 
 
-# @pytest.fixture(scope="module")
+@pytest.fixture(scope="module")
 def allowed_path():
     return "yespath"
 
 
-# @pytest.fixture(scope="module")
+@pytest.fixture(scope="module")
 def denied_bucket(s3_root_user):
     bucket_name = "nobucket"
     bucket = create_bucket(s3_root_user, bucket_name)
@@ -50,7 +48,7 @@ def denied_bucket(s3_root_user):
     assert deleted
 
 
-# @pytest.fixture(scope="module")
+@pytest.fixture(scope="module")
 def denied_path():
     return "nopath"
 
@@ -93,14 +91,14 @@ def test_deploy_s3_integrator(
 
 def test_deploy_consumer_charm(juju: jubilant.Juju, test_charm: Path) -> None:
     """Deploy a consumer / requirer charm."""
-    logger.info(f"Deploying consumer charm {CONSUMER1}...")
-    juju.deploy(test_charm, app=CONSUMER1)
+    logger.info(f"Deploying consumer charm {CONSUMER}...")
+    juju.deploy(test_charm, app=CONSUMER)
     status = juju.wait(
-        lambda status: jubilant.all_waiting(status, CONSUMER1)
-        and jubilant.all_agents_idle(status, CONSUMER1),
+        lambda status: jubilant.all_waiting(status, CONSUMER)
+        and jubilant.all_agents_idle(status, CONSUMER),
         delay=5,
     )
-    assert "Waiting for relation" in status.apps[CONSUMER1].app_status.message
+    assert "Waiting for relation" in status.apps[CONSUMER].app_status.message
 
 
 def test_configure_s3_integrator_with_list_objectsv2_denied(
@@ -124,7 +122,32 @@ def test_configure_s3_integrator_with_list_objectsv2_denied(
     assert "Could not ensure bucket" in status.apps[S3].app_status.message
 
 
-# Integrate consumer -- consumer does not get data
+def test_integrate_s3_integrator_with_list_objectsv2_denied(
+    juju: jubilant.Juju,
+) -> None:
+    """Integrate the new consumer charm with the same S3 charm, where the new consumer charm does not ask for bucket."""
+    juju.integrate(S3, CONSUMER)
+    juju.wait(
+        lambda status: jubilant.all_blocked(status, S3)
+        and jubilant.all_active(status, CONSUMER)
+        and jubilant.all_agents_idle(status, S3, CONSUMER),
+        delay=5,
+    )
+
+    # The consumer2 charm should not have been provided the S3 data,
+    # because s3-integrator cannot ensure the bucket is ready for use
+    result = juju.run(f"{CONSUMER}/0", "get-s3-connection-info").results
+    assert not any(
+        key in result for key in ["access-key", "secret-key", "bucket", "endpoint", "tls-ca-chain"]
+    )
+    juju.remove_relation(S3, CONSUMER)
+    status = juju.wait(
+        lambda status: jubilant.all_blocked(status, S3)
+        and jubilant.all_waiting(status, CONSUMER)
+        and jubilant.all_agents_idle(status, S3, CONSUMER),
+        delay=5,
+    )
+    assert "Waiting for relation" in status.apps[CONSUMER].app_status.message
 
 
 def test_configure_s3_integrator_with_list_objectsv2_allowed(
@@ -147,4 +170,29 @@ def test_configure_s3_integrator_with_list_objectsv2_allowed(
     )
 
 
-# Integrate consumer -- consumer gets data
+def test_integrate_s3_integrator_with_list_objectsv2_allowed(
+    juju: jubilant.Juju,
+    s3_user_with_listobjectsv2_enabled: S3ConnectionInfo,
+    allowed_bucket: str,
+    allowed_path: str,
+) -> None:
+    """Integrate the new consumer charm with the same S3 charm, where the new consumer charm does not ask for bucket."""
+    juju.integrate(S3, CONSUMER)
+    juju.wait(
+        lambda status: jubilant.all_active(status, S3, CONSUMER)
+        and jubilant.all_agents_idle(status, S3, CONSUMER),
+        delay=5,
+    )
+
+    # The consumer2 charm should have been provided with the S3 data,
+    result = juju.run(f"{CONSUMER}/0", "get-s3-connection-info").results
+    assert result == {
+        "access-key": s3_user_with_listobjectsv2_enabled.access_key,
+        "secret-key": s3_user_with_listobjectsv2_enabled.secret_key,
+        "endpoint": s3_user_with_listobjectsv2_enabled.endpoint,
+        "bucket": allowed_bucket,
+        "path": allowed_path,
+        "tls-ca-chain": b64_to_ca_chain_json_dumps(
+            s3_user_with_listobjectsv2_enabled.tls_ca_chain
+        ),
+    }

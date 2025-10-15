@@ -16,7 +16,7 @@ import pytest
 from domain import S3ConnectionInfo
 from helpers import create_bucket, delete_bucket, local_tmp_folder, create_iam_user
 
-MICROCEPH_REVISION = 1169
+# MICROCEPH_REVISION = 1169
 
 logger = logging.getLogger(__name__)
 logging.getLogger("jubilant.wait").setLevel(logging.WARNING)
@@ -172,7 +172,7 @@ def s3_root_user(host_ip: str, certs_path: Path) -> Iterable[S3ConnectionInfo]:
 
         logger.info("Setting up microceph")
         subprocess.run(
-            ["sudo", "snap", "install", "microceph", "--revision", str(MICROCEPH_REVISION)],
+            ["sudo", "snap", "install", "microceph"],
             check=True,
         )
         try:
@@ -283,7 +283,8 @@ def s3_user_with_listobjectsv2_enabled(
     return create_iam_user(
         s3_info=s3_root_user,
         username="user-listobjectsv2-enabled",
-        policy_name="list_objects_v2_enabled",
+        policy_name="listobjectsv2enabled",
+        policy_filename="list_objects_v2_enabled.json",
     )
 
 
@@ -294,7 +295,8 @@ def s3_user_with_listobjectsv2_disabled(
     return create_iam_user(
         s3_info=s3_root_user,
         username="user-listobjectsv2-disabled",
-        policy_name="list_objects_v2_disabled",
+        policy_name="listobjectsv2disabled",
+        policy_filename="list_objects_v2_disabled.json",
     )
 
 

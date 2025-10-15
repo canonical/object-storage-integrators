@@ -196,7 +196,7 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
             bucket_name
             for bucket_name, bucket_path in requested_bucket_paths
             if not s3_manager.get_bucket(
-                bucket_name=bucket_name, path=(config_bucket or bucket_path or "")
+                bucket_name=bucket_name, path=(config_path or bucket_path or "")
             )
             and bucket_name not in invalid_buckets
         ]
