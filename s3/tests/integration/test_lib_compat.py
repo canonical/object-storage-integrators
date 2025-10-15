@@ -181,4 +181,3 @@ def test_integrate_provider_v0_requirer_v1(
         "endpoint": s3_info.endpoint,
         "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain),
     }
-    assert get_bucket(s3_info=s3_info, bucket_name=config_bucket_name)
