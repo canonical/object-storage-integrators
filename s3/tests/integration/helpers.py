@@ -19,6 +19,7 @@ from domain import S3ConnectionInfo
 
 logger = logging.getLogger(__name__)
 
+
 @contextmanager
 def tls_args(conn_info: S3ConnectionInfo):
     ca_file = None
@@ -48,14 +49,12 @@ def aws_session(conn_info: S3ConnectionInfo):
     """Yield an aws session, handling TLS CA chain cleanup safely."""
     session_args = {
         "aws_access_key_id": conn_info.access_key,
-        "aws_secret_access_key": conn_info.secret_key
+        "aws_secret_access_key": conn_info.secret_key,
     }
     if conn_info.region:
         session_args["region_name"] = conn_info.region
 
-    session = boto3.Session(
-        **session_args
-    )
+    session = boto3.Session(**session_args)
     yield session
 
 
@@ -83,7 +82,6 @@ def aws_client(conn_info: S3ConnectionInfo, client_type: str = "s3"):
         yield client
 
 
-
 def create_iam_user(s3_info: S3ConnectionInfo, username: str, policy_name: str):
     with aws_client(conn_info=s3_info, client_type="iam") as iam:
         iam.create_user(UserName=username)
@@ -94,17 +92,16 @@ def create_iam_user(s3_info: S3ConnectionInfo, username: str, policy_name: str):
         with open(policy_file) as f:
             policy_document = json.load(f)
         iam.put_user_policy(
-            UserName=username,
-            PolicyName=policy_name,
-            PolicyDocument=json.dumps(policy_document)
+            UserName=username, PolicyName=policy_name, PolicyDocument=json.dumps(policy_document)
         )
         return S3ConnectionInfo(
             endpoint=s3_info.endpoint,
             access_key=access_key,
             secret_key=secret_key,
             region=s3_info.region,
-            tls_ca_chain=s3_info.tls_ca_chain
+            tls_ca_chain=s3_info.tls_ca_chain,
         )
+
 
 def get_bucket(s3_info: S3ConnectionInfo, bucket_name: str):
     """Fetch the bucket with given name from S3 cloud."""

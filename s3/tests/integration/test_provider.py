@@ -77,7 +77,8 @@ def test_deploy(juju: jubilant.Juju, s3_charm: Path, s3_root_user: S3ConnectionI
         config={"endpoint": s3_root_user.endpoint, "tls-ca-chain": s3_root_user.tls_ca_chain},
     )
     secret_uri = juju.add_secret(
-        SECRET_LABEL, {"access-key": s3_root_user.access_key, "secret-key": s3_root_user.secret_key}
+        SECRET_LABEL,
+        {"access-key": s3_root_user.access_key, "secret-key": s3_root_user.secret_key},
     )
     juju.cli("grant-secret", SECRET_LABEL, S3)
     juju.config(S3, {"credentials": secret_uri})

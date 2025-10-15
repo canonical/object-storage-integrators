@@ -248,7 +248,7 @@ def s3_root_user(host_ip: str, certs_path: Path) -> Iterable[S3ConnectionInfo]:
                 root_account_id,
                 "--account-root",
                 "--gen-secret",
-                "--gen-access-key"
+                "--gen-access-key",
             ],
             capture_output=True,
             check=True,
@@ -276,22 +276,25 @@ def s3_root_user(host_ip: str, certs_path: Path) -> Iterable[S3ConnectionInfo]:
         subprocess.run(["sudo", "snap", "remove", "microceph", "--purge"], check=True)
 
 
-
 @pytest.fixture(scope="module")
-def s3_user_with_listobjectsv2_enabled(s3_root_user: S3ConnectionInfo) -> Iterable[S3ConnectionInfo]:
+def s3_user_with_listobjectsv2_enabled(
+    s3_root_user: S3ConnectionInfo,
+) -> Iterable[S3ConnectionInfo]:
     return create_iam_user(
         s3_info=s3_root_user,
         username="user-listobjectsv2-enabled",
-        policy_name="list_objects_v2_enabled"
+        policy_name="list_objects_v2_enabled",
     )
 
 
 @pytest.fixture(scope="module")
-def s3_user_with_listobjectsv2_disabled(s3_root_user: S3ConnectionInfo) -> Iterable[S3ConnectionInfo]:
+def s3_user_with_listobjectsv2_disabled(
+    s3_root_user: S3ConnectionInfo,
+) -> Iterable[S3ConnectionInfo]:
     return create_iam_user(
         s3_info=s3_root_user,
         username="user-listobjectsv2-disabled",
-        policy_name="list_objects_v2_disabled"
+        policy_name="list_objects_v2_disabled",
     )
 
 
