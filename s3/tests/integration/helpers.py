@@ -96,13 +96,15 @@ def create_iam_user(
         iam.put_user_policy(
             UserName=username, PolicyName=policy_name, PolicyDocument=json.dumps(policy_document)
         )
-        return S3ConnectionInfo(
+        s = S3ConnectionInfo(
             endpoint=s3_info.endpoint,
             access_key=access_key,
             secret_key=secret_key,
             region=s3_info.region,
             tls_ca_chain=s3_info.tls_ca_chain,
         )
+        print(s)
+        return s
 
 
 def get_bucket(s3_info: S3ConnectionInfo, bucket_name: str):

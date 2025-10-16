@@ -85,7 +85,7 @@ class S3ProviderEvents(BaseEventHandler, ManagerStatusProtocol):
                 is_running_status=True,
             )
             s3_manager.create_bucket(bucket_name=bucket_name, wait_until_exists=True)
-            return True
+            return bool(s3_manager.get_bucket(bucket_name=bucket_name, path=path))
         except S3BucketError:
             return False
 

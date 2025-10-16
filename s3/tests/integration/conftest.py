@@ -14,7 +14,7 @@ from typing import Iterable
 import jubilant
 import pytest
 from domain import S3ConnectionInfo
-from helpers import create_bucket, delete_bucket, local_tmp_folder, create_iam_user
+from helpers import create_bucket, create_iam_user, delete_bucket, local_tmp_folder
 
 # MICROCEPH_REVISION = 1169
 
@@ -297,6 +297,30 @@ def s3_user_with_listobjectsv2_disabled(
         username="user-listobjectsv2-disabled",
         policy_name="listobjectsv2disabled",
         policy_filename="list_objects_v2_disabled.json",
+    )
+
+
+@pytest.fixture(scope="module")
+def s3_user_with_createbucket_enabled(
+    s3_root_user: S3ConnectionInfo,
+) -> Iterable[S3ConnectionInfo]:
+    return create_iam_user(
+        s3_info=s3_root_user,
+        username="user-createbucket-enabled",
+        policy_name="createbucketenabled",
+        policy_filename="create_bucket_enabled.json",
+    )
+
+
+@pytest.fixture(scope="module")
+def s3_user_with_createbucket_disabled(
+    s3_root_user: S3ConnectionInfo,
+) -> Iterable[S3ConnectionInfo]:
+    return create_iam_user(
+        s3_info=s3_root_user,
+        username="user-createbucket-disabled",
+        policy_name="createbucketdisabled",
+        policy_filename="create_bucket_disabled.json",
     )
 
 

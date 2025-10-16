@@ -13,9 +13,9 @@
       }
     },
     {
-      "Sid": "AllowAllOtherActions",
+      "Sid": "AllowAllOtherS3Actions",
       "Effect": "Allow",
-      "Action": "*",
+      "Action": "s3:*",
       "Resource": "*"
     }
   ]
