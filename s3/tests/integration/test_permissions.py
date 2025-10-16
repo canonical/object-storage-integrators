@@ -269,6 +269,7 @@ def test_configure_s3_integrator_with_create_bucket_allowed(
     s3_root_user,
     s3_user_with_createbucket_enabled: S3ConnectionInfo,
     bucket_to_create,
+    allowed_path,
 ):
     """Configure the s3-integrator charm with an IAM user for which CreateBucket is enabled."""
     juju.update_secret(
@@ -289,7 +290,7 @@ def test_configure_s3_integrator_with_create_bucket_allowed(
 def test_integrate_s3_integrator_with_create_bucket_allowed(
     juju: jubilant.Juju,
     s3_user_with_createbucket_enabled: S3ConnectionInfo,
-    allowed_bucket: str,
+    bucket_to_create: str,
     allowed_path: str,
 ) -> None:
     """Integrate the consumer charm with the S3 charm, where the IAM user has CreateBucket enabled."""
@@ -300,13 +301,13 @@ def test_integrate_s3_integrator_with_create_bucket_allowed(
         delay=5,
     )
 
-    # The consumer2 charm should have been provided with the S3 data,
+    # The consumer charm should have been provided with the S3 data,
     result = juju.run(f"{CONSUMER}/0", "get-s3-connection-info").results
     assert result == {
         "access-key": s3_user_with_createbucket_enabled.access_key,
         "secret-key": s3_user_with_createbucket_enabled.secret_key,
         "endpoint": s3_user_with_createbucket_enabled.endpoint,
-        "bucket": allowed_bucket,
+        "bucket": bucket_to_create,
         "path": allowed_path,
         "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_user_with_createbucket_enabled.tls_ca_chain),
     }

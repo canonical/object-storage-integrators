@@ -6,7 +6,6 @@
       "Effect": "Allow",
       "Action": [
         "s3:CreateBucket",
-        "s3:HeadBucket",
         "s3:ListBucket"
       ],
       "Resource": "*"
