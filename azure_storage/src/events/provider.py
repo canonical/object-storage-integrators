@@ -13,7 +13,7 @@ from ops import CharmBase
 
 from constants import AZURE_RELATION_NAME, LEGACY_AZURE_RELATION_NAME
 from core.context import Context
-from events.base import BaseEventHandler
+from events.base import BaseEventHandler, defer_on_premature_data_access_error
 from managers.azure_storage import AzureStorageManager
 from utils.logging import WithLogging
 
@@ -51,6 +51,7 @@ class AzureStorageProviderEvents(BaseEventHandler, WithLogging):
             self._on_azure_storage_connection_info_requested,
         )
 
+    @defer_on_premature_data_access_error
     def _on_azure_storage_connection_info_requested(
         self, event: StorageConnectionInfoRequestedEvent
     ):

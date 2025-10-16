@@ -11,7 +11,7 @@ from ops.charm import ConfigChangedEvent, StartEvent
 
 from constants import AZURE_RELATION_NAME, LEGACY_AZURE_RELATION_NAME
 from core.context import Context
-from events.base import BaseEventHandler, compute_status
+from events.base import BaseEventHandler, compute_status, defer_on_premature_data_access_error
 from managers.azure_storage import AzureStorageManager
 from utils.logging import WithLogging
 
@@ -63,6 +63,7 @@ class GeneralEvents(BaseEventHandler, WithLogging):
         pass
 
     @compute_status
+    @defer_on_premature_data_access_error
     def _on_config_changed(self, event: ConfigChangedEvent) -> None:  # noqa: C901
         """Event handler for configuration changed events."""
         # Only execute in the unit leader
@@ -76,6 +77,7 @@ class GeneralEvents(BaseEventHandler, WithLogging):
         self.legacy_azure_storage_manager.update(self.context.azure_storage)
 
     @compute_status
+    @defer_on_premature_data_access_error
     def _on_secret_changed(self, event: ops.SecretChangedEvent):
         """Handle the secret changed event.
 

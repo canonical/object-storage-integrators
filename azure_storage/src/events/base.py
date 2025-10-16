@@ -7,6 +7,7 @@
 from functools import wraps
 from typing import Callable
 
+from charms.data_platform_libs.v0.data_interfaces import PrematureDataAccessError
 from ops import EventBase, Model, Object, StatusBase
 from ops.model import ActiveStatus, BlockedStatus, ModelError
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
@@ -65,5 +66,25 @@ def compute_status(
             event_handler.charm.model, event_handler.charm.config
         )
         return res
+
+    return wrapper_hook
+
+
+def defer_on_premature_data_access_error(
+    hook: Callable,
+) -> Callable[[BaseEventHandler, EventBase], None]:
+    """Decorator to defer hook if PrematureDataAccessError is raised."""
+
+    @wraps(hook)
+    def wrapper_hook(event_handler: BaseEventHandler, event: EventBase):
+        """Defer the event when PrematureDataAccessError is raised, proceed with normal hook otherwise."""
+        try:
+            return hook(event_handler, event)
+        except PrematureDataAccessError:
+            event_handler.logger.warning(
+                "Deferring the event because of premature data access error..."
+            )
+            event.defer()
+            return None
 
     return wrapper_hook
