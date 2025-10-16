@@ -11,7 +11,7 @@ from pathlib import Path
 
 import jubilant
 import pytest
-from conftest import S3ConnectionInfo
+from domain import S3ConnectionInfo
 from helpers import delete_bucket, get_bucket
 
 REQUIRER_V0 = "requirer-v0"
