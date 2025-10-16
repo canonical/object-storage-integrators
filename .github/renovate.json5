@@ -12,5 +12,10 @@
     "enabled": true,
     "schedule": ["* 3 * * 5"]
   },
-  "ignoreDeps": ["ubuntu"]
+  "ignoreDeps": ["ubuntu"],
+  "includePaths": [
+    "s3/**",
+    "gcs/**",
+    "azure_storage/**"
+  ]
 }
