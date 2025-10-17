@@ -7,7 +7,7 @@ requires-poetry = ">=2.0.0"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-ops = {version = ">=2.18.0", extras = ["testing"]}
+ops = {version = ">=3.3.1", extras = ["testing"]}
 tenacity = "^9.1.2"
 
 [tool.poetry.group.charm-libs.dependencies]
