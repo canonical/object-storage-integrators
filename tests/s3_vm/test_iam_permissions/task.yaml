@@ -1,0 +1,7 @@
+summary: test_provider.py
+environment:
+  TEST_MODULE: test_iam_permissions.py
+  SUBSTRATE: vm
+execute: |
+  cd "$SPREAD_PATH/s3"
+  tox run -e integration -- "tests/integration/$TEST_MODULE" -x

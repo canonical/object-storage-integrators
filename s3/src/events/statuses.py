@@ -86,8 +86,8 @@ class BucketStatuses(Enum):
         buckets_str = ", ".join(f"'{bucket_name}'" for bucket_name in bucket_names)
         return StatusObject(
             status="blocked",
-            message=f"Could not fetch or create bucket(s): {buckets_str}",
-            action="Make sure the bucket name and S3 credentials are valid.",
+            message=f"Could not ensure bucket(s): {buckets_str}",
+            action="Make sure the bucket name, path and credentials are valid and appropriate IAM permissions are set for the path and bucket.",
         )
 
     @staticmethod

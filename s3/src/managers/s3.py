@@ -84,12 +84,13 @@ class S3Manager(WithLogging):
             if ca_file and os.path.exists(ca_file):
                 os.remove(ca_file)
 
-    def get_bucket(self, bucket_name: str) -> Bucket | None:
+    def get_bucket(self, bucket_name: str, path: str = "") -> Bucket | None:
         """Fetch the bucket with given name from S3 cloud."""
         with self.s3_resource() as resource:
             bucket: Bucket = resource.Bucket(bucket_name)
+            prefix = path[1:] if path.startswith("/") else path
             try:
-                resource.meta.client.head_bucket(Bucket=bucket_name)
+                resource.meta.client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
                 return bucket
             except (
                 ClientError,

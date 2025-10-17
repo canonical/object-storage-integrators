@@ -115,7 +115,7 @@ def test_provider_when_ensure_bucket_unsuccessful(
 
     # Then
     assert isinstance(state_out.unit_status, BlockedStatus)
-    assert "Could not fetch or create bucket(s): 'config-bucket'" in state_out.unit_status.message
+    assert "Could not ensure bucket(s): 'config-bucket'" in state_out.unit_status.message
 
     relations = list(state_out.relations)
     s3_provider_relation = Relation(

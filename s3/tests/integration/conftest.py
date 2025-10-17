@@ -14,9 +14,8 @@ from typing import Iterable
 import jubilant
 import pytest
 from domain import S3ConnectionInfo
-from helpers import create_bucket, delete_bucket, local_tmp_folder
+from helpers import create_bucket, create_iam_user, delete_bucket, local_tmp_folder
 
-MICROCEPH_REVISION = 1169
 
 logger = logging.getLogger(__name__)
 logging.getLogger("jubilant.wait").setLevel(logging.WARNING)
@@ -92,7 +91,7 @@ def certs_path() -> Iterable[Path]:
 
 
 @pytest.fixture(scope="module")
-def s3_info(host_ip: str, certs_path: Path) -> Iterable[S3ConnectionInfo]:
+def s3_root_user(host_ip: str, certs_path: Path) -> Iterable[S3ConnectionInfo]:
     """Return S3 credentials from environment if available; and if not, setup microceph and return S3 credentials."""
     if os.environ.get("S3_ACCESS_KEY") and os.environ.get("S3_SECRET_KEY"):
         yield S3ConnectionInfo(
@@ -172,7 +171,7 @@ def s3_info(host_ip: str, certs_path: Path) -> Iterable[S3ConnectionInfo]:
 
         logger.info("Setting up microceph")
         subprocess.run(
-            ["sudo", "snap", "install", "microceph", "--revision", str(MICROCEPH_REVISION)],
+            ["sudo", "snap", "install", "microceph"],
             check=True,
         )
         try:
@@ -215,6 +214,25 @@ def s3_info(host_ip: str, certs_path: Path) -> Iterable[S3ConnectionInfo]:
             check=True,
         )
 
+        logger.info("Creating user account...")
+        output = subprocess.run(
+            [
+                "sudo",
+                "microceph.radosgw-admin",
+                "account",
+                "create",
+                "--account-name",
+                "root-account",
+                "--email",
+                "test@example.com",
+            ],
+            capture_output=True,
+            check=True,
+            encoding="utf-8",
+        ).stdout
+        root_account_id = json.loads(output)["id"]
+
+        logger.info("Creating root IAM user...")
         output = subprocess.run(
             [
                 "sudo",
@@ -222,9 +240,14 @@ def s3_info(host_ip: str, certs_path: Path) -> Iterable[S3ConnectionInfo]:
                 "user",
                 "create",
                 "--uid",
-                "test",
+                "root-iam-user",
                 "--display-name",
-                "test",
+                "root-iam-user",
+                "--account-id",
+                root_account_id,
+                "--account-root",
+                "--gen-secret",
+                "--gen-access-key",
             ],
             capture_output=True,
             check=True,
@@ -253,14 +276,62 @@ def s3_info(host_ip: str, certs_path: Path) -> Iterable[S3ConnectionInfo]:
 
 
 @pytest.fixture(scope="module")
+def s3_user_with_listobjectsv2_enabled(
+    s3_root_user: S3ConnectionInfo,
+) -> Iterable[S3ConnectionInfo]:
+    return create_iam_user(
+        s3_info=s3_root_user,
+        username="user-listobjectsv2-enabled",
+        policy_name="listobjectsv2enabled",
+        policy_filename="list_objects_v2_enabled.json",
+    )
+
+
+@pytest.fixture(scope="module")
+def s3_user_with_listobjectsv2_disabled(
+    s3_root_user: S3ConnectionInfo,
+) -> Iterable[S3ConnectionInfo]:
+    return create_iam_user(
+        s3_info=s3_root_user,
+        username="user-listobjectsv2-disabled",
+        policy_name="listobjectsv2disabled",
+        policy_filename="list_objects_v2_disabled.json",
+    )
+
+
+@pytest.fixture(scope="module")
+def s3_user_with_createbucket_enabled(
+    s3_root_user: S3ConnectionInfo,
+) -> Iterable[S3ConnectionInfo]:
+    return create_iam_user(
+        s3_info=s3_root_user,
+        username="user-createbucket-enabled",
+        policy_name="createbucketenabled",
+        policy_filename="create_bucket_enabled.json",
+    )
+
+
+@pytest.fixture(scope="module")
+def s3_user_with_createbucket_disabled(
+    s3_root_user: S3ConnectionInfo,
+) -> Iterable[S3ConnectionInfo]:
+    return create_iam_user(
+        s3_info=s3_root_user,
+        username="user-createbucket-disabled",
+        policy_name="createbucketdisabled",
+        policy_filename="create_bucket_disabled.json",
+    )
+
+
+@pytest.fixture(scope="module")
 def bucket_name() -> str:
     return f"s3-integrator-{''.join(random.sample(string.ascii_lowercase, 6))}"
 
 
 @pytest.fixture(scope="module")
-def pre_created_bucket(s3_info, bucket_name):
-    bucket = create_bucket(s3_info, bucket_name)
+def pre_created_bucket(s3_root_user, bucket_name):
+    bucket = create_bucket(s3_root_user, bucket_name)
     assert bucket is not None
     yield bucket.name
-    deleted = delete_bucket(s3_info, bucket_name)
+    deleted = delete_bucket(s3_root_user, bucket_name)
     assert deleted

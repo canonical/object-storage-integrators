@@ -24,10 +24,10 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope="module")
-def config_bucket_name(s3_info):
+def config_bucket_name(s3_root_user):
     bucket_name = "s3-integrator-config-bucket"
     yield bucket_name
-    delete_bucket(s3_info=s3_info, bucket_name=bucket_name)
+    delete_bucket(s3_info=s3_root_user, bucket_name=bucket_name)
 
 
 def test_deploy(juju: jubilant.Juju, s3_charm: Path) -> None:
@@ -78,18 +78,18 @@ def test_config_credentials_secret_missing_fields(juju: jubilant.Juju) -> None:
 
 
 def test_config_credentials_valid_secret_keys(
-    juju: jubilant.Juju, s3_info: S3ConnectionInfo
+    juju: jubilant.Juju, s3_root_user: S3ConnectionInfo
 ) -> None:
     """Test the charm behavior when all required fields are present in the secret given as credentials."""
-    juju.config(S3, {"endpoint": s3_info.endpoint, "tls-ca-chain": s3_info.tls_ca_chain})
+    juju.config(S3, {"endpoint": s3_root_user.endpoint, "tls-ca-chain": s3_root_user.tls_ca_chain})
     juju.wait(
         lambda status: jubilant.all_blocked(status) and jubilant.all_agents_idle(status), delay=5
     )
     juju.cli(
         "update-secret",
         SECRET_LABEL,
-        f"access-key={s3_info.access_key}",
-        f"secret-key={s3_info.secret_key}",
+        f"access-key={s3_root_user.access_key}",
+        f"secret-key={s3_root_user.secret_key}",
     )
     juju.wait(
         lambda status: jubilant.all_active(status) and jubilant.all_agents_idle(status), delay=5
@@ -107,7 +107,7 @@ def test_config_invalid_bucket_name_valid_keys(juju: jubilant.Juju) -> None:
 
 
 def test_config_valid_bucket_name_invalid_keys(
-    juju: jubilant.Juju, s3_info: S3ConnectionInfo, config_bucket_name: str
+    juju: jubilant.Juju, s3_root_user: S3ConnectionInfo, config_bucket_name: str
 ) -> None:
     """Test the charm behavior when the keys are invalid but the bucket name is valid."""
     juju.cli("update-secret", SECRET_LABEL, "access-key=foo", "secret-key=bar")
@@ -118,29 +118,26 @@ def test_config_valid_bucket_name_invalid_keys(
     status = juju.wait(
         lambda status: jubilant.all_blocked(status) and jubilant.all_agents_idle(status), delay=5
     )
-    assert "Could not fetch or create bucket" in status.apps[S3].app_status.message
-    assert (
-        "Could not fetch or create bucket"
-        in status.apps[S3].units[f"{S3}/0"].workload_status.message
-    )
-    assert not get_bucket(s3_info=s3_info, bucket_name=config_bucket_name)
+    assert "Could not ensure bucket" in status.apps[S3].app_status.message
+    assert "Could not ensure bucket" in status.apps[S3].units[f"{S3}/0"].workload_status.message
+    assert not get_bucket(s3_info=s3_root_user, bucket_name=config_bucket_name)
 
 
 def test_config_valid_bucket_name_valid_keys_creates_bucket(
-    juju: jubilant.Juju, s3_info: S3ConnectionInfo, config_bucket_name: str
+    juju: jubilant.Juju, s3_root_user: S3ConnectionInfo, config_bucket_name: str
 ) -> None:
     """Test if the bucket is created automatically when valid bucket name and keys are provided in config."""
-    assert not get_bucket(s3_info=s3_info, bucket_name=config_bucket_name)
+    assert not get_bucket(s3_info=s3_root_user, bucket_name=config_bucket_name)
     juju.cli(
         "update-secret",
         SECRET_LABEL,
-        f"access-key={s3_info.access_key}",
-        f"secret-key={s3_info.secret_key}",
+        f"access-key={s3_root_user.access_key}",
+        f"secret-key={s3_root_user.secret_key}",
     )
     juju.wait(
         lambda status: jubilant.all_active(status) and jubilant.all_agents_idle(status), delay=5
     )
-    assert get_bucket(s3_info=s3_info, bucket_name=config_bucket_name)
+    assert get_bucket(s3_info=s3_root_user, bucket_name=config_bucket_name)
 
 
 def test_config_existing_bucket_name_valid_keys(juju: jubilant.Juju, pre_created_bucket) -> None:
