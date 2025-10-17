@@ -28,17 +28,17 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope="module")
-def config_bucket_name(s3_info):
+def config_bucket_name(s3_root_user):
     bucket_name = "s3-integrator-config-bucket"
     yield bucket_name
-    delete_bucket(s3_info=s3_info, bucket_name=bucket_name)
+    delete_bucket(s3_info=s3_root_user, bucket_name=bucket_name)
 
 
 @pytest.fixture(scope="module")
-def relation_bucket_name(s3_info):
+def relation_bucket_name(s3_root_user):
     bucket_name = "s3-integrator-relation-bucket"
     yield bucket_name
-    delete_bucket(s3_info=s3_info, bucket_name=bucket_name)
+    delete_bucket(s3_info=s3_root_user, bucket_name=bucket_name)
 
 
 def b64_to_ca_chain_json_dumps(ca_chain: str) -> str:
@@ -57,7 +57,7 @@ def b64_to_ca_chain_json_dumps(ca_chain: str) -> str:
 
 
 def test_deploy_provider_v1(
-    juju: jubilant.Juju, s3_charm: Path, s3_info: S3ConnectionInfo, config_bucket_name: str
+    juju: jubilant.Juju, s3_charm: Path, s3_root_user: S3ConnectionInfo, config_bucket_name: str
 ) -> None:
     """Test deploying s3-integrator that uses LIBAPI=1."""
     logger.info("Deploying S3 charm with configured credentials...")
@@ -65,20 +65,21 @@ def test_deploy_provider_v1(
         s3_charm,
         app=S3_INTEGRATOR_V1,
         config={
-            "endpoint": s3_info.endpoint,
-            "tls-ca-chain": s3_info.tls_ca_chain,
+            "endpoint": s3_root_user.endpoint,
+            "tls-ca-chain": s3_root_user.tls_ca_chain,
             "bucket": config_bucket_name,
         },
     )
     secret_uri = juju.add_secret(
-        SECRET_LABEL, {"access-key": s3_info.access_key, "secret-key": s3_info.secret_key}
+        SECRET_LABEL,
+        {"access-key": s3_root_user.access_key, "secret-key": s3_root_user.secret_key},
     )
     juju.cli("grant-secret", SECRET_LABEL, S3_INTEGRATOR_V1)
     juju.config(S3_INTEGRATOR_V1, {"credentials": secret_uri})
     juju.wait(
         lambda status: jubilant.all_active(status) and jubilant.all_agents_idle(status), delay=5
     )
-    assert get_bucket(s3_info=s3_info, bucket_name=config_bucket_name)
+    assert get_bucket(s3_info=s3_root_user, bucket_name=config_bucket_name)
 
 
 def test_deploy_requirer_v0(juju: jubilant.Juju, test_charm_s3_v0):
@@ -94,7 +95,7 @@ def test_deploy_requirer_v0(juju: jubilant.Juju, test_charm_s3_v0):
 
 
 def test_integrate_provider_v1_requirer_v0(
-    juju: jubilant.Juju, s3_info: S3ConnectionInfo, config_bucket_name
+    juju: jubilant.Juju, s3_root_user: S3ConnectionInfo, config_bucket_name
 ) -> None:
     """Integrate S3 charm with requirer charm (which uses s3 LIBAPI=0), to test compatibility."""
     juju.integrate(S3_INTEGRATOR_V1, REQUIRER_V0)
@@ -109,15 +110,15 @@ def test_integrate_provider_v1_requirer_v0(
     # This is because the s3 LIBAPI=0 sets `bucket=relation-xxx` automatically which should be ignored by s3 LIBAPI=1
     assert result == {
         "bucket": config_bucket_name,
-        "access-key": s3_info.access_key,
-        "secret-key": s3_info.secret_key,
-        "endpoint": s3_info.endpoint,
-        "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain).replace('"', "'"),
+        "access-key": s3_root_user.access_key,
+        "secret-key": s3_root_user.secret_key,
+        "endpoint": s3_root_user.endpoint,
+        "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_root_user.tls_ca_chain).replace('"', "'"),
     }
 
 
 def test_deploy_provider_v0(
-    juju: jubilant.Juju, s3_info: S3ConnectionInfo, config_bucket_name: str
+    juju: jubilant.Juju, s3_root_user: S3ConnectionInfo, config_bucket_name: str
 ) -> None:
     """Test deploying s3-integrator from 1/stable that uses s3 lib LIBAPI=0."""
     logger.info("Deploying S3 charm with configured credentials...")
@@ -126,8 +127,8 @@ def test_deploy_provider_v0(
         app=S3_INTEGRATOR_V0,
         channel="1/stable",
         config={
-            "endpoint": s3_info.endpoint,
-            "tls-ca-chain": s3_info.tls_ca_chain,
+            "endpoint": s3_root_user.endpoint,
+            "tls-ca-chain": s3_root_user.tls_ca_chain,
             "bucket": config_bucket_name,
         },
     )
@@ -139,7 +140,7 @@ def test_deploy_provider_v0(
     juju.run(
         f"{S3_INTEGRATOR_V0}/0",
         action="sync-s3-credentials",
-        params={"access-key": s3_info.access_key, "secret-key": s3_info.secret_key},
+        params={"access-key": s3_root_user.access_key, "secret-key": s3_root_user.secret_key},
     )
     juju.wait(
         lambda status: jubilant.all_active(status, S3_INTEGRATOR_V0)
@@ -161,7 +162,7 @@ def test_deploy_requirer_v1(juju: jubilant.Juju, test_charm):
 
 
 def test_integrate_provider_v0_requirer_v1(
-    juju: jubilant.Juju, s3_info: S3ConnectionInfo, config_bucket_name
+    juju: jubilant.Juju, s3_root_user: S3ConnectionInfo, config_bucket_name
 ) -> None:
     """Integrate s3-integrator (1/stable) with requirer charm (which uses s3 LIBAPI=0), to test compatibility."""
     juju.integrate(S3_INTEGRATOR_V0, REQUIRER_V1)
@@ -176,8 +177,8 @@ def test_integrate_provider_v0_requirer_v1(
 
     assert result == {
         "bucket": config_bucket_name,
-        "access-key": s3_info.access_key,
-        "secret-key": s3_info.secret_key,
-        "endpoint": s3_info.endpoint,
-        "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_info.tls_ca_chain),
+        "access-key": s3_root_user.access_key,
+        "secret-key": s3_root_user.secret_key,
+        "endpoint": s3_root_user.endpoint,
+        "tls-ca-chain": b64_to_ca_chain_json_dumps(s3_root_user.tls_ca_chain),
     }
