@@ -18,6 +18,7 @@ from src.utils.secrets import decode_secret_key
 CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
 ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
+S3_LIB_VERSION_FIELD = "lib-version"
 
 
 @patch("utils.secrets.decode_secret_key_with_retry", decode_secret_key)
@@ -58,7 +59,10 @@ def test_provider_data_no_config_bucket_and_no_bucket_requests(
     relations = list(state_out.relations)
     s3_provider_relation = Relation(
         endpoint="s3-credentials",
-        remote_app_data={"requested-secrets": '["foobar"]'},  # No bucket request from requirer
+        remote_app_data={
+            "requested-secrets": '["foobar"]',
+            S3_LIB_VERSION_FIELD: "1.0",
+        },  # No bucket request from requirer
     )
     relations.append(s3_provider_relation)
 

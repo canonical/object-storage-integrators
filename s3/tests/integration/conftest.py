@@ -16,7 +16,6 @@ import pytest
 from domain import S3ConnectionInfo
 from helpers import create_bucket, create_iam_user, delete_bucket, local_tmp_folder
 
-
 logger = logging.getLogger(__name__)
 logging.getLogger("jubilant.wait").setLevel(logging.WARNING)
 
