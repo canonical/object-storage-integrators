@@ -39,7 +39,7 @@ ops = { version = ">=2.18.0", extras = ["testing"] }
 
 [tool.poetry.group.integration.dependencies]
 pytest = "^8.1.1"
-jubilant = "^1.0.0"
+jubilant = "^1.5.0"
 
 [tool.coverage.run]
 branch = true
