@@ -256,18 +256,33 @@ class S3RequirerEventHandlers(RequirerEventHandlers):
         if any(newval for newval in diff.added if self.relation_data._is_secret_field(newval)):
             self.relation_data._register_secrets_to_relation(event.relation, diff.added)
 
-        provider_lib_version = float(
-            self.relation_data.fetch_relation_field(event.relation.id, S3_LIB_VERSION_FIELD) or "0"
-        )
-        if provider_lib_version < 1 and not self.relation_data.fetch_my_relation_field(
+        is_provider_v0 = False
+        provider_data = self.relation_data.fetch_relation_data([event.relation.id])[
+            event.relation.id
+        ]
+        if len(provider_data) > 0 and S3_LIB_VERSION_FIELD not in provider_data:
+            # This means that provider has written something on its part of relation data,
+            # but that something is not its version -- this means provider will never write its version
+            # because that's something the provider is meant to write first (on relation-created)!!!
+            is_provider_v0 = True
+        elif (
+            S3_LIB_VERSION_FIELD in provider_data
+            and float(provider_data[S3_LIB_VERSION_FIELD]) < 1
+        ):
+            is_provider_v0 = True
+
+        if is_provider_v0 and not self.relation_data.fetch_my_relation_field(
             event.relation.id, "bucket"
         ):
             # The following line exists here due to compatibility for v1 requirer to work with v0 provider
             # The v0 provider will still wait for `bucket` to appear in the databag, and if it does not exist,
             # the provider will simply not write any data to the databag.
-            self.relation_data.update_relation_data(
-                event.relation.id, {"bucket": f"relation-{event.relation.id}"}
+            bucket_name = f"relation-{event.relation.id}"
+            self.relation_data.update_relation_data(event.relation.id, {"bucket": bucket_name})
+            logger.info(
+                f"s3_lib v1 detected that the provider is on v0, thus writing bucket={bucket_name} and exiting for now..."
             )
+            return
 
         # check if the mandatory options are in the relation data
         contains_required_options = True
