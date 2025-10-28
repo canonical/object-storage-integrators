@@ -10,12 +10,16 @@
 
 This is an operator charm providing an integrator for connecting to S3.
 
-<!-- TODO(release): figure out the channels -->
 
 > [!WARNING]
-> This project is the Juju secrets based S3-integrator charm on channel <CHANNEL>.
+> This project is the Juju secrets based S3-integrator charm on track `2/`.
 >
-> The former action-based lives in https://github.com/canonical/s3-integrator.
+> The former action-based `s3-integrator` (on track `1/`) lives in https://github.com/canonical/s3-integrator.
+
+> [!WARNING]
+> In-place refresh is not supported for `s3-integrator` from track `1/` to track `2/`,
+> because the charms in these two tracks use different Ubuntu bases.
+>
 
 ## Instructions for Usage
 
@@ -74,6 +78,7 @@ In order to set ca-chain certificate use the following command:
 juju config s3-integrator tls-ca-chain="$(base64 -w0 your_ca_chain.pem)"
 ```
 Attributes needs to be specified in comma-separated format. 
+
 
 ## Security
 

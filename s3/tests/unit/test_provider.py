@@ -183,3 +183,55 @@ def test_provider_config_bucket_takes_priority_over_relation_bucket(
     assert provider_data["access-key"] == "my-access-key"
     assert provider_data["secret-key"] == "my-secret-key"
     assert provider_data["tls-ca-chain"] == json.dumps(parse_ca_chain(valid_ca_chain.decode()))
+
+
+@patch("utils.secrets.decode_secret_key_with_retry", decode_secret_key)
+@patch("managers.s3.S3Manager.get_bucket", return_value=True)
+def test_provider_compatibility_with_requirer_v0(
+    mock_get_bucket,
+    charm_configuration: dict,
+    base_state: State,
+    valid_ca_chain: bytes,
+) -> None:
+    """Check that the provider still works when requirer side uses v0 of S3 lib."""
+    # Given
+    credentials_secret = Secret(
+        tracked_content={"access-key": "my-access-key", "secret-key": "my-secret-key"}
+    )
+    charm_configuration["options"]["bucket"]["default"] = "config-bucket"
+    charm_configuration["options"]["credentials"]["default"] = credentials_secret.id
+
+    # This CA chain is valid
+    ca_chain_encoded = base64.b64encode(valid_ca_chain).decode()
+    charm_configuration["options"]["tls-ca-chain"]["default"] = ca_chain_encoded
+    ctx = Context(
+        S3IntegratorCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
+    )
+    # Given
+    state_in = dataclasses.replace(base_state, secrets=[credentials_secret])
+
+    # When
+    state_out = ctx.run(ctx.on.config_changed(), state_in)
+
+    # Then
+    assert isinstance(state_out.unit_status, ActiveStatus)
+
+    s3_provider_relation = Relation(
+        endpoint="s3-credentials",
+        # v0 does not have 'requested-secrets' and also puts a dummy name as 'bucket'
+        remote_app_data={"bucket": "relation-17"},
+        local_app_data={"lib-version": "1.0"},
+    )
+
+    # Given
+    state_in = dataclasses.replace(state_out, relations=[s3_provider_relation])
+
+    # When
+    state_out = ctx.run(ctx.on.relation_changed(s3_provider_relation), state_in)
+
+    # Then
+    provider_data = state_out.get_relation(s3_provider_relation.id).local_app_data
+    assert provider_data["bucket"] == "config-bucket"
+    assert provider_data["access-key"] == "my-access-key"
+    assert provider_data["secret-key"] == "my-secret-key"
+    assert provider_data["tls-ca-chain"] == json.dumps(parse_ca_chain(valid_ca_chain.decode()))
