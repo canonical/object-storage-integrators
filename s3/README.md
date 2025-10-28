@@ -79,9 +79,6 @@ juju config s3-integrator tls-ca-chain="$(base64 -w0 your_ca_chain.pem)"
 ```
 Attributes needs to be specified in comma-separated format. 
 
-### Upgrade from track 1/
-
-Seamless 
 
 ## Security
 
