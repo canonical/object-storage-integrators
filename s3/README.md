@@ -18,7 +18,7 @@ This is an operator charm providing an integrator for connecting to S3.
 
 > [!WARNING]
 > In-place refresh is not supported for `s3-integrator` from track `1/` to track `2/`,
-> because the charms in two channels use different Ubuntu bases.
+> because the charms in these two tracks use different Ubuntu bases.
 >
 
 ## Instructions for Usage
