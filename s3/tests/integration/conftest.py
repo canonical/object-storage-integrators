@@ -9,6 +9,7 @@ import socket
 import string
 import subprocess
 from pathlib import Path
+from platform import machine
 from typing import Iterable
 
 import jubilant
@@ -27,6 +28,16 @@ def pytest_addoption(parser):
         default=False,
         help="keep temporarily-created models",
     )
+
+
+@pytest.fixture
+def platform() -> str:
+    """Fixture to provide the platform architecture for testing."""
+    platforms = {
+        "x86_64": "amd64",
+        "aarch64": "arm64",
+    }
+    return platforms.get(machine(), "amd64")
 
 
 @pytest.fixture

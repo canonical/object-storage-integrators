@@ -5,6 +5,7 @@
 import os
 import re
 from pathlib import Path
+from platform import machine
 
 import architecture
 import jubilant
@@ -119,6 +120,16 @@ def integrate_once(juju, provider_ep: str, requirer_ep: str) -> None:
             return
 
     juju.integrate(provider_ep, requirer_ep)
+
+
+@pytest.fixture
+def platform() -> str:
+    """Fixture to provide the platform architecture for testing."""
+    platforms = {
+        "x86_64": "amd64",
+        "aarch64": "arm64",
+    }
+    return platforms.get(machine(), "amd64")
 
 
 @pytest.fixture(scope="session")

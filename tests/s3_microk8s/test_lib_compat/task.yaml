@@ -2,9 +2,6 @@ summary: test_lib_compat.py
 environment:
   TEST_MODULE: test_lib_compat.py
   SUBSTRATE: microk8s
-systems:
-  - ubuntu-24.04
-  - ubuntu-24.04-arm
 execute: |
   cd "$SPREAD_PATH/s3"
   tox run -e integration -- "tests/integration/$TEST_MODULE" -x

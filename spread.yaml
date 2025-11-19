@@ -95,50 +95,30 @@ suites:
       cd "$SPREAD_PATH"
       concierge prepare --trace -c environments/concierge-microk8s.yaml
       echo "Juju configured"
-    prepare-each: |
-      # Unable to set constraint on all models because of Juju bug:
-      # https://bugs.launchpad.net/juju/+bug/2065050
-      juju set-model-constraints arch="$(dpkg --print-architecture)"
   tests/azure_storage_vm/:
     summary: Spread tests for Azure storage on VM
     prepare: |
       cd "$SPREAD_PATH"
       concierge prepare --trace -c environments/concierge-lxd.yaml
       echo "Juju configured"
-    prepare-each: |
-      # Unable to set constraint on all models because of Juju bug:
-      # https://bugs.launchpad.net/juju/+bug/2065050
-      juju set-model-constraints arch="$(dpkg --print-architecture)"
   tests/s3_microk8s/:
     summary: Spread tests for S3 on microk8s
     prepare: |
       cd "$SPREAD_PATH"
       concierge prepare --trace -c environments/concierge-microk8s.yaml
       echo "Juju configured"
-    prepare-each: |
-      # Unable to set constraint on all models because of Juju bug:
-      # https://bugs.launchpad.net/juju/+bug/2065050
-      juju set-model-constraints arch="$(dpkg --print-architecture)"
   tests/s3_vm/:
     summary: Spread tests for S3 on VM
     prepare: |
       cd "$SPREAD_PATH"
       concierge prepare --trace -c environments/concierge-lxd.yaml
       echo "Juju configured"
-    prepare-each: |
-      # Unable to set constraint on all models because of Juju bug:
-      # https://bugs.launchpad.net/juju/+bug/2065050
-      juju set-model-constraints arch="$(dpkg --print-architecture)"
   tests/gcs_vm/:
     summary: Spread tests for GCS on VM
     prepare: |
       cd "$SPREAD_PATH"
       concierge prepare --trace -c environments/concierge-lxd.yaml
       echo "Juju configured"
-    prepare-each: |
-      # Unable to set constraint on all models because of Juju bug:
-      # https://bugs.launchpad.net/juju/+bug/2065050
-      juju set-model-constraints arch="$(dpkg --print-architecture)"
 
 path: /root/spread_project
 

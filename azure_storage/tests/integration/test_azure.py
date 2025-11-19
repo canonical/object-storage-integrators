@@ -59,11 +59,17 @@ def test_charm() -> Path:
 
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
-async def test_build_and_deploy(ops_test: OpsTest, azure_charm: Path, test_charm: Path) -> None:
+async def test_build_and_deploy(
+    ops_test: OpsTest, azure_charm: Path, test_charm: Path, platform: str
+) -> None:
     """Build the charm and deploy 1 units for provider and requirer charm."""
     await asyncio.gather(
-        ops_test.model.deploy(azure_charm, application_name=CHARM_NAME, num_units=1),
-        ops_test.model.deploy(test_charm, application_name=TEST_APP_NAME, num_units=1),
+        ops_test.model.deploy(
+            azure_charm, application_name=CHARM_NAME, num_units=1, constraints={"arch": platform}
+        ),
+        ops_test.model.deploy(
+            test_charm, application_name=TEST_APP_NAME, num_units=1, constraints={"arch": platform}
+        ),
     )
 
     # Reduce the update_status frequency until the cluster is deployed

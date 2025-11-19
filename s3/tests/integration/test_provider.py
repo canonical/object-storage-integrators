@@ -67,13 +67,16 @@ def b64_to_ca_chain_json_dumps(ca_chain: str) -> str:
     return json.dumps(chain_list)
 
 
-def test_deploy(juju: jubilant.Juju, s3_charm: Path, s3_root_user: S3ConnectionInfo) -> None:
+def test_deploy(
+    juju: jubilant.Juju, s3_charm: Path, s3_root_user: S3ConnectionInfo, platform: str
+) -> None:
     """Test deploying the charm with minimal setup, without specifying config bucket."""
     logger.info("Deploying S3 charm with configured credentials...")
     juju.deploy(
         s3_charm,
         app=S3,
         config={"endpoint": s3_root_user.endpoint, "tls-ca-chain": s3_root_user.tls_ca_chain},
+        constraints={"arch": platform},
     )
     secret_uri = juju.add_secret(
         SECRET_LABEL,
@@ -86,10 +89,10 @@ def test_deploy(juju: jubilant.Juju, s3_charm: Path, s3_root_user: S3ConnectionI
     )
 
 
-def test_deploy_consumer1(juju: jubilant.Juju, test_charm: Path) -> None:
+def test_deploy_consumer1(juju: jubilant.Juju, test_charm: Path, platform: str) -> None:
     """Deploy a consumer / requirer charm."""
     logger.info(f"Deploying consumer charm {CONSUMER1}...")
-    juju.deploy(test_charm, app=CONSUMER1)
+    juju.deploy(test_charm, app=CONSUMER1, constraints={"arch": platform})
     status = juju.wait(
         lambda status: jubilant.all_waiting(status, CONSUMER1)
         and jubilant.all_agents_idle(status, CONSUMER1),
@@ -201,10 +204,10 @@ def test_requirer_detects_change_in_bucket_config(
     assert get_bucket(s3_info=s3_root_user, bucket_name=config_bucket_name_2)
 
 
-def test_deploy_consumer2(juju: jubilant.Juju, test_charm: Path) -> None:
+def test_deploy_consumer2(juju: jubilant.Juju, test_charm: Path, platform: str) -> None:
     """Deploy a new instance of consumer."""
     logger.info(f"Deploying consumer charm {CONSUMER2}...")
-    juju.deploy(test_charm, app=CONSUMER2)
+    juju.deploy(test_charm, app=CONSUMER2, constraints={"arch": platform})
     status = juju.wait(
         lambda status: jubilant.all_waiting(status, CONSUMER2)
         and jubilant.all_agents_idle(status, CONSUMER2),
