@@ -2,6 +2,9 @@ summary: test_provider.py
 environment:
   TEST_MODULE: test_provider.py
   SUBSTRATE: vm
+systems:
+  - ubuntu-24.04
+  - ubuntu-24.04-arm
 execute: |
   cd "$SPREAD_PATH/s3"
   tox run -e integration -- "tests/integration/$TEST_MODULE" -x

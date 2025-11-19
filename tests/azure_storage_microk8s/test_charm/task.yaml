@@ -1,6 +1,9 @@
 summary: test_azure.py
 environment:
   TEST_MODULE: test_azure.py
+systems:
+  - ubuntu-24.04
+  - ubuntu-24.04-arm
 execute: |
   cd "$SPREAD_PATH/azure_storage"
   tox run -e integration -- "tests/integration/$TEST_MODULE" --model testing
