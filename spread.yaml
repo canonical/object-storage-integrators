@@ -94,30 +94,35 @@ suites:
     prepare: |
       cd "$SPREAD_PATH"
       concierge prepare --trace -c environments/concierge-microk8s.yaml
+      juju set-model-constraints arch="$(dpkg --print-architecture)"
       echo "Juju configured"
   tests/azure_storage_vm/:
     summary: Spread tests for Azure storage on VM
     prepare: |
       cd "$SPREAD_PATH"
       concierge prepare --trace -c environments/concierge-lxd.yaml
+      juju set-model-constraints arch="$(dpkg --print-architecture)"
       echo "Juju configured"
   tests/s3_microk8s/:
     summary: Spread tests for S3 on microk8s
     prepare: |
       cd "$SPREAD_PATH"
       concierge prepare --trace -c environments/concierge-microk8s.yaml
+      juju set-model-constraints arch="$(dpkg --print-architecture)"
       echo "Juju configured"
   tests/s3_vm/:
     summary: Spread tests for S3 on VM
     prepare: |
       cd "$SPREAD_PATH"
       concierge prepare --trace -c environments/concierge-lxd.yaml
+      juju set-model-constraints arch="$(dpkg --print-architecture)"
       echo "Juju configured"
   tests/gcs_vm/:
     summary: Spread tests for GCS on VM
     prepare: |
       cd "$SPREAD_PATH"
       concierge prepare --trace -c environments/concierge-lxd.yaml
+      juju set-model-constraints arch="$(dpkg --print-architecture)"
       echo "Juju configured"
 
 path: /root/spread_project
