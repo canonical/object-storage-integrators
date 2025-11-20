@@ -15,10 +15,12 @@ REQUIRER = "gcs-requirer"
 logger = logging.getLogger(__name__)
 
 
-def test_provider_when_deploy_then_status_is_blocked(juju: jubilant.Juju, gcs_charm: Path) -> None:
+def test_provider_when_deploy_then_status_is_blocked(
+    juju: jubilant.Juju, gcs_charm: Path, platform: str
+) -> None:
     """Test plain deployment of the charm."""
     logger.info("Deploying provider charm")
-    ensure_deployed(juju, gcs_charm, app=PROVIDER, trust=True)
+    ensure_deployed(juju, gcs_charm, app=PROVIDER, trust=True, constraints={"arch": platform})
     status = juju.wait(
         lambda status: jubilant.all_blocked(status, PROVIDER) and jubilant.all_agents_idle(status),
         delay=5,
@@ -26,9 +28,11 @@ def test_provider_when_deploy_then_status_is_blocked(juju: jubilant.Juju, gcs_ch
     assert "Missing config" in status.apps[PROVIDER].app_status.message
 
 
-def test_provider_when_configure_then_status_is_active(juju, gcs_charm, tmp_path: Path):
+def test_provider_when_configure_then_status_is_active(
+    juju, gcs_charm, tmp_path: Path, platform: str
+):
     logger.info("Configuring provider charm")
-    ensure_deployed(juju, gcs_charm, app=PROVIDER, trust=True)
+    ensure_deployed(juju, gcs_charm, app=PROVIDER, trust=True, constraints={"arch": platform})
     sa_file = _write_fake_sa(tmp_path)
     content = Path(sa_file).read_text()
     secret_uri = juju.add_secret("gcs-cred-dummy", {"secret-key": content})
@@ -48,12 +52,12 @@ def test_provider_when_configure_then_status_is_active(juju, gcs_charm, tmp_path
 
 
 def test_requirer_when_deploy_then_status_is_waiting(
-    juju: jubilant.Juju, gcs_charm: Path, requirer_charm: Path
+    juju: jubilant.Juju, gcs_charm: Path, requirer_charm: Path, platform: str
 ) -> None:
     """Test plain deployment of the charm."""
     logger.info("Deploying requirer charm")
-    ensure_deployed(juju, gcs_charm, app=PROVIDER, trust=True)
-    ensure_deployed(juju, requirer_charm, app=REQUIRER, trust=True)
+    ensure_deployed(juju, gcs_charm, app=PROVIDER, trust=True, constraints={"arch": platform})
+    ensure_deployed(juju, requirer_charm, app=REQUIRER, trust=True, constraints={"arch": platform})
     status = juju.wait(
         lambda st: jubilant.all_waiting(st, REQUIRER) and jubilant.all_agents_idle(st, REQUIRER),
         delay=5,
@@ -62,10 +66,10 @@ def test_requirer_when_deploy_then_status_is_waiting(
 
 
 def test_relation_when_integrate_then_both_charms_are_active(
-    juju: jubilant.Juju, gcs_charm, requirer_charm
+    juju: jubilant.Juju, gcs_charm, requirer_charm, platform: str
 ):
-    ensure_deployed(juju, gcs_charm, app=PROVIDER, trust=True)
-    ensure_deployed(juju, requirer_charm, app=REQUIRER, trust=True)
+    ensure_deployed(juju, gcs_charm, app=PROVIDER, trust=True, constraints={"arch": platform})
+    ensure_deployed(juju, requirer_charm, app=REQUIRER, trust=True, constraints={"arch": platform})
     logger.info("Integrating provider and requirer charms")
     integrate_once(juju, f"{PROVIDER}:gcs-credentials", f"{REQUIRER}:gcs-credentials")
     juju.wait(
@@ -79,10 +83,10 @@ def test_relation_when_integrate_then_both_charms_are_active(
 
 
 def test_relation_when_requirer_overrides_bucket_then_relation_includes_overriden_bucket(
-    juju: jubilant.Juju, gcs_charm, requirer_charm
+    juju: jubilant.Juju, gcs_charm, requirer_charm, platform: str
 ):
-    ensure_deployed(juju, gcs_charm, app=PROVIDER, trust=True)
-    ensure_deployed(juju, requirer_charm, app=REQUIRER, trust=True)
+    ensure_deployed(juju, gcs_charm, app=PROVIDER, trust=True, constraints={"arch": platform})
+    ensure_deployed(juju, requirer_charm, app=REQUIRER, trust=True, constraints={"arch": platform})
     integrate_once(juju, f"{PROVIDER}:gcs-credentials", f"{REQUIRER}:gcs-credentials")
     logger.info("Testing bucket override")
     juju.config(REQUIRER, {"bucket": "overriden-bucket"})

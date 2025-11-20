@@ -73,7 +73,7 @@ def b64_to_ca_chain_json_dumps(ca_chain: str) -> str:
 
 
 def test_deploy_s3_integrator(
-    juju: jubilant.Juju, s3_charm: Path, s3_root_user: S3ConnectionInfo
+    juju: jubilant.Juju, s3_charm: Path, s3_root_user: S3ConnectionInfo, platform: str
 ) -> None:
     """Test deploying the charm with minimal setup."""
     logger.info("Deploying S3 charm with configured credentials...")
@@ -81,6 +81,7 @@ def test_deploy_s3_integrator(
         s3_charm,
         app=S3,
         config={"endpoint": s3_root_user.endpoint, "tls-ca-chain": s3_root_user.tls_ca_chain},
+        constraints={"arch": platform},
     )
     secret_uri = juju.add_secret(
         SECRET_LABEL,
@@ -93,10 +94,10 @@ def test_deploy_s3_integrator(
     )
 
 
-def test_deploy_consumer_charm(juju: jubilant.Juju, test_charm: Path) -> None:
+def test_deploy_consumer_charm(juju: jubilant.Juju, test_charm: Path, platform: str) -> None:
     """Deploy a consumer / requirer charm."""
     logger.info(f"Deploying consumer charm {CONSUMER}...")
-    juju.deploy(test_charm, app=CONSUMER)
+    juju.deploy(test_charm, app=CONSUMER, constraints={"arch": platform})
     status = juju.wait(
         lambda status: jubilant.all_waiting(status, CONSUMER)
         and jubilant.all_agents_idle(status, CONSUMER),

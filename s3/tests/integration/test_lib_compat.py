@@ -57,7 +57,11 @@ def b64_to_ca_chain_json_dumps(ca_chain: str) -> str:
 
 
 def test_deploy_provider_v1(
-    juju: jubilant.Juju, s3_charm: Path, s3_root_user: S3ConnectionInfo, config_bucket_name: str
+    juju: jubilant.Juju,
+    platform: str,
+    s3_charm: Path,
+    s3_root_user: S3ConnectionInfo,
+    config_bucket_name: str,
 ) -> None:
     """Test deploying s3-integrator that uses LIBAPI=1."""
     logger.info("Deploying S3 charm with configured credentials...")
@@ -69,6 +73,7 @@ def test_deploy_provider_v1(
             "tls-ca-chain": s3_root_user.tls_ca_chain,
             "bucket": config_bucket_name,
         },
+        constraints={"arch": platform},
     )
     secret_uri = juju.add_secret(
         SECRET_LABEL,
@@ -82,10 +87,10 @@ def test_deploy_provider_v1(
     assert get_bucket(s3_info=s3_root_user, bucket_name=config_bucket_name)
 
 
-def test_deploy_requirer_v0(juju: jubilant.Juju, test_charm_s3_v0):
+def test_deploy_requirer_v0(juju: jubilant.Juju, test_charm_s3_v0, platform: str):
     """Deploy a consumer / requirer charm that uses S3 lib v0 (LIBAPI=0)."""
     logger.info(f"Deploying consumer charm {REQUIRER_V0}...")
-    juju.deploy(test_charm_s3_v0, app=REQUIRER_V0)
+    juju.deploy(test_charm_s3_v0, app=REQUIRER_V0, constraints={"arch": platform})
     status = juju.wait(
         lambda status: jubilant.all_waiting(status, REQUIRER_V0)
         and jubilant.all_agents_idle(status, REQUIRER_V0),
@@ -118,7 +123,7 @@ def test_integrate_provider_v1_requirer_v0(
 
 
 def test_deploy_provider_v0(
-    juju: jubilant.Juju, s3_root_user: S3ConnectionInfo, config_bucket_name: str
+    juju: jubilant.Juju, s3_root_user: S3ConnectionInfo, config_bucket_name: str, platform: str
 ) -> None:
     """Test deploying s3-integrator from 1/stable that uses s3 lib LIBAPI=0."""
     logger.info("Deploying S3 charm with configured credentials...")
@@ -131,6 +136,7 @@ def test_deploy_provider_v0(
             "tls-ca-chain": s3_root_user.tls_ca_chain,
             "bucket": config_bucket_name,
         },
+        constraints={"arch": platform},
     )
     juju.wait(
         lambda status: jubilant.all_blocked(status, S3_INTEGRATOR_V0)
@@ -149,10 +155,10 @@ def test_deploy_provider_v0(
     )
 
 
-def test_deploy_requirer_v1(juju: jubilant.Juju, test_charm):
+def test_deploy_requirer_v1(juju: jubilant.Juju, test_charm, platform: str):
     """Deploy a consumer / requirer charm that uses S3 lib v1 (LIBAPI=1)."""
     logger.info(f"Deploying consumer charm {REQUIRER_V1}...")
-    juju.deploy(test_charm, app=REQUIRER_V1)
+    juju.deploy(test_charm, app=REQUIRER_V1, constraints={"arch": platform})
     status = juju.wait(
         lambda status: jubilant.all_waiting(status, REQUIRER_V1)
         and jubilant.all_agents_idle(status, REQUIRER_V1),

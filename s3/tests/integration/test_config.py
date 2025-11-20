@@ -30,10 +30,10 @@ def config_bucket_name(s3_root_user):
     delete_bucket(s3_info=s3_root_user, bucket_name=bucket_name)
 
 
-def test_deploy(juju: jubilant.Juju, s3_charm: Path) -> None:
+def test_deploy(juju: jubilant.Juju, s3_charm: Path, platform: str) -> None:
     """Test plain deployment of the charm."""
     logger.info("Deploying charm and creating secret")
-    juju.deploy(s3_charm, app=S3)
+    juju.deploy(s3_charm, app=S3, constraints={"arch": platform})
     status = juju.wait(
         lambda status: jubilant.all_blocked(status) and jubilant.all_agents_idle(status), delay=5
     )

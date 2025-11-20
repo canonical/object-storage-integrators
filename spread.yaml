@@ -85,6 +85,8 @@ backends:
     systems:
       - ubuntu-24.04:
           username: runner
+      - ubuntu-24.04-arm:
+          username: runner
 
 suites:
   tests/azure_storage_microk8s/:
