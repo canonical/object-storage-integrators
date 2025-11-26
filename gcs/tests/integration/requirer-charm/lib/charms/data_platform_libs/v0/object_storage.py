@@ -677,6 +677,7 @@ class GcsStorageRequires(StorageRequires):
         relation_name: Relation endpoint
         overrides: Optional requirer-side overrides to write on join/push.
     """
+
     def __init__(
         self,
         charm: CharmBase,
@@ -694,6 +695,7 @@ class S3StorageRequires(StorageRequires):
         relation_name: Relation endpoint
         overrides: Optional requirer-side overrides to write on join/push.
     """
+
     def __init__(
         self,
         charm: CharmBase,
@@ -711,6 +713,7 @@ class AzureStorageRequires(StorageRequires):
         relation_name: Relation endpoint
         overrides: Optional requirer-side overrides to write on join/push.
     """
+
     def __init__(
         self,
         charm: CharmBase,
@@ -791,6 +794,7 @@ class GcsStorageProviderData(StorageProviderData):
 
 class GcsStorageProviderEventHandlers(StorageProviderEventHandlers):
     """Provider-side event handlers preconfigured for GCS.
+
     Args:
         charm (CharmBase): Parent charm.
         relation_name (str): Relation endpoint name.
