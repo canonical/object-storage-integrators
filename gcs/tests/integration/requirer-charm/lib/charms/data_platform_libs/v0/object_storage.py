@@ -114,8 +114,8 @@ class ExampleRequirerCharm(CharmBase):
         missing = [k for k, v in (("bucket", bucket), ("secret-key", secret_content)) if not v]
         if missing:
             self.charm.unit.status = BlockedStatus("missing data: " + ", ".join(missing))
+            return
 
-Return:
         self.charm.unit.status = ActiveStatus(f"gcs ok: bucket={bucket}")
 
     def _on_conn_info_gone(self, event):
@@ -677,7 +677,6 @@ class GcsStorageRequires(StorageRequires):
         relation_name: Relation endpoint
         overrides: Optional requirer-side overrides to write on join/push.
     """
-
     def __init__(
         self,
         charm: CharmBase,
@@ -695,7 +694,6 @@ class S3StorageRequires(StorageRequires):
         relation_name: Relation endpoint
         overrides: Optional requirer-side overrides to write on join/push.
     """
-
     def __init__(
         self,
         charm: CharmBase,
@@ -713,7 +711,6 @@ class AzureStorageRequires(StorageRequires):
         relation_name: Relation endpoint
         overrides: Optional requirer-side overrides to write on join/push.
     """
-
     def __init__(
         self,
         charm: CharmBase,
@@ -766,6 +763,14 @@ class StorageProviderEventHandlers(EventHandlers):
             relation=event.relation, app=event.app, unit=event.unit
         )
 
+    def _on_secret_changed_event(self, event: SecretChangedEvent) -> None:
+        """Event emitted when the secret has changed.
+
+        This method is called by the event handler on `secret-changed` event due to being registered in
+        the parent class. If this method is overridden, `secret-changed` event need not be observed separately.
+        """
+        pass
+
 
 class GcsStorageProviderData(StorageProviderData):
     """Define the resource fields which is provided by requirer, otherwise provider will not publish any payload.
@@ -786,7 +791,6 @@ class GcsStorageProviderData(StorageProviderData):
 
 class GcsStorageProviderEventHandlers(StorageProviderEventHandlers):
     """Provider-side event handlers preconfigured for GCS.
-
     Args:
         charm (CharmBase): Parent charm.
         relation_name (str): Relation endpoint name.

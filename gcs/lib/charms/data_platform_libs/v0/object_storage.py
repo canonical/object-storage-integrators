@@ -763,6 +763,14 @@ class StorageProviderEventHandlers(EventHandlers):
             relation=event.relation, app=event.app, unit=event.unit
         )
 
+    def _on_secret_changed_event(self, event: SecretChangedEvent) -> None:
+        """Event emitted when the secret has changed.
+
+        This method is called by the event handler on `secret-changed` event due to being registered in
+        the parent class. If this method is overridden, `secret-changed` event need not be observed separately.
+        """
+        pass
+
 
 class GcsStorageProviderData(StorageProviderData):
     """Define the resource fields which is provided by requirer, otherwise provider will not publish any payload.
