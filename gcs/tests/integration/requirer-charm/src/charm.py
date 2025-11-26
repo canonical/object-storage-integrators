@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import ops
+from events.requirer import GcsRequirerEvents
 from ops.main import main
 
 from events.general import GeneralEvents
-from events.requirer import GcsRequirerEvents
 
 
 class GcsRequirerTestCharm(ops.charm.CharmBase):
