@@ -117,10 +117,12 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
         self.publish_to_relation(event.relation)
 
     def _on_gcs_relation_broken(self, event: StorageConnectionInfoGoneEvent) -> None:
+        """Handle GCS relation broken.Just clear local status."""
         self.logger.info("On gcs relation broken")
         if not self.charm.unit.is_leader():
             return
-        self.publish_to_relation(event.relation)
+
+        self._clear_status()
 
     def get_statuses(self, scope: Scope, recompute: bool = False) -> list[StatusObject]:
         """Return the list of statuses for this component."""
