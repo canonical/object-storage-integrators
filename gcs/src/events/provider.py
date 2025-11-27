@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Dict
 
 from charms.data_platform_libs.v0.object_storage import (
     GcsStorageProviderEventHandlers,
+    StorageConnectionInfoGoneEvent,
     StorageConnectionInfoRequestedEvent,
 )
 from data_platform_helpers.advanced_statuses.models import StatusObject
@@ -18,7 +19,7 @@ from ops import Relation
 from constants import ALLOWED_OVERRIDES, GCS_RELATION_NAME
 from core.context import Context
 from core.statuses import CharmStatuses
-from events.base import BaseEventHandler
+from events.base import BaseEventHandler, defer_on_premature_data_access_error
 from utils.logging import WithLogging
 
 if TYPE_CHECKING:
@@ -105,6 +106,7 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
         for rel in self.charm.model.relations.get(GCS_RELATION_NAME, []):
             self.publish_to_relation(rel)
 
+    @defer_on_premature_data_access_error
     def _on_storage_connection_info_requested(
         self, event: StorageConnectionInfoRequestedEvent
     ) -> None:
@@ -114,11 +116,13 @@ class GCStorageProviderEvents(BaseEventHandler, ManagerStatusProtocol, WithLoggi
 
         self.publish_to_relation(event.relation)
 
-    def _on_gcs_relation_broken(self, event: StorageConnectionInfoRequestedEvent) -> None:
+    def _on_gcs_relation_broken(self, event: StorageConnectionInfoGoneEvent) -> None:
+        """Handle GCS relation broken.Just clear local status."""
         self.logger.info("On gcs relation broken")
         if not self.charm.unit.is_leader():
             return
-        self.publish_to_relation(event.relation)
+
+        self._clear_status()
 
     def get_statuses(self, scope: Scope, recompute: bool = False) -> list[StatusObject]:
         """Return the list of statuses for this component."""

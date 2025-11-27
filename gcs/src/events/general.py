@@ -15,7 +15,7 @@ from pydantic import ValidationError
 from core.charm_config import CharmConfig
 from core.context import Context
 from core.statuses import CharmStatuses, ConfigStatuses
-from events.base import BaseEventHandler
+from events.base import BaseEventHandler, defer_on_premature_data_access_error
 from utils.logging import WithLogging
 from utils.secrets import (
     SecretDecodeError,
@@ -42,10 +42,12 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol, WithLogging):
         self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
         self.framework.observe(self.charm.on.secret_changed, self._on_secret_changed)
 
+    @defer_on_premature_data_access_error
     def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handle the update status event."""
         self.charm.provider_events.publish_to_all_relations()
 
+    @defer_on_premature_data_access_error
     def _on_config_changed(self, _: ConfigChangedEvent) -> None:
         """Event handler for the configuration changed events."""
         if not self.charm.unit.is_leader():
@@ -54,6 +56,7 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol, WithLogging):
         self.logger.debug(f"Config changed. Current configuration: {self.charm.config}")
         self.charm.provider_events.publish_to_all_relations()
 
+    @defer_on_premature_data_access_error
     def _on_secret_changed(self, event: SecretChangedEvent) -> None:
         """Handle the secret changed event.
 

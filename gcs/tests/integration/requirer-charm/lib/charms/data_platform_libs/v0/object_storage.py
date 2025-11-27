@@ -114,8 +114,8 @@ class ExampleRequirerCharm(CharmBase):
         missing = [k for k, v in (("bucket", bucket), ("secret-key", secret_content)) if not v]
         if missing:
             self.charm.unit.status = BlockedStatus("missing data: " + ", ".join(missing))
+            return
 
-Return:
         self.charm.unit.status = ActiveStatus(f"gcs ok: bucket={bucket}")
 
     def _on_conn_info_gone(self, event):
@@ -765,6 +765,14 @@ class StorageProviderEventHandlers(EventHandlers):
         self.on.storage_connection_info_requested.emit(
             relation=event.relation, app=event.app, unit=event.unit
         )
+
+    def _on_secret_changed_event(self, event: SecretChangedEvent) -> None:
+        """Event emitted when the secret has changed.
+
+        This method is called by the event handler on `secret-changed` event due to being registered in
+        the parent class. If this method is overridden, `secret-changed` event need not be observed separately.
+        """
+        pass
 
 
 class GcsStorageProviderData(StorageProviderData):
