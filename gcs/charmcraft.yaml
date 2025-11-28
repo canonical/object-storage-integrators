@@ -12,10 +12,10 @@ parts:
       - curl
     override-build: |
       # Keep pip recent without relying on --break-system-packages
-      PIP_BREAK_SYSTEM_PACKAGES=true python3 -m pip install --user --upgrade pip==25.2  # renovate: charmcraft-pip-latest
+      PIP_BREAK_SYSTEM_PACKAGES=true python3 -m pip install --user --upgrade pip==25.3  # renovate: charmcraft-pip-latest
 
       # Install uv
-      curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.9.5/uv-installer.sh | sh  # renovate: charmcraft-uv-latest
+      curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.9.13/uv-installer.sh | sh  # renovate: charmcraft-uv-latest
 
       # Install CPython 3.11.x and ensure it's discoverable
       "$HOME/.local/bin/uv" python install 3.11.9  # renovate: charmcraft-python-ubuntu-24.04
@@ -49,7 +49,7 @@ parts:
       # Show rustup version and set toolchain
       rustup --version || true
       rustup set profile minimal
-      rustup default 1.90.0  # renovate: charmcraft-rust-latest
+      rustup default 1.91.1  # renovate: charmcraft-rust-latest
 
       # Force Poetry to use the uv-managed Python 3.11
       PY311="$("$HOME/.local/bin/uv" python find '==3.11.*')"
