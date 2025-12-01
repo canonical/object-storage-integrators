@@ -44,7 +44,7 @@ jobs:
           - path: s3/
             track: 2
           - path: gcs/
-          - track: 1
+            track: 1
     needs:
       - lib-check
       - ci-tests
