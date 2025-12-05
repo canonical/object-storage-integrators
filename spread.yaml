@@ -125,7 +125,7 @@ path: /root/spread_project
 kill-timeout: 3h
 environment:
   PATH: $PATH:/root/.local/bin:/opt/pipx_bin
-  CONCIERGE_JUJU_CHANNEL/juju36: 3.6/stable
+  CONCIERGE_JUJU_CHANNEL/juju40: 4.0/stable
 prepare: |
   snap refresh --hold
   chown -R root:root "$SPREAD_PATH"
