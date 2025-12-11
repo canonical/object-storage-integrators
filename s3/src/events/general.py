@@ -61,7 +61,7 @@ class GeneralEvents(BaseEventHandler, ManagerStatusProtocol):
         # Only execute in the unit leader
         if not self.charm.unit.is_leader():
             return
-
+        breakpoint()
         self.logger.debug(f"Config changed... Current configuration: {self.charm.config}")
         self.charm.s3_provider_events.reconcile_buckets()
 
