@@ -7,11 +7,11 @@ requires-poetry = ">=2.0.0"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-ops = ">=3.4.0"
+ops = ">=3.5.0"
 # TODO: Move into charm-libs groups after canonical/data-platform-libs#201 is merged
 pydantic = "^2.12.5"
 tenacity = "^9.1.2"
-boto3 = ">=1.41.5"
+boto3 = ">=1.42.13"
 data-platform-helpers = "^0.1.7"
 
 [tool.poetry.group.charm-libs.dependencies]
@@ -20,26 +20,26 @@ data-platform-helpers = "^0.1.7"
 optional = true
 
 [tool.poetry.group.format.dependencies]
-ruff = "^0.14.6"
+ruff = "^0.14.10"
 
 [tool.poetry.group.lint]
 optional = true
 
 [tool.poetry.group.lint.dependencies]
-ruff = "^0.14.6"
+ruff = "^0.14.10"
 codespell = "^2.4.1"
-mypy = "^1.18.2"
-types-boto3 = { extras = ["s3"], version = "^1.41.5" }
+mypy = "^1.19.1"
+types-boto3 = { extras = ["s3"], version = "^1.42.13" }
 
 [tool.poetry.group.unit.dependencies]
-coverage = { extras = ["toml"], version = "^7.12.0" }
+coverage = { extras = ["toml"], version = "^7.13.0" }
 pytest = "^8.4.2"
 pytest-asyncio = "*"
-ops = { version = ">=3.4.0", extras = ["testing"] }
+ops = { version = ">=3.5.0", extras = ["testing"] }
 
 [tool.poetry.group.integration.dependencies]
 pytest = "^8.4.2"
-jubilant = "^1.6.1"
+jubilant = "^1.6.2"
 
 [tool.coverage.run]
 branch = true
