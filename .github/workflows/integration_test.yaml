@@ -102,7 +102,7 @@ jobs:
           go install github.com/snapcore/spread/cmd/spread@latest
       - name: Download packed charm(s)
         timeout-minutes: 5
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           pattern: ${{ inputs.artifact-prefix }}-*
           merge-multiple: true
