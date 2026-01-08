@@ -7,20 +7,24 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import tempfile
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, cast
+from urllib.parse import urlparse
 
 import boto3
 from boto3.session import Session
+from botocore.client import Config
 from botocore.exceptions import (
     ClientError,
     ConnectTimeoutError,
     EndpointConnectionError,
     ParamValidationError,
+    ProxyConnectionError,
     SSLError,
 )
 
@@ -45,6 +49,37 @@ class S3Manager(WithLogging):
     def __init__(self, conn_info: S3ConnectionInfo) -> None:
         self.conn_info: S3ConnectionInfo = conn_info
 
+    def skip_proxy(self, endpoint: str) -> bool:
+        """Determine if proxy should not be applied for the given endpoint."""
+        no_proxy_list = os.environ.get("JUJU_CHARM_NO_PROXY", "")
+        if not no_proxy_list:
+            return False
+
+        host = urlparse(endpoint).hostname
+        if not host:
+            return False
+        no_proxy_entries = [
+            entry.strip().lower() for entry in no_proxy_list.split(",") if entry.strip()
+        ]
+        for entry in no_proxy_entries:
+            if host == entry:
+                return True
+            elif entry.startswith(".") and host.endswith(
+                entry
+            ):  # abc.example.com matches .example.com
+                return True
+            elif host.endswith("." + entry):  # abc.example.com matches example.com
+                return True
+            try:
+                if ipaddress.ip_address(host) in ipaddress.ip_network(
+                    entry, strict=False
+                ):  # CIDR match
+                    return True
+            except (AttributeError, ValueError):
+                continue
+
+        return False
+
     @contextmanager
     def s3_resource(self) -> Generator[S3ServiceResource, None, None]:
         """Yield a boto3 S3 resource, handling TLS CA chain cleanup safely."""
@@ -65,6 +100,17 @@ class S3Manager(WithLogging):
         if self.conn_info.get("region"):
             extra_args["region_name"] = self.conn_info.get("region")
 
+        config = None
+
+        # Set up proxy configuration only if the endpoint is not in no_proxy list
+        if not self.skip_proxy(self.conn_info.get("endpoint", "")):
+            proxy_config: dict[str, str] = {}
+            if os.environ.get("JUJU_CHARM_HTTPS_PROXY"):
+                proxy_config["https"] = os.environ["JUJU_CHARM_HTTPS_PROXY"]
+            if os.environ.get("JUJU_CHARM_HTTP_PROXY"):
+                proxy_config["http"] = os.environ["JUJU_CHARM_HTTP_PROXY"]
+            if proxy_config:
+                config = Config(proxies=proxy_config)
         session: Session = boto3.Session(
             aws_access_key_id=self.conn_info.get("access-key"),
             aws_secret_access_key=self.conn_info.get("secret-key"),
@@ -74,6 +120,7 @@ class S3Manager(WithLogging):
             session.resource(
                 service_name="s3",
                 endpoint_url=self.conn_info.get("endpoint"),
+                config=config,
                 **extra_args,
             ),  # type: ignore
         )
@@ -98,6 +145,7 @@ class S3Manager(WithLogging):
                 ConnectTimeoutError,
                 ParamValidationError,
                 EndpointConnectionError,
+                ProxyConnectionError,
             ) as e:
                 self.logger.error(f"The bucket '{bucket_name}' can't be fetched; Response: {e}")
                 return None
@@ -123,6 +171,7 @@ class S3Manager(WithLogging):
                 ClientError,
                 ParamValidationError,
                 EndpointConnectionError,
+                ProxyConnectionError,
             ) as e:
                 self.logger.error(f"Could not create the bucket '{bucket_name}'; Response: {e}")
                 raise S3BucketError(

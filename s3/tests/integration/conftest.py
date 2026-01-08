@@ -45,7 +45,7 @@ def s3_charm() -> Path:
     """Path to the packed s3-integrator charm."""
     if not (path := next(iter(Path.cwd().glob("*.charm")), None)):
         raise FileNotFoundError("Could not find packed s3-integrator charm.")
-
+    logger.info(f"Using s3-integrator charm at: {path}")
     return path
 
 
