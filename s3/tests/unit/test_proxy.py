@@ -50,8 +50,8 @@ from src.managers.s3 import S3Manager
         ("EXAMPLE.COM", "https://Sub.Example.Com", True),
     ],
 )
-def test_is_no_proxy(no_proxy_env, endpoint, expected, monkeypatch):
+def test_skip_proxy(no_proxy_env, endpoint, expected, monkeypatch):
     # Patch JUJU_CHARM_NO_PROXY env var
     monkeypatch.setenv("JUJU_CHARM_NO_PROXY", no_proxy_env)
     s3_manager = S3Manager(conn_info=S3ConnectionInfo())
-    assert s3_manager.is_no_proxy(endpoint) == expected
+    assert s3_manager.skip_proxy(endpoint) == expected
