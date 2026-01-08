@@ -49,7 +49,7 @@ class S3Manager(WithLogging):
     def __init__(self, conn_info: S3ConnectionInfo) -> None:
         self.conn_info: S3ConnectionInfo = conn_info
 
-    def is_no_proxy(self, endpoint: str) -> bool:
+    def skip_proxy(self, endpoint: str) -> bool:
         """Determine if proxy should not be applied for the given endpoint."""
         no_proxy_list = os.environ.get("JUJU_CHARM_NO_PROXY", "")
         if not no_proxy_list:
@@ -103,7 +103,7 @@ class S3Manager(WithLogging):
         config = None
 
         # Set up proxy configuration only if the endpoint is not in no_proxy list
-        if not self.is_no_proxy(self.conn_info.get("endpoint", "")):
+        if not self.skip_proxy(self.conn_info.get("endpoint", "")):
             proxy_config: dict[str, str] = {}
             if os.environ.get("JUJU_CHARM_HTTPS_PROXY"):
                 proxy_config["https"] = os.environ["JUJU_CHARM_HTTPS_PROXY"]
