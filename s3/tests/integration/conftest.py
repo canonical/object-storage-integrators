@@ -41,18 +41,21 @@ def platform() -> str:
 
 
 @pytest.fixture
-def s3_charm() -> Path:
+def s3_charm(platform: str) -> Path:
     """Path to the packed s3-integrator charm."""
-    if not (path := next(iter(Path.cwd().glob("*.charm")), None)):
+    if not (path := next(iter(Path.cwd().glob(f"*-{platform}.charm")), None)):
         raise FileNotFoundError("Could not find packed s3-integrator charm.")
-
+    logger.info(f"Using s3-integrator charm at: {path}")
     return path
 
 
 @pytest.fixture
-def test_charm() -> Path:
+def test_charm(platform: str) -> Path:
     if not (
-        path := next(iter((Path.cwd() / "tests/integration/test-charm-s3").glob("*.charm")), None)
+        path := next(
+            iter((Path.cwd() / "tests/integration/test-charm-s3").glob(f"*-{platform}.charm")),
+            None,
+        )
     ):
         raise FileNotFoundError("Could not find packed test charm.")
 
@@ -60,10 +63,11 @@ def test_charm() -> Path:
 
 
 @pytest.fixture
-def test_charm_s3_v0() -> Path:
+def test_charm_s3_v0(platform: str) -> Path:
     if not (
         path := next(
-            iter((Path.cwd() / "tests/integration/test-charm-s3-v0").glob("*.charm")), None
+            iter((Path.cwd() / "tests/integration/test-charm-s3-v0").glob(f"*-{platform}.charm")),
+            None,
         )
     ):
         raise FileNotFoundError("Could not find packed test charm (with S3 lib v0).")
